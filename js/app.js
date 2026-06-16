@@ -1,0 +1,1046 @@
+/**
+ * ============================================================
+ * 自助建站平台 - 核心应用逻辑
+ * 关键词分析 → 智能推荐 → 可视化编辑
+ * ============================================================
+ */
+
+const API_BASE = window.location.origin + '/api';
+
+const App = {
+  state: {
+    step: 'welcome',
+    keywords: '',
+    apiAvailable: false,
+    analysis: null,          // { suggestion, modules, template, colorScheme }
+    pageConfig: {
+      title: '',
+      subtitle: '',
+      primaryColor: '#334155',
+      accentColor: '#6366f1',
+      bgColor: '#ffffff',
+      textColor: '#1e293b'
+    },
+    modules: [],
+    selectedModuleIndex: -1,
+    configTree: null
+  },
+
+  init() {
+    this.bindEvents();
+    this.showStep('welcome');
+    this.renderModulePalette();
+    this.checkApiStatus();
+  },
+
+  /**
+   * 检测后端 API 是否可用
+   */
+  async checkApiStatus() {
+    try {
+      const res = await fetch(`${API_BASE}/status`, { method: 'GET', signal: AbortSignal.timeout(2000) });
+      if (res.ok) {
+        const data = await res.json();
+        this.state.apiAvailable = true;
+        console.log(`🔌 后端 API 已连接 | AI: ${data.hasOpenAI ? '已配置 ✓' : '未配置 Key'}`);
+        // 在欢迎页右上角显示连接状态
+        const badge = document.querySelector('.welcome-badge');
+        if (badge) {
+          badge.textContent = '🚀 智能建站平台';
+          badge.title = `API: 已连接 | AI: ${data.hasOpenAI ? 'GPT-4o在线' : '本地算法'}`;
+          badge.style.background = '#ecfdf5';
+          badge.style.color = '#059669';
+        }
+      }
+    } catch {
+      this.state.apiAvailable = false;
+      console.log('🔌 后端 API 未连接，使用本地算法');
+    }
+  },
+
+  /**
+   * API 请求通用方法（失败时返回 null）
+   */
+  async apiPost(path, body) {
+    if (!this.state.apiAvailable) return null;
+    try {
+      const res = await fetch(`${API_BASE}${path}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(15000)
+      });
+      if (!res.ok) throw new Error(`API error: ${res.status}`);
+      return await res.json();
+    } catch (e) {
+      console.warn(`API ${path} 请求失败:`, e.message);
+      return null;
+    }
+  },
+
+  bindEvents() {
+    // 欢迎页 → 关键词输入
+    document.getElementById('btn-start-analyze').addEventListener('click', () => this.startAnalysis());
+
+    // 回车触发分析
+    document.getElementById('keyword-input').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') this.startAnalysis();
+    });
+
+    // 分析页 → 编辑器
+    document.getElementById('btn-to-editor').addEventListener('click', () => this.enterEditor());
+    document.getElementById('btn-back-to-input').addEventListener('click', () => this.showStep('welcome'));
+
+    // 编辑器操作
+    document.getElementById('btn-preview-page').addEventListener('click', () => this.showPreview());
+    document.getElementById('btn-export-config').addEventListener('click', () => this.exportConfig());
+    document.getElementById('btn-export-config-preview').addEventListener('click', () => this.exportConfig());
+    document.getElementById('btn-back-to-editor').addEventListener('click', () => this.showStep('editor'));
+    document.getElementById('btn-publish-draft').addEventListener('click', () => this.publishDraft());
+
+    // 音乐推荐
+    document.getElementById('btn-go-music-standalone').addEventListener('click', () => this.showStep('music'));
+    document.getElementById('btn-back-from-music').addEventListener('click', () => this.showStep('welcome'));
+    document.getElementById('btn-analyze-music')?.addEventListener('click', () => this.analyzeMusicStandalone());
+    document.getElementById('toggle-music-panel').addEventListener('click', () => this.toggleMusicPanel());
+
+    // 页面配置变更
+    ['page-title', 'page-subtitle', 'page-primary-color', 'page-accent-color', 'page-bg-color', 'page-text-color'].forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.addEventListener('input', (e) => {
+        const key = id.replace('page-', '').replace(/-/g, '');
+        const map = {
+          'pagetitle': 'title',
+          'pagesubtitle': 'subtitle',
+          'pageprimarycolor': 'primaryColor',
+          'pageaccentcolor': 'accentColor',
+          'pagebgcolor': 'bgColor',
+          'pagetextcolor': 'textColor'
+        };
+        this.state.pageConfig[map[key]] = e.target.value;
+        this.renderPreview();
+      });
+    });
+  },
+
+  // ---- 视图切换 ----
+  showStep(step) {
+    this.state.step = step;
+    const steps = ['welcome', 'analysis', 'editor', 'preview', 'music'];
+    steps.forEach(s => {
+      const el = document.getElementById(`step-${s}`);
+      if (el) el.classList.toggle('active', s === step);
+    });
+    this.updateProgress(step);
+    window.scrollTo(0, 0);
+  },
+
+  updateProgress(step) {
+    const order = ['welcome', 'analysis', 'editor'];
+    const idx = order.indexOf(step);
+    document.querySelectorAll('.progress-bar .step').forEach((el, i) => {
+      el.classList.toggle('active', i <= idx);
+      el.classList.toggle('done', i < idx);
+    });
+  },
+
+  // ---- 关键词分析 ----
+  async startAnalysis() {
+    const input = document.getElementById('keyword-input');
+    const keywords = input.value.trim();
+    if (!keywords) {
+      input.style.borderColor = '#ef4444';
+      setTimeout(() => input.style.borderColor = '', 1500);
+      return;
+    }
+
+    this.state.keywords = keywords;
+
+    // 有 API 时优先调用后端
+    if (this.state.apiAvailable) {
+      const result = await this.apiPost('/analyze', { text: keywords });
+      if (result && result.modules) {
+        this.state.analysis = {
+          suggestion: result.suggestion,
+          modules: result.modules,
+          template: result.template || 'business',
+          colorScheme: result.colorScheme || { primary: '#6366f1', accent: '#f59e0b' },
+          matchScore: 1,
+          matchedKeywords: result.matchedKeywords || [],
+          reasoning: result.reasoning || ''
+        };
+        this.renderAnalysisResult();
+        this.showStep('analysis');
+        return;
+      }
+    }
+
+    // 本地兜底
+    this.analyzeKeywords(keywords);
+    this.renderAnalysisResult();
+    this.showStep('analysis');
+  },
+
+  analyzeKeywords(keywords) {
+    const kw = keywords.toLowerCase();
+
+    // 遍历所有模式，计算匹配度
+    let bestMatch = null;
+    let bestScore = 0;
+
+    for (const pattern of KEYWORD_PATTERNS) {
+      let score = 0;
+      for (const keyword of pattern.keywords) {
+        if (kw.includes(keyword.toLowerCase())) {
+          score++;
+        }
+      }
+      if (score > bestScore) {
+        bestScore = score;
+        bestMatch = pattern;
+      }
+    }
+
+    // 给关键词数量加权：如果输入了多个关键词，提高匹配度
+    const inputWords = kw.split(/[\s,，、]+/).filter(w => w.length > 0);
+    if (inputWords.length >= 3) bestScore += 0.5;
+
+    this.state.analysis = bestMatch && bestScore > 0
+      ? {
+          suggestion: bestMatch.suggestion,
+          modules: [...bestMatch.modules],
+          template: bestMatch.template,
+          colorScheme: { ...bestMatch.colorScheme },
+          matchScore: bestScore,
+          matchedKeywords: bestMatch.keywords.filter(k => kw.includes(k.toLowerCase()))
+        }
+      : {
+          ...DEFAULT_ANALYSIS,
+          modules: [...DEFAULT_ANALYSIS.modules],
+          colorScheme: { ...DEFAULT_ANALYSIS.colorScheme },
+          matchScore: 0,
+          matchedKeywords: []
+        };
+  },
+
+  renderAnalysisResult() {
+    const result = this.state.analysis;
+    const container = document.getElementById('analysis-result');
+    if (!container) return;
+
+    const template = LAYOUT_TEMPLATES[result.template];
+    const kw = this.state.keywords;
+
+    container.innerHTML = `
+      <div class="analysis-card">
+        <div class="analysis-header" style="background: linear-gradient(135deg, ${result.colorScheme.primary}, ${result.colorScheme.accent});">
+          <div class="analysis-badge">AI 分析结果</div>
+          <h2>${result.suggestion}</h2>
+          <p>基于您的关键词「<strong>${this.esc(kw)}</strong>」</p>
+        </div>
+
+        <div class="analysis-body">
+          ${result.matchScore > 0 ? `
+          <div class="analysis-section">
+            <h4>🔍 匹配关键词</h4>
+            <div class="match-tags">
+              ${result.matchedKeywords.map(k => `<span class="match-tag">${this.esc(k)}</span>`).join('')}
+            </div>
+          </div>
+          ` : `
+          <div class="analysis-section">
+            <h4>💡 未找到精确匹配</h4>
+            <p style="color:#888;font-size:0.9em;">为您推荐通用网站布局，您可以在编辑器中自由调整</p>
+          </div>
+          `}
+
+          <div class="analysis-section">
+            <h4>📐 推荐布局</h4>
+            <span class="template-tag">${template.name}</span>
+          </div>
+
+          <div class="analysis-section">
+            <h4>🧩 推荐页面结构 (${result.modules.length} 个模块)</h4>
+            <div class="module-flow">
+              ${result.modules.map((modType, i) => {
+                const mod = MODULE_TYPES[modType];
+                return `
+                  <div class="flow-item">
+                    <div class="flow-number">${i + 1}</div>
+                    <div class="flow-icon">${mod ? mod.icon : '📦'}</div>
+                    <div class="flow-label">${mod ? mod.label : modType}</div>
+                    <div class="flow-arrow">↓</div>
+                  </div>
+                `;
+              }).join('')}
+              <div class="flow-item end">
+                <div class="flow-number">✓</div>
+                <div class="flow-label">完成</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="analysis-section">
+            <h4>🎨 配色方案</h4>
+            <div class="color-swatch-row">
+              <div class="color-swatch" style="background:${result.colorScheme.primary};" title="主色"></div>
+              <div class="color-swatch" style="background:${result.colorScheme.accent};" title="强调色"></div>
+              <div class="color-swatch" style="background:#f8fafc;border:2px solid #e2e8f0;" title="背景色"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  },
+
+  // ---- 进入编辑器 ----
+  enterEditor() {
+    const analysis = this.state.analysis;
+    const cs = analysis.colorScheme;
+
+    // 初始化模块 —— 合并行业模板内容到默认配置上
+    const templateContent = TEMPLATE_CONTENT[analysis.suggestion] || {};
+    this.state.modules = analysis.modules.map((type, idx) => {
+      const defaultCfg = JSON.parse(JSON.stringify(MODULE_TYPES[type]?.defaultConfig || {}));
+      const overrideCfg = templateContent[type] || {};
+      return {
+        id: `mod-${Date.now()}-${idx}`,
+        type: type,
+        config: mergeDeep(defaultCfg, overrideCfg),
+        visible: true,
+        index: idx
+      };
+    });
+
+    // 初始化页面配置
+    this.state.pageConfig.primaryColor = cs.primary;
+    this.state.pageConfig.accentColor = cs.accent;
+    this.state.pageConfig.title = analysis.suggestion;
+    this.state.pageConfig.subtitle = '用一句话描述您的网站核心价值';
+    this.state.selectedModuleIndex = -1;
+
+    // 填充表单
+    const map = {
+      'page-title': ['title', 'pageConfig'],
+      'page-subtitle': ['subtitle', 'pageConfig'],
+      'page-primary-color': ['primaryColor', 'pageConfig'],
+      'page-accent-color': ['accentColor', 'pageConfig'],
+      'page-bg-color': ['bgColor', 'pageConfig'],
+      'page-text-color': ['textColor', 'pageConfig']
+    };
+    for (const [id, [key]] of Object.entries(map)) {
+      const el = document.getElementById(id);
+      if (el) el.value = this.state.pageConfig[key] || '';
+    }
+
+    document.getElementById('editor-site-name').textContent = analysis.suggestion;
+    document.getElementById('editor-module-count').textContent = this.state.modules.length + ' 个模块';
+
+    // 渲染
+    this.renderModuleList();
+    this.renderModuleProperties();
+    this.renderPreview();
+    this.renderConfigTree();
+
+    this.showStep('editor');
+  },
+
+  // ---- 模块列表 ----
+  renderModuleList() {
+    const container = document.getElementById('module-list');
+    if (!container) return;
+
+    container.innerHTML = this.state.modules.map((mod, idx) => {
+      const modType = MODULE_TYPES[mod.type];
+      return `
+        <div class="module-item ${idx === this.state.selectedModuleIndex ? 'selected' : ''}"
+             data-index="${idx}"
+             draggable="true">
+          <div class="module-drag-handle" title="拖拽排序">⠿</div>
+          <div class="module-item-content" onclick="App.selectModule(${idx})">
+            <span class="module-item-icon">${modType ? modType.icon : '📦'}</span>
+            <span class="module-item-name">${modType ? modType.label : mod.type}</span>
+          </div>
+          <button class="module-visibility-btn" onclick="App.toggleModuleVisibility(${idx})" title="${mod.visible ? '隐藏' : '显示'}">
+            ${mod.visible ? '👁' : '👁‍🗨'}
+          </button>
+          <button class="module-remove-btn" onclick="App.removeModule(${idx})" title="移除模块">✕</button>
+        </div>
+      `;
+    }).join('');
+
+    this.setupDragAndDrop();
+  },
+
+  setupDragAndDrop() {
+    const container = document.getElementById('module-list');
+    let draggedEl = null;
+
+    const items = container.querySelectorAll('.module-item');
+    items.forEach(el => {
+      el.addEventListener('dragstart', (e) => {
+        draggedEl = el;
+        el.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+      });
+      el.addEventListener('dragend', () => {
+        el.classList.remove('dragging');
+        draggedEl = null;
+      });
+      el.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        if (el !== draggedEl) {
+          const rect = el.getBoundingClientRect();
+          const next = (e.clientY - rect.top) > (rect.height / 2);
+          container.insertBefore(draggedEl, next ? el.nextSibling : el);
+        }
+      });
+    });
+
+    container.addEventListener('drop', (e) => {
+      e.preventDefault();
+      if (draggedEl) {
+        const items = [...container.querySelectorAll('.module-item')];
+        const newOrder = items.map(el => parseInt(el.dataset.index));
+        this.state.modules = newOrder.map(i => this.state.modules[i]);
+        this.state.modules.forEach((mod, i) => mod.index = i);
+        this.state.selectedModuleIndex = -1;
+        this.renderModuleList();
+        this.renderPreview();
+        this.renderConfigTree();
+      }
+    });
+  },
+
+  selectModule(index) {
+    this.state.selectedModuleIndex = index;
+    this.renderModuleList();
+    this.renderModuleProperties();
+  },
+
+  toggleModuleVisibility(index) {
+    this.state.modules[index].visible = !this.state.modules[index].visible;
+    this.renderModuleList();
+    this.renderPreview();
+  },
+
+  removeModule(index) {
+    if (this.state.modules.length <= 1) {
+      alert('至少保留一个模块');
+      return;
+    }
+    this.state.modules.splice(index, 1);
+    if (this.state.selectedModuleIndex >= this.state.modules.length) {
+      this.state.selectedModuleIndex = this.state.modules.length - 1;
+    }
+    this.renderModuleList();
+    this.renderModuleProperties();
+    this.renderPreview();
+    this.renderConfigTree();
+  },
+
+  addModule(type) {
+    const idx = this.state.modules.length;
+    this.state.modules.push({
+      id: `mod-${Date.now()}-${idx}`,
+      type: type,
+      config: JSON.parse(JSON.stringify(MODULE_TYPES[type]?.defaultConfig || {})),
+      visible: true,
+      index: idx
+    });
+    this.state.selectedModuleIndex = idx;
+    this.renderModuleList();
+    this.renderModuleProperties();
+    this.renderPreview();
+    this.renderConfigTree();
+    document.getElementById('editor-module-count').textContent = this.state.modules.length + ' 个模块';
+  },
+
+  // ---- 模块面板 ----
+  renderModulePalette(filter = '') {
+    const container = document.getElementById('module-palette');
+    if (!container) return;
+
+    const types = Object.values(MODULE_TYPES).filter(t =>
+      !filter || t.label.includes(filter) || t.type.includes(filter)
+    );
+
+    container.innerHTML = types.map(t => `
+      <div class="palette-item" onclick="App.addModule('${t.type}')">
+        <span>${t.icon}</span>
+        <span>${t.label}</span>
+      </div>
+    `).join('');
+  },
+
+  // ---- 模块属性面板 ----
+  renderModuleProperties() {
+    const container = document.getElementById('module-properties');
+    if (!container) return;
+
+    const idx = this.state.selectedModuleIndex;
+    if (idx < 0 || idx >= this.state.modules.length) {
+      container.innerHTML = '<div class="no-selection"><p>选择左侧模块编辑属性</p></div>';
+      return;
+    }
+
+    const mod = this.state.modules[idx];
+    const modType = MODULE_TYPES[mod.type];
+    if (!modType) {
+      container.innerHTML = '<div class="no-selection"><p>未知模块类型</p></div>';
+      return;
+    }
+    const cfg = mod.config;
+
+    let html = `<h4>${modType.icon} ${modType.label}</h4>`;
+
+    // 根据模块类型生成表单
+    switch (mod.type) {
+      case 'header':
+        html += this.buildSimpleForm(cfg, [
+          { key: 'siteName', label: '网站名称', type: 'text' }
+        ]);
+        break;
+      case 'hero':
+        html += this.buildSimpleForm(cfg, [
+          { key: 'title', label: '主标题', type: 'text' },
+          { key: 'subtitle', label: '副标题', type: 'text' },
+          { key: 'ctaText', label: '按钮文案', type: 'text' },
+          { key: 'bgColor', label: '背景色', type: 'color' },
+          { key: 'height', label: '高度', type: 'select', options: [
+            { value: 'small', label: '小' }, { value: 'medium', label: '中' },
+            { value: 'large', label: '大' }, { value: 'fullscreen', label: '全屏' }
+          ]}
+        ]);
+        break;
+      case 'text':
+        html += this.buildSimpleForm(cfg, [
+          { key: 'title', label: '标题', type: 'text' },
+          { key: 'content', label: '内容', type: 'textarea' },
+          { key: 'align', label: '对齐', type: 'select', options: [
+            { value: 'left', label: '左对齐' }, { value: 'center', label: '居中' }, { value: 'right', label: '右对齐' }
+          ]}
+        ]);
+        break;
+      case 'features':
+        html += this.buildSimpleForm(cfg, [
+          { key: 'title', label: '标题', type: 'text' },
+          { key: 'subtitle', label: '副标题', type: 'text' },
+          { key: 'columns', label: '列数', type: 'select', options: [
+            { value: 2, label: '2列' }, { value: 3, label: '3列' }, { value: 4, label: '4列' }
+          ]}
+        ]);
+        html += '<label style="font-size:0.85em;color:#888;">特点项 (在下方编辑)</label>';
+        break;
+      case 'pricing':
+        html += this.buildSimpleForm(cfg, [
+          { key: 'title', label: '标题', type: 'text' },
+          { key: 'subtitle', label: '副标题', type: 'text' }
+        ]);
+        break;
+      case 'contact':
+        html += this.buildSimpleForm(cfg, [
+          { key: 'title', label: '标题', type: 'text' },
+          { key: 'address', label: '地址', type: 'text' },
+          { key: 'phone', label: '电话', type: 'text' },
+          { key: 'email', label: '邮箱', type: 'text' }
+        ]);
+        break;
+      case 'button':
+        html += this.buildSimpleForm(cfg, [
+          { key: 'text', label: '按钮文案', type: 'text' },
+          { key: 'link', label: '链接', type: 'text' },
+          { key: 'style', label: '样式', type: 'select', options: [
+            { value: 'solid', label: '实心' }, { value: 'outline', label: '描边' }, { value: 'ghost', label: '幽灵' }
+          ]},
+          { key: 'size', label: '尺寸', type: 'select', options: [
+            { value: 'small', label: '小' }, { value: 'medium', label: '中' }, { value: 'large', label: '大' }
+          ]},
+          { key: 'align', label: '对齐', type: 'select', options: [
+            { value: 'left', label: '左' }, { value: 'center', label: '中' }, { value: 'right', label: '右' }
+          ]}
+        ]);
+        break;
+      case 'footer':
+        html += this.buildSimpleForm(cfg, [
+          { key: 'copyright', label: '版权信息', type: 'text' }
+        ]);
+        break;
+      case 'products':
+        html += this.buildSimpleForm(cfg, [
+          { key: 'title', label: '标题', type: 'text' }
+        ]);
+        break;
+      case 'gallery':
+        html += this.buildSimpleForm(cfg, [
+          { key: 'title', label: '标题', type: 'text' },
+          { key: 'columns', label: '列数', type: 'select', options: [
+            { value: 2, label: '2列' }, { value: 3, label: '3列' }, { value: 4, label: '4列' }
+          ]}
+        ]);
+        break;
+      case 'image':
+        html += this.buildSimpleForm(cfg, [
+          { key: 'caption', label: '标题/说明', type: 'text' },
+          { key: 'alt', label: 'Alt文本', type: 'text' },
+          { key: 'shadow', label: '阴影', type: 'select', options: [
+            { value: 'none', label: '无' }, { value: 'small', label: '小' }, { value: 'medium', label: '中' }, { value: 'large', label: '大' }
+          ]}
+        ]);
+        break;
+      case 'imageText':
+        html += this.buildSimpleForm(cfg, [
+          { key: 'title', label: '标题', type: 'text' },
+          { key: 'content', label: '内容', type: 'textarea' },
+          { key: 'imageSide', label: '图片位置', type: 'select', options: [
+            { value: 'left', label: '左侧' }, { value: 'right', label: '右侧' }
+          ]}
+        ]);
+        break;
+      case 'team':
+        html += this.buildSimpleForm(cfg, [
+          { key: 'title', label: '标题', type: 'text' }
+        ]);
+        break;
+      case 'testimonials':
+        html += this.buildSimpleForm(cfg, [
+          { key: 'title', label: '标题', type: 'text' }
+        ]);
+        break;
+      case 'divider':
+        html += this.buildSimpleForm(cfg, [
+          { key: 'style', label: '样式', type: 'select', options: [
+            { value: 'solid', label: '实线' }, { value: 'dashed', label: '虚线' }, { value: 'dotted', label: '点线' }
+          ]},
+          { key: 'color', label: '颜色', type: 'color' },
+          { key: 'thickness', label: '粗细', type: 'select', options: [
+            { value: '1px', label: '1px' }, { value: '2px', label: '2px' }, { value: '3px', label: '3px' }, { value: '4px', label: '4px' }
+          ]}
+        ]);
+        break;
+      default:
+        html += '<p style="color:#888;font-size:0.9em;">该模块暂无可编辑属性</p>';
+    }
+
+    html += `<button class="btn btn-secondary btn-small" onclick="App.applyModuleConfig()" style="margin-top:12px;width:100%;">应用修改</button>`;
+    container.innerHTML = html;
+  },
+
+  buildSimpleForm(cfg, fields) {
+    return fields.map(f => {
+      const val = cfg[f.key] !== undefined ? cfg[f.key] : '';
+      if (f.type === 'text') {
+        return `
+          <div class="form-group">
+            <label>${f.label}</label>
+            <input class="form-input prop-${f.key}" value="${this.esc(String(val))}" />
+          </div>
+        `;
+      } else if (f.type === 'textarea') {
+        return `
+          <div class="form-group">
+            <label>${f.label}</label>
+            <textarea class="form-input prop-${f.key}">${this.esc(String(val))}</textarea>
+          </div>
+        `;
+      } else if (f.type === 'color') {
+        return `
+          <div class="form-group">
+            <label>${f.label}</label>
+            <input type="color" class="form-input prop-${f.key}" value="${val}" style="height:38px;padding:4px;" />
+          </div>
+        `;
+      } else if (f.type === 'select' && f.options) {
+        return `
+          <div class="form-group">
+            <label>${f.label}</label>
+            <select class="form-input prop-${f.key}">
+              ${f.options.map(o => `<option value="${o.value}" ${String(val) === String(o.value) ? 'selected' : ''}>${o.label}</option>`).join('')}
+            </select>
+          </div>
+        `;
+      }
+      return '';
+    }).join('');
+  },
+
+  applyModuleConfig() {
+    const idx = this.state.selectedModuleIndex;
+    if (idx < 0) return;
+    const mod = this.state.modules[idx];
+    const cfg = mod.config;
+
+    // 通用属性读取：遍历所有 .prop-* 输入
+    const fieldKeys = Object.keys(cfg);
+    fieldKeys.forEach(key => {
+      const el = document.querySelector(`.prop-${key}`);
+      if (el) {
+        const val = el.type === 'checkbox' ? el.checked : el.value;
+        if (val !== undefined && val !== null) {
+          cfg[key] = val;
+        }
+      }
+    });
+
+    this.renderModuleProperties();
+    this.renderPreview();
+    this.renderConfigTree();
+  },
+
+  // ---- 预览 ----
+  renderPreview() {
+    if (window.Preview) Preview.render(this.state);
+  },
+
+  showPreview() {
+    this.renderPreview();
+    this.showStep('preview');
+  },
+
+  renderConfigTree() {
+    if (window.Preview) Preview.renderConfigTree(this.state);
+  },
+
+  // ---- 导出 ----
+  exportConfig() {
+    const tree = Preview ? Preview.buildConfigTree(this.state) : {};
+    const blob = new Blob([JSON.stringify(tree, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `website-config-${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  },
+
+  async publishDraft() {
+    const tree = Preview ? Preview.buildConfigTree(this.state) : {};
+
+    // 有 API 则保存到后端
+    if (this.state.apiAvailable) {
+      const result = await this.apiPost('/config/save', {
+        title: this.state.pageConfig.title || '未命名网站',
+        config: tree
+      });
+      if (result) {
+        alert(`✅ 草稿已保存！\nID: ${result.id}\n可在 data/ 目录找到`);
+        return;
+      }
+    }
+
+    console.log('Published config:', JSON.stringify(tree, null, 2));
+    alert('✅ 草稿已保存！\n配置树已输出到控制台。\n生产环境下将同步至服务器。');
+  },
+
+  // ================================================================
+  // 音乐推荐
+  // ================================================================
+
+  /**
+   * 切换编辑器配乐面板 + 自动分析
+   */
+  toggleMusicPanel() {
+    const body = document.getElementById('music-panel-body');
+    const icon = document.getElementById('music-toggle-icon');
+    if (!body) return;
+
+    const isOpen = body.style.display !== 'none';
+    body.style.display = isOpen ? 'none' : 'block';
+    icon.textContent = isOpen ? '▶' : '▼';
+
+    if (!isOpen) {
+      // 打开时自动分析
+      this.recommendMusicFromPage();
+    }
+  },
+
+  /**
+   * 编辑器内配乐推荐：从页面内容提取文本分析
+   */
+  async recommendMusicFromPage() {
+    const container = document.getElementById('music-recommendation-result');
+    if (!container) return;
+
+    container.innerHTML = '<div class="music-loading">分析页面内容...<br><small>基于 Thayer 情绪模型 + MIR 特征匹配</small></div>';
+
+    // 收集页面关键词作为分析文本
+    const pageTitle = this.state.pageConfig.title || '';
+    const pageSubtitle = this.state.pageConfig.subtitle || '';
+    const keywords = this.state.keywords || '';
+    const moduleTexts = this.state.modules.map(mod => {
+      const modType = MODULE_TYPES[mod.type];
+      const cfg = mod.config;
+      return [modType?.label || '', cfg.title || '', cfg.content || '', cfg.subtitle || ''].join(' ');
+    }).join(' ');
+
+    const text = [pageTitle, pageSubtitle, keywords, moduleTexts].join(' ').trim();
+    if (!text) {
+      container.innerHTML = '<div class="music-error">暂无页面内容，请在编辑器中添加模块</div>';
+      return;
+    }
+
+    // 优先使用后端 API
+    if (this.state.apiAvailable) {
+      const result = await this.apiPost('/music/recommend', { text });
+      if (result && result.textAnalysis) {
+        this.renderMusicResults(result, container, 'editor');
+        return;
+      }
+    }
+
+    // 本地兜底
+    setTimeout(() => {
+      try {
+        const result = MusicRecommender.recommend(text);
+        this.renderMusicResults(result, container, 'editor');
+      } catch (e) {
+        container.innerHTML = `<div class="music-error">分析出错：${this.esc(e.message)}</div>`;
+      }
+    }, 400);
+  },
+
+  /**
+   * 独立文字匹配音乐
+   */
+  async analyzeMusicStandalone() {
+    const input = document.getElementById('music-text-input');
+    const container = document.getElementById('music-standalone-result');
+    if (!input || !container) return;
+
+    const text = input.value.trim();
+    if (!text) {
+      input.style.borderColor = '#ef4444';
+      setTimeout(() => input.style.borderColor = '', 1500);
+      return;
+    }
+
+    container.innerHTML = '<div class="music-loading">正在分析文本情绪...<br><small>Thayer VA 模型 · 维度计算中</small></div>';
+
+    // 优先使用后端 API
+    if (this.state.apiAvailable) {
+      const result = await this.apiPost('/music/recommend', { text });
+      if (result && result.textAnalysis) {
+        this.renderMusicResults(result, container, 'standalone');
+        return;
+      }
+    }
+
+    // 本地兜底
+    setTimeout(() => {
+      try {
+        const result = MusicRecommender.recommend(text);
+        this.renderMusicResults(result, container, 'standalone');
+      } catch (e) {
+        container.innerHTML = `<div class="music-error">分析出错：${this.esc(e.message)}</div>`;
+      }
+    }, 500);
+  },
+
+  /**
+   * 渲染音乐推荐结果（三路径 + VA 分析）
+   */
+  renderMusicResults(result, container, mode = 'standalone') {
+    const analysis = result.textAnalysis;
+    const params = result.musicParams;
+    const moodLabel = analysis.moodLabel || 'neutral';
+    const moodTag = `<span class="mood-tag ${moodLabel}">${MusicRecommender.MOOD_REGIONS[moodLabel]?.label || '中性'}</span>`;
+
+    // 把 valence/arousal 归一化到 0-1 用于进度条
+    const vNorm = (analysis.valence + 1) / 2;
+    const aNorm = (analysis.arousal + 1) / 2;
+    const vColor = vNorm > 0.5 ? '#10b981' : '#6366f1';
+    const aColor = aNorm > 0.5 ? '#f59e0b' : '#6366f1';
+
+    container.innerHTML = `
+      <div class="music-result-section">
+        <div class="music-result-header">
+          <h3>🎵 推荐结果 ${moodTag}</h3>
+          <p style="color:var(--text-light);font-size:0.85em;">
+            情绪维度：正向度 ${(analysis.valence * 100).toFixed(0)}% · 唤醒度 ${(analysis.arousal * 100).toFixed(0)}%
+            ${analysis.keywords.length ? `· 匹配关键词：${analysis.keywords.slice(0, 6).join('、')}` : ''}
+          </p>
+        </div>
+
+        <!-- VA 分布 -->
+        <div style="margin-bottom:16px;">
+          <div class="va-bar">
+            <span class="va-bar-label">正向度</span>
+            <div class="va-bar-track">
+              <div class="va-bar-fill" style="width:${(vNorm * 100).toFixed(0)}%;background:${vColor};"></div>
+            </div>
+            <span style="font-size:0.8em;font-weight:600;width:36px;">${(analysis.valence * 100).toFixed(0)}%</span>
+          </div>
+          <div class="va-bar">
+            <span class="va-bar-label">唤醒度</span>
+            <div class="va-bar-track">
+              <div class="va-bar-fill" style="width:${(aNorm * 100).toFixed(0)}%;background:${aColor};"></div>
+            </div>
+            <span style="font-size:0.8em;font-weight:600;width:36px;">${(analysis.arousal * 100).toFixed(0)}%</span>
+          </div>
+          <div class="va-bar">
+            <span class="va-bar-label">BPM</span>
+            <div class="va-bar-track">
+              <div class="va-bar-fill" style="width:${(params.bpm / 200 * 100).toFixed(0)}%;background:#8b5cf6;"></div>
+            </div>
+            <span style="font-size:0.8em;font-weight:600;width:36px;">${params.bpm}</span>
+          </div>
+        </div>
+
+        <!-- 三路径标签页 -->
+        <div class="music-tabs">
+          <button class="music-tab active" data-path="library" onclick="App.switchMusicTab(this, 'library')">📀 曲库匹配</button>
+          <button class="music-tab" data-path="ai" onclick="App.switchMusicTab(this, 'ai')">🤖 AI 生成</button>
+          <button class="music-tab" data-path="synthesis" onclick="App.switchMusicTab(this, 'synthesis')">🔊 前端合成</button>
+        </div>
+
+        <div id="music-tab-library">
+          ${this.renderLibraryMatchesHTML(result.libraryMatches)}
+        </div>
+        <div id="music-tab-ai" style="display:none;">
+          ${this.renderAIPromptHTML(result.aiPrompt)}
+        </div>
+        <div id="music-tab-synthesis" style="display:none;">
+          ${this.renderSynthesisHTML(result.synthesisParams)}
+        </div>
+      </div>
+    `;
+  },
+
+  /**
+   * 切换音乐结果标签页
+   */
+  switchMusicTab(btn, path) {
+    // 更新 tab 状态
+    document.querySelectorAll('.music-tab').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+    // 切换内容
+    ['library', 'ai', 'synthesis'].forEach(p => {
+      const el = document.getElementById(`music-tab-${p}`);
+      if (el) el.style.display = p === path ? 'block' : 'none';
+    });
+  },
+
+  /**
+   * 渲染曲库匹配列表 HTML
+   */
+  renderLibraryMatchesHTML(tracks) {
+    if (!tracks || tracks.length === 0) {
+      return '<div class="no-match">未找到匹配度足够的曲目</div>';
+    }
+
+    return tracks.map(track => {
+      const pct = Math.round(track.score * 100);
+      const scoreColor = pct >= 70 ? '#10b981' : pct >= 50 ? '#f59e0b' : '#94a3b8';
+      return `
+        <div class="track-card">
+          <div class="track-score" style="background:${scoreColor};">${pct}%</div>
+          <div class="track-info">
+            <div class="track-title">${this.esc(track.title)}</div>
+            <div class="track-meta">
+              <span>${this.esc(track.genre || '')}</span>
+              <span>${track.bpm} BPM</span>
+              <span class="track-tag ${track.mode || 'major'}">${track.mode === 'minor' ? '小调' : '大调'}</span>
+              <span>能量 ${Math.round((track.energy || 0) * 10)}/10</span>
+              <span style="color:#888;">${track.license || ''}</span>
+            </div>
+          </div>
+          <div style="font-size:0.75em;color:var(--text-light);text-align:right;">
+            <div>V: ${track.valence?.toFixed(2)}</div>
+            <div>A: ${track.arousal?.toFixed(2)}</div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  },
+
+  /**
+   * 渲染 AI 生成提示词 HTML
+   */
+  renderAIPromptHTML(aiPrompt) {
+    if (!aiPrompt || !aiPrompt.prompt) {
+      return '<div class="no-match">提示词生成失败</div>';
+    }
+
+    return `
+      <div class="ai-prompt-card">${this.esc(aiPrompt.prompt)}</div>
+      <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn-secondary btn-small" onclick="App.copyText('${this.esc(aiPrompt.prompt).replace(/'/g, "\\'")}')">📋 复制提示词</button>
+      </div>
+    `;
+  },
+
+  /**
+   * 渲染前端合成参数 HTML
+   */
+  renderSynthesisHTML(synthesisParams) {
+    if (!synthesisParams || !synthesisParams.parameters) {
+      return '<div class="no-match">合成参数生成失败</div>';
+    }
+
+    const params = synthesisParams.parameters;
+    const paramRows = Object.entries(params).map(([key, val]) => {
+      const label = {
+        waveform: '波形', harmonics: '谐波', lfoRate: 'LFO 速率',
+        filter: '滤波器', filterFreq: '滤波频率', reverb: '混响',
+        bpm: 'BPM', duration: '时长(秒)', noteDensity: '音符密度',
+        arpeggiated: '琶音', octaveRange: '八度范围'
+      }[key] || key;
+
+      let display = String(val);
+      if (key === 'harmonics') display = `[${val.join(', ')}]`;
+      if (key === 'lfoRate' || key === 'reverb') display = val.toFixed(2);
+
+      return `
+        <div class="param-row">
+          <span class="param-label">${label}</span>
+          <span class="param-value">${display}</span>
+        </div>
+      `;
+    }).join('');
+
+    return `
+      <div class="synthesis-card">
+        <div style="font-weight:600;margin-bottom:8px;">${this.esc(synthesisParams.description || 'Web Audio 合成参数')}</div>
+        ${paramRows}
+        <div class="synthesis-copyright">${this.esc(synthesisParams.copyright || '')}</div>
+      </div>
+    `;
+  },
+
+  /**
+   * 复制文本工具
+   */
+  copyText(text) {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(text).then(() => {
+        alert('✅ 已复制到剪贴板');
+      }).catch(() => {
+        // fallback
+        this.fallbackCopy(text);
+      });
+    } else {
+      this.fallbackCopy(text);
+    }
+  },
+
+  fallbackCopy(text) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); alert('✅ 已复制到剪贴板'); } catch (e) { alert('❌ 复制失败'); }
+    document.body.removeChild(ta);
+  },
+
+  // ---- 工具 ----
+  esc(str) {
+    if (!str) return '';
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+};
+
+document.addEventListener('DOMContentLoaded', () => App.init());

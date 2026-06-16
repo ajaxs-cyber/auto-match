@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>智能建站 — 输入关键词，AI 帮你生成网站</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- ========== 进度条 ========== -->
+  <nav class="progress-bar">
+    <div class="step active" id="p-welcome">
+      <span class="step-num">1</span>
+      <span>描述需求</span>
+    </div>
+    <div class="step" id="p-analysis">
+      <span class="step-num">2</span>
+      <span>AI 分析</span>
+    </div>
+    <div class="step" id="p-editor">
+      <span class="step-num">3</span>
+      <span>编辑页面</span>
+    </div>
+  </nav>
+
+  <!-- ========== Step 1: 欢迎 + 关键词输入 ========== -->
+  <div class="step-container active" id="step-welcome">
+    <div class="welcome-content">
+      <div class="welcome-badge">🚀 智能建站平台</div>
+      <h1>输入关键词，<br>AI 为您生成网站</h1>
+      <p>描述您想要的网站类型，我们为您推荐合适的页面结构和内容布局</p>
+
+      <div class="keyword-input-area">
+        <div class="keyword-input-wrapper">
+          <input
+            type="text"
+            id="keyword-input"
+            class="keyword-input"
+            placeholder="例如：我想做一个餐饮网站、企业官网、电商平台..."
+            autofocus
+          />
+          <button class="btn btn-primary" id="btn-start-analyze">AI 分析</button>
+        </div>
+        <div class="keyword-hints">
+          <span>试试：</span>
+          <span class="hint-tag" onclick="document.getElementById('keyword-input').value='我想开一家咖啡店，展示菜单和店面环境'; App.startAnalysis();">☕ 咖啡店</span>
+          <span class="hint-tag" onclick="document.getElementById('keyword-input').value='做一个科技公司官网，展示产品和团队'; App.startAnalysis();">🏢 科技公司</span>
+          <span class="hint-tag" onclick="document.getElementById('keyword-input').value='个人作品集网站，展示我的设计作品'; App.startAnalysis();">🎨 作品集</span>
+          <span class="hint-tag" onclick="document.getElementById('keyword-input').value='在线教育平台，销售课程'; App.startAnalysis();">📚 在线教育</span>
+        </div>
+      </div>
+
+      <div class="welcome-divider">
+        <span>或</span>
+      </div>
+
+      <div class="music-entry">
+        <p>想让音乐匹配您的文字？试试我们的</p>
+        <button class="btn btn-secondary" id="btn-go-music-standalone">🎵 配乐推荐系统</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== Step 2: AI 分析结果 ========== -->
+  <div class="step-container" id="step-analysis">
+    <div class="section-header">
+      <h2>AI 分析结果</h2>
+      <p>基于您的描述，我们推荐以下网站结构</p>
+    </div>
+    <div id="analysis-result"></div>
+    <div class="btn-group">
+      <button class="btn btn-secondary" id="btn-back-to-input">重新输入</button>
+      <button class="btn btn-primary" id="btn-to-editor">进入编辑器</button>
+    </div>
+  </div>
+
+  <!-- ========== Step 3: 编辑器 ========== -->
+  <div class="step-container" id="step-editor" style="max-width:none;padding:0;">
+    <div class="editor-layout">
+
+      <!-- 左侧：模块面板 -->
+      <div class="editor-sidebar left">
+        <div class="editor-header">
+          <div class="editor-header-info">
+            <strong id="editor-site-name">我的网站</strong>
+            <span class="divider">|</span>
+            <span id="editor-module-count">0 个模块</span>
+          </div>
+        </div>
+
+        <div class="sidebar-section">
+          <h4>页面模块 · 拖拽排序</h4>
+        </div>
+        <div class="module-list" id="module-list"></div>
+
+        <div class="sidebar-section" style="border-top:2px solid var(--border);">
+          <h4>➕ 添加模块</h4>
+          <div class="module-palette" id="module-palette"></div>
+        </div>
+      </div>
+
+      <!-- 中间：预览 -->
+      <div class="editor-main">
+        <div class="editor-header">
+          <div class="editor-header-info">
+            <span>📱 实时预览</span>
+          </div>
+          <div>
+            <button class="btn btn-primary btn-small" id="btn-preview-page">全屏预览</button>
+          </div>
+        </div>
+        <div class="preview-area">
+          <div class="preview-frame" id="page-preview"></div>
+        </div>
+
+        <!-- 配置树 -->
+        <div class="config-tree-section">
+          <h4>📋 配置树 (JSON)</h4>
+          <div id="config-tree-view"><pre style="margin:0;color:#999;">等待生成...</pre></div>
+          <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
+            <button class="btn btn-secondary btn-small" id="btn-export-config">导出配置</button>
+            <button class="btn btn-primary btn-small" id="btn-publish-draft">保存草稿</button>
+          </div>
+        </div>
+
+        <!-- 配乐推荐 -->
+        <div class="music-panel">
+          <div class="music-panel-header" id="toggle-music-panel">
+            <span>🎵 配乐推荐</span>
+            <span class="music-toggle" id="music-toggle-icon">▶</span>
+          </div>
+          <div class="music-panel-body" id="music-panel-body" style="display:none;">
+            <div id="music-recommendation-result">
+              <p style="color:#888;text-align:center;padding:20px 0;">点击展开，系统将分析页面内容并推荐配乐</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 右侧：属性面板 -->
+      <div class="editor-sidebar right">
+        <div class="editor-header">
+          <span>⚙️ 页面设置</span>
+        </div>
+
+        <div class="sidebar-section">
+          <h4>页面信息</h4>
+          <div class="form-group">
+            <label>网站标题</label>
+            <input class="form-input" id="page-title" placeholder="网站标题" />
+          </div>
+          <div class="form-group">
+            <label>副标题</label>
+            <input class="form-input" id="page-subtitle" placeholder="副标题" />
+          </div>
+          <div class="form-row">
+            <div class="form-group" style="flex:1">
+              <label>主色</label>
+              <input type="color" class="form-input" id="page-primary-color" style="height:38px;padding:4px;" />
+            </div>
+            <div class="form-group" style="flex:1">
+              <label>强调色</label>
+              <input type="color" class="form-input" id="page-accent-color" style="height:38px;padding:4px;" />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group" style="flex:1">
+              <label>背景色</label>
+              <input type="color" class="form-input" id="page-bg-color" style="height:38px;padding:4px;" value="#ffffff" />
+            </div>
+            <div class="form-group" style="flex:1">
+              <label>文字色</label>
+              <input type="color" class="form-input" id="page-text-color" style="height:38px;padding:4px;" value="#1e293b" />
+            </div>
+          </div>
+        </div>
+
+        <div class="sidebar-section" style="border-top:1px solid var(--border);">
+          <h4>模块属性</h4>
+        </div>
+        <div class="module-properties" id="module-properties">
+          <div class="no-selection"><p>选择左侧模块编辑属性</p></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ========== Step 4: 全屏预览 ========== -->
+  <div class="step-container" id="step-preview">
+    <div class="section-header">
+      <h2>网站预览</h2>
+      <p>以下为最终页面效果</p>
+    </div>
+    <div class="preview-frame-full" id="page-preview-full"></div>
+    <div class="btn-group">
+      <button class="btn btn-secondary" id="btn-back-to-editor">返回编辑</button>
+      <button class="btn btn-primary" id="btn-export-config-preview" style="margin-left:8px;">导出配置</button>
+    </div>
+  </div>
+
+  <!-- ========== Step 5: 独立配乐推荐 ========== -->
+  <div class="step-container" id="step-music">
+    <div class="section-header">
+      <h2>🎵 配乐推荐系统</h2>
+      <p>输入一段文字，AI 分析情绪后从多个维度为您匹配音乐</p>
+    </div>
+
+    <div class="music-input-area">
+      <textarea id="music-text-input" class="music-textarea" placeholder="输入一段描述文字，例如：&#10;一个宁静的午后，阳光透过树叶洒在咖啡桌上，温暖而惬意...&#10;&#10;或输入您网站的品牌描述、场景氛围等..." rows="5"></textarea>
+      <div class="music-input-actions">
+        <button class="btn btn-secondary" id="btn-back-from-music">← 返回首页</button>
+        <button class="btn btn-primary" id="btn-analyze-music">🎵 分析匹配</button>
+      </div>
+    </div>
+
+    <div id="music-standalone-result">
+      <div class="music-placeholder">
+        <p>输入文字后点击"分析匹配"，系统将通过 Thayer 情绪模型分析文本情绪，</p>
+        <p>从三个方面为您推荐音乐方案：</p>
+        <div class="music-path-intro">
+          <div class="path-card">
+            <div class="path-icon">📀</div>
+            <strong>曲库匹配</strong>
+            <span>从自有曲库按算法匹配最合适的乐曲</span>
+          </div>
+          <div class="path-card">
+            <div class="path-icon">🤖</div>
+            <strong>AI 生成</strong>
+            <span>生成可供 AI 音乐工具使用的提示词</span>
+          </div>
+          <div class="path-card">
+            <div class="path-icon">🔊</div>
+            <strong>前端合成</strong>
+            <span>Web Audio API 实时合成背景音乐参数</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/preview.js"></script>
+  <script src="js/music-recommender.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
