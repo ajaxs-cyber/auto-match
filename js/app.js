@@ -114,6 +114,18 @@ const App = {
     document.getElementById('btn-analyze-music')?.addEventListener('click', () => this.analyzeMusicStandalone());
     document.getElementById('toggle-music-panel').addEventListener('click', () => this.toggleMusicPanel());
 
+    // 预览区点击选中模块
+    const previewArea = document.querySelector('.preview-area');
+    if (previewArea) {
+      previewArea.addEventListener('click', (e) => {
+        const wrapper = e.target.closest('.preview-module-wrapper');
+        if (wrapper && wrapper.dataset.moduleIndex !== undefined) {
+          const index = parseInt(wrapper.dataset.moduleIndex);
+          this.selectModule(index);
+        }
+      });
+    }
+
     // 页面配置变更
     ['page-title', 'page-subtitle', 'page-primary-color', 'page-accent-color', 'page-bg-color', 'page-text-color'].forEach(id => {
       const el = document.getElementById(id);
@@ -437,9 +449,21 @@ const App = {
   },
 
   selectModule(index) {
+    if (index < 0 || index >= this.state.modules.length) return;
     this.state.selectedModuleIndex = index;
     this.renderModuleList();
     this.renderModuleProperties();
+    this.renderPreview();
+
+    // 滚动预览区到选中模块
+    setTimeout(() => {
+      const wrapper = document.querySelector(`.preview-module-wrapper[data-module-index="${index}"]`);
+      if (wrapper) {
+        wrapper.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        wrapper.classList.add('selected-flash');
+        setTimeout(() => wrapper.classList.remove('selected-flash'), 1000);
+      }
+    }, 50);
   },
 
   toggleModuleVisibility(index) {
@@ -454,6 +478,8 @@ const App = {
       return;
     }
     this.state.modules.splice(index, 1);
+    // 重新索引
+    this.state.modules.forEach((m, i) => m.index = i);
     if (this.state.selectedModuleIndex >= this.state.modules.length) {
       this.state.selectedModuleIndex = this.state.modules.length - 1;
     }
@@ -470,10 +496,17 @@ const App = {
         return;
       }
       const idx = this.state.modules.length;
+      const defaultCfg = JSON.parse(JSON.stringify(MODULE_TYPES[type]?.defaultConfig || {}));
+      // 合并行业模板内容（如果有），让新加的模块也有丰富内容
+      const analysis = this.state.analysis;
+      const templateContent = analysis && TEMPLATE_CONTENT[analysis.suggestion]
+        ? (TEMPLATE_CONTENT[analysis.suggestion][type] || {})
+        : {};
+      const config = mergeDeep(defaultCfg, templateContent);
       this.state.modules.push({
         id: `mod-${Date.now()}-${idx}`,
         type: type,
-        config: JSON.parse(JSON.stringify(MODULE_TYPES[type]?.defaultConfig || {})),
+        config: config,
         visible: true,
         index: idx
       });
@@ -483,6 +516,16 @@ const App = {
       this.renderPreview();
       this.renderConfigTree();
       document.getElementById('editor-module-count').textContent = this.state.modules.length + ' 个模块';
+
+      // 滚动预览到新添加的模块
+      setTimeout(() => {
+        const wrapper = document.querySelector(`.preview-module-wrapper[data-module-index="${idx}"]`);
+        if (wrapper) {
+          wrapper.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          wrapper.classList.add('selected-flash');
+          setTimeout(() => wrapper.classList.remove('selected-flash'), 1200);
+        }
+      }, 100);
     } catch (e) {
       console.error('addModule 出错:', e);
     }

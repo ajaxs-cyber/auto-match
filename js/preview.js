@@ -25,12 +25,12 @@ const Preview = {
   },
 
   buildPageHTML(state) {
-    const { pageConfig, modules } = state || {};
+    const { pageConfig, modules, selectedModuleIndex } = state || {};
     const pc = pageConfig || {};
 
     let modulesHTML = (modules || [])
       .filter(m => m && m.visible)
-      .map(mod => this.renderModule(mod, pc))
+      .map(mod => this.renderModule(mod, pc, selectedModuleIndex))
       .join('');
 
     return `
@@ -40,10 +40,16 @@ const Preview = {
     `;
   },
 
-  renderModule(mod, pc) {
+  renderModule(mod, pc, selectedIndex) {
     const fn = this[`render_${mod.type}`];
-    if (fn) return fn(mod.config, pc);
-    return `<section class="preview-module" style="padding:40px;text-align:center;color:#999;">未知模块: ${mod.type}</section>`;
+    let content;
+    if (fn) {
+      content = fn(mod.config, pc);
+    } else {
+      content = `<section class="preview-module" style="padding:40px;text-align:center;color:#999;">未知模块: ${mod.type}</section>`;
+    }
+    const isSelected = mod && mod.index === selectedIndex;
+    return `<div class="preview-module-wrapper${isSelected ? ' selected' : ''}" data-module-index="${mod.index}">${content}</div>`;
   },
 
   // ---- 页头 ----
