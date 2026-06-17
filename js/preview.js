@@ -9,18 +9,27 @@ const Preview = {
   render(state) {
     const container = document.getElementById('page-preview');
     const fullContainer = document.getElementById('page-preview-full');
-    if (!container) return;
+    if (!container) {
+      console.warn('Preview.render: #page-preview 元素未找到');
+      return;
+    }
 
-    container.innerHTML = this.buildPageHTML(state);
-    if (fullContainer) fullContainer.innerHTML = this.buildPageHTML(state);
+    try {
+      const html = this.buildPageHTML(state);
+      container.innerHTML = html;
+      if (fullContainer) fullContainer.innerHTML = html;
+    } catch (e) {
+      console.error('Preview.render 渲染出错:', e);
+      container.innerHTML = '<div style="text-align:center;padding:60px;color:#ef4444;">预览渲染出错，请查看控制台日志</div>';
+    }
   },
 
   buildPageHTML(state) {
-    const { pageConfig, modules } = state;
-    const pc = pageConfig;
+    const { pageConfig, modules } = state || {};
+    const pc = pageConfig || {};
 
-    let modulesHTML = modules
-      .filter(m => m.visible)
+    let modulesHTML = (modules || [])
+      .filter(m => m && m.visible)
       .map(mod => this.renderModule(mod, pc))
       .join('');
 

@@ -27,6 +27,7 @@ const App = {
   },
 
   init() {
+    window.App = this;            // 暴露到全局，确保 inline onclick 兼容
     this.bindEvents();
     this.showStep('welcome');
     this.renderModulePalette();
@@ -98,7 +99,16 @@ const App = {
     document.getElementById('btn-back-to-editor').addEventListener('click', () => this.showStep('editor'));
     document.getElementById('btn-publish-draft').addEventListener('click', () => this.publishDraft());
 
-    // 音乐推荐
+    // 模块面板点击（事件委托，兼容动态内容）
+    const palette = document.getElementById('module-palette');
+    if (palette) {
+      palette.addEventListener('click', (e) => {
+        const item = e.target.closest('.palette-item');
+        if (item && item.dataset.type) {
+          this.addModule(item.dataset.type);
+        }
+      });
+    }
     document.getElementById('btn-go-music-standalone').addEventListener('click', () => this.showStep('music'));
     document.getElementById('btn-back-from-music').addEventListener('click', () => this.showStep('welcome'));
     document.getElementById('btn-analyze-music')?.addEventListener('click', () => this.analyzeMusicStandalone());
@@ -296,54 +306,67 @@ const App = {
 
   // ---- 进入编辑器 ----
   enterEditor() {
-    const analysis = this.state.analysis;
-    const cs = analysis.colorScheme;
+    try {
+      const analysis = this.state.analysis;
+      if (!analysis) {
+        console.error('enterEditor: analysis is null, 无法进入编辑器');
+        return;
+      }
+      const cs = analysis.colorScheme;
+      if (!cs || !analysis.modules) {
+        console.error('enterEditor: analysis 数据不完整', analysis);
+        return;
+      }
 
-    // 初始化模块 —— 合并行业模板内容到默认配置上
-    const templateContent = TEMPLATE_CONTENT[analysis.suggestion] || {};
-    this.state.modules = analysis.modules.map((type, idx) => {
-      const defaultCfg = JSON.parse(JSON.stringify(MODULE_TYPES[type]?.defaultConfig || {}));
-      const overrideCfg = templateContent[type] || {};
-      return {
-        id: `mod-${Date.now()}-${idx}`,
-        type: type,
-        config: mergeDeep(defaultCfg, overrideCfg),
-        visible: true,
-        index: idx
+      // 初始化模块 —— 合并行业模板内容到默认配置上
+      const templateContent = TEMPLATE_CONTENT[analysis.suggestion] || {};
+      this.state.modules = analysis.modules.map((type, idx) => {
+        const defaultCfg = JSON.parse(JSON.stringify(MODULE_TYPES[type]?.defaultConfig || {}));
+        const overrideCfg = templateContent[type] || {};
+        return {
+          id: `mod-${Date.now()}-${idx}`,
+          type: type,
+          config: mergeDeep(defaultCfg, overrideCfg),
+          visible: true,
+          index: idx
+        };
+      });
+
+      // 初始化页面配置
+      this.state.pageConfig.primaryColor = cs.primary;
+      this.state.pageConfig.accentColor = cs.accent;
+      this.state.pageConfig.title = analysis.suggestion;
+      this.state.pageConfig.subtitle = '用一句话描述您的网站核心价值';
+      this.state.selectedModuleIndex = -1;
+
+      // 填充表单
+      const map = {
+        'page-title': ['title', 'pageConfig'],
+        'page-subtitle': ['subtitle', 'pageConfig'],
+        'page-primary-color': ['primaryColor', 'pageConfig'],
+        'page-accent-color': ['accentColor', 'pageConfig'],
+        'page-bg-color': ['bgColor', 'pageConfig'],
+        'page-text-color': ['textColor', 'pageConfig']
       };
-    });
+      for (const [id, [key]] of Object.entries(map)) {
+        const el = document.getElementById(id);
+        if (el) el.value = this.state.pageConfig[key] || '';
+      }
 
-    // 初始化页面配置
-    this.state.pageConfig.primaryColor = cs.primary;
-    this.state.pageConfig.accentColor = cs.accent;
-    this.state.pageConfig.title = analysis.suggestion;
-    this.state.pageConfig.subtitle = '用一句话描述您的网站核心价值';
-    this.state.selectedModuleIndex = -1;
+      document.getElementById('editor-site-name').textContent = analysis.suggestion;
+      document.getElementById('editor-module-count').textContent = this.state.modules.length + ' 个模块';
 
-    // 填充表单
-    const map = {
-      'page-title': ['title', 'pageConfig'],
-      'page-subtitle': ['subtitle', 'pageConfig'],
-      'page-primary-color': ['primaryColor', 'pageConfig'],
-      'page-accent-color': ['accentColor', 'pageConfig'],
-      'page-bg-color': ['bgColor', 'pageConfig'],
-      'page-text-color': ['textColor', 'pageConfig']
-    };
-    for (const [id, [key]] of Object.entries(map)) {
-      const el = document.getElementById(id);
-      if (el) el.value = this.state.pageConfig[key] || '';
+      // 渲染
+      this.renderModuleList();
+      this.renderModuleProperties();
+      this.renderPreview();
+      this.renderConfigTree();
+
+      this.showStep('editor');
+    } catch (e) {
+      console.error('enterEditor 出错:', e);
+      alert('进入编辑器时发生错误，请查看控制台日志');
     }
-
-    document.getElementById('editor-site-name').textContent = analysis.suggestion;
-    document.getElementById('editor-module-count').textContent = this.state.modules.length + ' 个模块';
-
-    // 渲染
-    this.renderModuleList();
-    this.renderModuleProperties();
-    this.renderPreview();
-    this.renderConfigTree();
-
-    this.showStep('editor');
   },
 
   // ---- 模块列表 ----
@@ -441,20 +464,28 @@ const App = {
   },
 
   addModule(type) {
-    const idx = this.state.modules.length;
-    this.state.modules.push({
-      id: `mod-${Date.now()}-${idx}`,
-      type: type,
-      config: JSON.parse(JSON.stringify(MODULE_TYPES[type]?.defaultConfig || {})),
-      visible: true,
-      index: idx
-    });
-    this.state.selectedModuleIndex = idx;
-    this.renderModuleList();
-    this.renderModuleProperties();
-    this.renderPreview();
-    this.renderConfigTree();
-    document.getElementById('editor-module-count').textContent = this.state.modules.length + ' 个模块';
+    try {
+      if (!type || !MODULE_TYPES[type]) {
+        console.warn('addModule: 无效模块类型', type);
+        return;
+      }
+      const idx = this.state.modules.length;
+      this.state.modules.push({
+        id: `mod-${Date.now()}-${idx}`,
+        type: type,
+        config: JSON.parse(JSON.stringify(MODULE_TYPES[type]?.defaultConfig || {})),
+        visible: true,
+        index: idx
+      });
+      this.state.selectedModuleIndex = idx;
+      this.renderModuleList();
+      this.renderModuleProperties();
+      this.renderPreview();
+      this.renderConfigTree();
+      document.getElementById('editor-module-count').textContent = this.state.modules.length + ' 个模块';
+    } catch (e) {
+      console.error('addModule 出错:', e);
+    }
   },
 
   // ---- 模块面板 ----
@@ -467,7 +498,7 @@ const App = {
     );
 
     container.innerHTML = types.map(t => `
-      <div class="palette-item" onclick="App.addModule('${t.type}')">
+      <div class="palette-item" data-type="${t.type}">
         <span>${t.icon}</span>
         <span>${t.label}</span>
       </div>
@@ -690,7 +721,11 @@ const App = {
 
   // ---- 预览 ----
   renderPreview() {
-    if (window.Preview) Preview.render(this.state);
+    try {
+      if (window.Preview) Preview.render(this.state);
+    } catch (e) {
+      console.error('renderPreview 出错:', e);
+    }
   },
 
   showPreview() {
