@@ -44,7 +44,7 @@ const Preview = {
     const fn = this[`render_${mod.type}`];
     let content;
     if (fn) {
-      content = fn(mod.config, pc);
+      content = fn.call(this, mod.config, pc);
     } else {
       content = `<section class="preview-module" style="padding:40px;text-align:center;color:#999;">未知模块: ${mod.type}</section>`;
     }
