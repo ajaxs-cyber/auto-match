@@ -274,73 +274,33 @@ const App = {
   },
 
   renderAnalysisResult() {
-    const result = this.state.analysis;
-    const container = document.getElementById('analysis-result');
+    var result = this.state.analysis;
+    var container = document.getElementById('analysis-result');
     if (!container) return;
+    var template = LAYOUT_TEMPLATES[result.template];
+    var kw = this.state.keywords;
+    var mods = result.modules || [];
+    var cs = result.colorScheme || {};
 
-    const template = LAYOUT_TEMPLATES[result.template];
-    const kw = this.state.keywords;
+    var html = '';
+    // 卡片1: 名称+关键词
+    html += '<div class="analysis-card"><h4>网站类型</h4><div class="card-value">' + this.esc(result.suggestion) + '</div><p style="color:var(--text-light);font-size:0.85em;margin-top:4px;">关键词: ' + this.esc(kw) + '</p></div>';
+    // 卡片2: 配色
+    html += '<div class="analysis-card"><h4>配色方案</h4><div class="colors">';
+    html += '<div><div class="color-swatch" style="background:' + cs.primary + ';"></div><span style="font-size:0.75em;">主色</span></div>';
+    html += '<div><div class="color-swatch" style="background:' + cs.accent + ';"></div><span style="font-size:0.75em;">强调</span></div>';
+    html += '</div></div>';
+    // 卡片3: 布局
+    html += '<div class="analysis-card"><h4>推荐布局</h4><div class="card-value" style="font-size:1em;">' + (template ? template.name : '自适应') + '</div></div>';
+    // 卡片4: 模块
+    html += '<div class="analysis-card"><h4>页面模块 (' + mods.length + '个)</h4><div class="module-tags">';
+    mods.forEach(function(t) {
+      var m = MODULE_TYPES[t];
+      html += '<span class="module-tag">' + (m ? m.icon + ' ' + m.label : t) + '</span>';
+    });
+    html += '</div></div>';
 
-    container.innerHTML = `
-      <div class="analysis-card">
-        <div class="analysis-header" style="background: linear-gradient(135deg, ${result.colorScheme.primary}, ${result.colorScheme.accent});">
-          <div class="analysis-badge">AI 分析结果</div>
-          <h2>${result.suggestion}</h2>
-          <p>基于您的关键词「<strong>${this.esc(kw)}</strong>」</p>
-        </div>
-
-        <div class="analysis-body">
-          ${result.matchScore > 0 ? `
-          <div class="analysis-section">
-            <h4>🔍 匹配关键词</h4>
-            <div class="match-tags">
-              ${result.matchedKeywords.map(k => `<span class="match-tag">${this.esc(k)}</span>`).join('')}
-            </div>
-          </div>
-          ` : `
-          <div class="analysis-section">
-            <h4>💡 未找到精确匹配</h4>
-            <p style="color:#888;font-size:0.9em;">为您推荐通用网站布局，您可以在编辑器中自由调整</p>
-          </div>
-          `}
-
-          <div class="analysis-section">
-            <h4>📐 推荐布局</h4>
-            <span class="template-tag">${template.name}</span>
-          </div>
-
-          <div class="analysis-section">
-            <h4>🧩 推荐页面结构 (${result.modules.length} 个模块)</h4>
-            <div class="module-flow">
-              ${result.modules.map((modType, i) => {
-                const mod = MODULE_TYPES[modType];
-                return `
-                  <div class="flow-item">
-                    <div class="flow-number">${i + 1}</div>
-                    <div class="flow-icon">${mod ? mod.icon : '📦'}</div>
-                    <div class="flow-label">${mod ? mod.label : modType}</div>
-                    <div class="flow-arrow">↓</div>
-                  </div>
-                `;
-              }).join('')}
-              <div class="flow-item end">
-                <div class="flow-number">✓</div>
-                <div class="flow-label">完成</div>
-              </div>
-            </div>
-          </div>
-
-          <div class="analysis-section">
-            <h4>🎨 配色方案</h4>
-            <div class="color-swatch-row">
-              <div class="color-swatch" style="background:${result.colorScheme.primary};" title="主色"></div>
-              <div class="color-swatch" style="background:${result.colorScheme.accent};" title="强调色"></div>
-              <div class="color-swatch" style="background:#f8fafc;border:2px solid #e2e8f0;" title="背景色"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    `;
+    container.innerHTML = html;
   },
 
   // ---- 进入编辑器 ----
@@ -889,6 +849,96 @@ const App = {
     }).join('');
   },
 
+  /** 列表项编辑器 — 支持增减 items array */
+  buildListEditor(cfg, listKey, fieldDefs, defaultItem) {
+    var items = cfg[listKey] || [];
+    var html = '<div class="list-editor" style="margin-top:12px;border-top:1px solid var(--border);padding-top:12px;">';
+    html += '<label style="font-size:0.8em;color:var(--text-light);text-transform:uppercase;letter-spacing:0.05em;">' + listKey + ' (' + items.length + '项)</label>';
+    for (var i = 0; i < items.length; i++) {
+      html += '<div class="list-item-editor"><div class="item-header"><span class="item-index">#' + (i+1) + '</span>';
+      html += '<button class="btn-remove-item" onclick="App.removeListItem(\'' + listKey + '\',' + i + ')">删除</button>';
+      html += '</div>';
+      for (var j = 0; j < fieldDefs.length; j++) {
+        var f = fieldDefs[j];
+        var val = items[i][f.key] !== undefined ? items[i][f.key] : '';
+        html += '<label style="font-size:0.75em;color:#94a3b8;display:block;margin:6px 0 2px 0;">' + f.label + '</label>';
+        html += '<input class="prop-item-' + listKey + '-' + i + '-' + f.key + '" value="' + this.esc(String(val)) + '" />';
+      }
+      html += '</div>';
+    }
+    html += '<button class="btn-add-item" onclick="App.addListItem(\'' + listKey + '\')">+ 添加' + listKey + '项</button>';
+    html += '</div>';
+    return html;
+  },
+
+  /** 从列表编辑器的输入读取值并写回配置 */
+  saveListEditorChanges() {
+    var idx = this.state.selectedModuleIndex;
+    if (idx < 0) return;
+    var mod = this.state.modules[idx];
+    // 扫描所有 prop-item-xxx 输入
+    var inputs = document.querySelectorAll('[class*="prop-item-"]');
+    if (inputs.length === 0) return;
+    var groups = {};
+    inputs.forEach(function(inp) {
+      var cls = inp.className;
+      var m = cls.match(/prop-item-(\w+)-(\d+)-(.+)/);
+      if (!m) return;
+      var listKey = m[1], i = parseInt(m[2]), fkey = m[3];
+      if (!groups[listKey]) groups[listKey] = {};
+      if (!groups[listKey][i]) groups[listKey][i] = {};
+      groups[listKey][i][fkey] = inp.value;
+    });
+    for (var listKey in groups) {
+      var items = mod.config[listKey] || [];
+      for (var iStr in groups[listKey]) {
+        var i = parseInt(iStr);
+        if (i < items.length) {
+          for (var fkey in groups[listKey][i]) {
+            items[i][fkey] = groups[listKey][i][fkey];
+          }
+        }
+      }
+      mod.config[listKey] = items;
+    }
+    this.renderPreview();
+    this.renderConfigTree();
+  },
+
+  addListItem(listKey) {
+    var idx = this.state.selectedModuleIndex;
+    if (idx < 0) return;
+    var mod = this.state.modules[idx];
+    if (!mod.config[listKey]) mod.config[listKey] = [];
+    var item = this._getDefaultItem(listKey);
+    mod.config[listKey].push(item);
+    this.renderModuleProperties();
+    this.renderPreview();
+  },
+
+  removeListItem(listKey, itemIdx) {
+    var idx = this.state.selectedModuleIndex;
+    if (idx < 0) return;
+    var mod = this.state.modules[idx];
+    if (mod.config[listKey] && mod.config[listKey].length > 1) {
+      mod.config[listKey].splice(itemIdx, 1);
+    }
+    this.renderModuleProperties();
+    this.renderPreview();
+  },
+
+  _getDefaultItem(listKey) {
+    var defaults = {
+      items: { icon: '⭐', title: '新项目', desc: '描述' },
+      features: [{ icon: '⭐', title: '新特性', desc: '特性描述' }],
+      slides: { title: '新幻灯片', content: '内容', bgColor: '#667eea' }
+    };
+    // features 用 items
+    return listKey === 'items' ? { icon: '⭐', title: '新项目', desc: '描述' }
+      : listKey === 'features' ? { icon: '⭐', title: '新特性', desc: '特性描述' }
+      : { icon: '⭐', title: '新项目', desc: '描述' };
+  },
+
   applyModuleConfig() {
     const idx = this.state.selectedModuleIndex;
     if (idx < 0) return;
@@ -907,6 +957,7 @@ const App = {
       }
     });
 
+    this.saveListEditorChanges();
     this.renderModuleProperties();
     this.renderPreview();
     this.renderConfigTree();

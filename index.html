@@ -28,52 +28,56 @@
 
   <!-- ========== Step 1: 欢迎 + 关键词输入 ========== -->
   <div class="step-container active" id="step-welcome">
-    <div class="welcome-content">
-      <div class="welcome-badge">🚀 智能建站平台</div>
-      <h1>输入关键词，<br>AI 为您生成网站</h1>
-      <p>描述您想要的网站类型，我们为您推荐合适的页面结构和内容布局</p>
-
-      <div class="keyword-input-area">
-        <div class="keyword-input-wrapper">
-          <input
-            type="text"
-            id="keyword-input"
-            class="keyword-input"
-            placeholder="例如：我想做一个餐饮网站、企业官网、电商平台..."
-            autofocus
-          />
-          <button class="btn btn-primary" id="btn-start-analyze">AI 分析</button>
+    <div class="welcome-hero">
+      <div class="welcome-aurora"></div>
+      <div class="welcome-content">
+        <div class="welcome-badge">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+          智能建站平台
         </div>
-        <div class="keyword-hints">
-          <span>试试：</span>
-          <span class="hint-tag" onclick="document.getElementById('keyword-input').value='我想开一家咖啡店，展示菜单和店面环境'; App.startAnalysis();">☕ 咖啡店</span>
-          <span class="hint-tag" onclick="document.getElementById('keyword-input').value='做一个科技公司官网，展示产品和团队'; App.startAnalysis();">🏢 科技公司</span>
-          <span class="hint-tag" onclick="document.getElementById('keyword-input').value='个人作品集网站，展示我的设计作品'; App.startAnalysis();">🎨 作品集</span>
-          <span class="hint-tag" onclick="document.getElementById('keyword-input').value='在线教育平台，销售课程'; App.startAnalysis();">📚 在线教育</span>
+        <h1 class="welcome-title">用一句话<br><span class="text-gradient">生成完整网站</span></h1>
+        <p class="welcome-desc">从关键词到在线发布，AI 自动匹配行业模板、配色方案、页面结构</p>
+        <div class="keyword-input-area">
+          <div class="keyword-input-wrapper">
+            <svg class="kw-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
+            <input type="text" id="keyword-input" class="keyword-input" placeholder="试试输入：我想做一个高端美容SPA品牌官网..." autofocus/>
+            <button class="btn btn-primary btn-glow" id="btn-start-analyze">
+              开始分析
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </button>
+          </div>
+          <div class="keyword-hints">
+            <span class="hints-label">快速体验：</span>
+            <span class="hint-tag" onclick="document.getElementById('keyword-input').value='我想开一家高端咖啡店，展示菜单和店面环境'; App.startAnalysis();">☕ 咖啡店</span>
+            <span class="hint-tag" onclick="document.getElementById('keyword-input').value='科技SaaS公司官网，展示产品功能和客户案例'; App.startAnalysis();">💻 SaaS</span>
+            <span class="hint-tag" onclick="document.getElementById('keyword-input').value='个人设计作品集，展示我的项目和技能'; App.startAnalysis();">🎨 作品集</span>
+            <span class="hint-tag" onclick="document.getElementById('keyword-input').value='在线教育平台，销售课程和训练营'; App.startAnalysis();">📚 教育</span>
+            <span class="hint-tag" onclick="document.getElementById('keyword-input').value='高端美容SPA会所，展示服务和预约'; App.startAnalysis();">💆 SPA</span>
+            <span class="hint-tag" onclick="document.getElementById('keyword-input').value='独立音乐人官网，展示作品和巡演日程'; App.startAnalysis();">🎵 音乐</span>
+          </div>
         </div>
-      </div>
-
-      <div class="welcome-divider">
-        <span>或</span>
-      </div>
-
-      <div class="music-entry">
-        <p>想让音乐匹配您的文字？试试我们的</p>
-        <button class="btn btn-secondary" id="btn-go-music-standalone">🎵 配乐推荐系统</button>
+        <div class="welcome-stats">
+          <div class="stat-item"><span class="stat-num">24+</span><span class="stat-label">行业模板</span></div>
+          <div class="stat-item"><span class="stat-num">67</span><span class="stat-label">视觉风格</span></div>
+          <div class="stat-item"><span class="stat-num">130+</span><span class="stat-label">动效组件</span></div>
+        </div>
       </div>
     </div>
   </div>
 
   <!-- ========== Step 2: AI 分析结果 ========== -->
   <div class="step-container" id="step-analysis">
-    <div class="section-header">
-      <h2>AI 分析结果</h2>
-      <p>基于您的描述，我们推荐以下网站结构</p>
-    </div>
-    <div id="analysis-result"></div>
-    <div class="btn-group">
-      <button class="btn btn-secondary" id="btn-back-to-input">重新输入</button>
-      <button class="btn btn-primary" id="btn-to-editor">进入编辑器</button>
+    <div class="analysis-page">
+      <div class="analysis-header">
+        <div class="analysis-badge">🔍 AI 分析完成</div>
+        <h2>为您推荐最佳网站方案</h2>
+        <p>基于关键词智能匹配行业、配色和结构</p>
+      </div>
+      <div id="analysis-result" class="analysis-cards"></div>
+      <div class="btn-group analysis-actions">
+        <button class="btn btn-ghost" id="btn-back-to-input">← 重新输入</button>
+        <button class="btn btn-primary btn-glow" id="btn-to-editor">进入编辑器 →</button>
+      </div>
     </div>
   </div>
 
