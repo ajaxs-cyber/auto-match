@@ -452,7 +452,124 @@ const MODULE_TYPES = {
       html: '<!-- 在此输入自定义 HTML -->',
       height: 'auto'
     }
-  }
+  },
+
+  // ========== ReactBits 特效模块 ==========
+  rbTextFx: {
+    type: 'rbTextFx',
+    label: '文字动效',
+    icon: '✨',
+    description: 'ReactBits 文字动画效果',
+    defaultConfig: {
+      text: '动感文字',
+      effect: 'shiny',       // shiny | gradient | glitch | blur | fuzzy | split | decrypt | truefocus
+      tag: 'h2',
+      align: 'center',
+      padding: '40px 20px',
+      color1: '#6366f1',
+      color2: '#ec4899',
+      color3: '#f59e0b'
+    }
+  },
+  rbBgFx: {
+    type: 'rbBgFx',
+    label: '动效背景',
+    icon: '🌌',
+    description: 'ReactBits Canvas 动画背景',
+    defaultConfig: {
+      effect: 'aurora',      // aurora | particles | waves | hyperspeed | galaxy | beams | noise | plasma | gridmotion | floatinglines | lightpillar | lightrays | gradientblinds
+      height: '500px',
+      text: '',
+      subText: '',
+      textColor: '#ffffff',
+      colors: ['#6366f1', '#ec4899', '#10b981'],
+      opacity: 0.8
+    }
+  },
+  rbTiltedCard: {
+    type: 'rbTiltedCard',
+    label: '3D倾斜卡片',
+    icon: '🃏',
+    description: 'ReactBits TiltedCard — 鼠标跟随3D倾斜',
+    defaultConfig: {
+      title: '3D 倾斜卡片',
+      content: '移动鼠标查看倾斜效果',
+      icon: '🚀',
+      tiltIntensity: 15,
+      padding: '40px',
+      bgColor: '#ffffff',
+      textColor: '#1e293b',
+      borderRadius: '16px',
+      shadow: 'medium'
+    }
+  },
+  rbBounceCards: {
+    type: 'rbBounceCards',
+    label: '弹跳卡片组',
+    icon: '🫧',
+    description: 'ReactBits BounceCards — 弹性入场卡片',
+    defaultConfig: {
+      title: '弹性卡片',
+      columns: 3,
+      items: [
+        { icon: '🚀', title: '快速', desc: '极致性能体验' },
+        { icon: '🎨', title: '美观', desc: '精心设计界面' },
+        { icon: '🔒', title: '安全', desc: '数据加密保护' }
+      ],
+      gap: '16px',
+      padding: '24px',
+      bgColor: '#ffffff',
+      textColor: '#1e293b',
+      borderRadius: '12px'
+    }
+  },
+  rbGlassSurface: {
+    type: 'rbGlassSurface',
+    label: '玻璃质感',
+    icon: '🪟',
+    description: 'ReactBits GlassSurface — 毛玻璃效果',
+    defaultConfig: {
+      content: '毛玻璃质感卡片',
+      padding: '40px',
+      borderRadius: '16px',
+      bgOpacity: 0.1,
+      blur: 20,
+      textColor: '#1e293b'
+    }
+  },
+  rbCarousel: {
+    type: 'rbCarousel',
+    label: '轮播组件',
+    icon: '🎠',
+    description: 'ReactBits Carousel — 图片/内容轮播',
+    defaultConfig: {
+      slides: [
+        { title: '幻灯片 1', content: '第一张内容', bgColor: '#667eea' },
+        { title: '幻灯片 2', content: '第二张内容', bgColor: '#f093fb' },
+        { title: '幻灯片 3', content: '第三张内容', bgColor: '#4facfe' }
+      ],
+      autoplay: true,
+      interval: 4000,
+      height: '400px',
+      textColor: '#ffffff',
+      borderRadius: '16px'
+    }
+  },
+  rbSpotlightCard: {
+    type: 'rbSpotlightCard',
+    label: '聚光灯卡片',
+    icon: '🔦',
+    description: 'ReactBits SpotlightCard — 鼠标聚光效果',
+    defaultConfig: {
+      title: '聚光灯卡片',
+      content: '移动鼠标查看聚光效果',
+      icon: '💡',
+      padding: '40px',
+      bgColor: '#1e293b',
+      textColor: '#f1f5f9',
+      borderRadius: '16px'
+    }
+  },
 };
 
 // -----------------------------------------------------------------

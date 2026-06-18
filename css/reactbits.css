@@ -1,0 +1,533 @@
+/* ============================================================
+ * ReactBits 纯 CSS 动画效果库
+ * 基于 reactbits.dev 的组件效果，用纯 CSS 实现
+ * ============================================================ */
+
+/* ── 文字动效 ── */
+
+/* ShinyText — 闪光滑动文字 */
+.rb-shiny-text {
+  background: linear-gradient(110deg, #000 0%, #000 30%, #fff 50%, #000 70%, #000 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: rb-shiny 3s linear infinite;
+  display: inline-block;
+}
+@keyframes rb-shiny {
+  to { background-position: 200% center; }
+}
+
+/* GradientText — 渐变动画文字 */
+.rb-gradient-text {
+  background: linear-gradient(90deg, var(--rb-g1, #6366f1), var(--rb-g2, #ec4899), var(--rb-g3, #f59e0b), var(--rb-g1, #6366f1));
+  background-size: 300% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: rb-gradient 4s ease infinite;
+  display: inline-block;
+}
+@keyframes rb-gradient {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+/* GlitchText — 故障效果文字 */
+.rb-glitch-text {
+  position: relative;
+  display: inline-block;
+  animation: rb-glitch-skew 4s ease-in-out infinite;
+}
+.rb-glitch-text::before,
+.rb-glitch-text::after {
+  content: attr(data-text);
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+}
+.rb-glitch-text::before {
+  color: #0ff;
+  clip-path: polygon(0 0, 100% 0, 100% 45%, 0 45%);
+  animation: rb-glitch-a 0.3s infinite alternate;
+}
+.rb-glitch-text::after {
+  color: #f0f;
+  clip-path: polygon(0 55%, 100% 55%, 100% 100%, 0 100%);
+  animation: rb-glitch-b 0.25s infinite alternate-reverse;
+}
+@keyframes rb-glitch-a {
+  0% { transform: translate(0); }
+  100% { transform: translate(-3px, 2px); }
+}
+@keyframes rb-glitch-b {
+  0% { transform: translate(0); }
+  100% { transform: translate(3px, -2px); }
+}
+@keyframes rb-glitch-skew {
+  0%, 90%, 100% { transform: skew(0deg); }
+  92% { transform: skew(2deg); }
+  94% { transform: skew(-1deg); }
+}
+
+/* BlurText — 模糊渐显文字 */
+.rb-blur-text {
+  filter: blur(0px);
+  animation: rb-blur-in 1.2s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+  opacity: 0;
+  animation-play-state: paused;
+}
+.rb-blur-text.revealed {
+  animation-play-state: running;
+}
+@keyframes rb-blur-in {
+  from { filter: blur(12px); opacity: 0; transform: translateY(20px) scale(0.95); }
+  to { filter: blur(0); opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* FuzzyText — 模糊噪点文字 */
+.rb-fuzzy-text {
+  display: inline-block;
+  animation: rb-fuzzy 0.15s infinite;
+}
+@keyframes rb-fuzzy {
+  0% { filter: blur(0); }
+  50% { filter: blur(1.5px); }
+  100% { filter: blur(0.2px); }
+}
+
+/* SplitText — 字符分散聚合 */
+.rb-split-char {
+  display: inline-block;
+  transition: transform 0.6s cubic-bezier(0.22, 0.61, 0.36, 1),
+              opacity 0.6s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+.rb-split-char.hidden {
+  transform: translateY(30px) rotate(10deg);
+  opacity: 0;
+}
+.rb-split-text.revealed .rb-split-char { transform: translateY(0) rotate(0); opacity: 1; }
+
+/* TextPressure — 挤压变形文字 */
+.rb-text-pressure {
+  display: inline-block;
+  transition: font-variation-settings 0.3s ease;
+  font-variation-settings: 'wght' 400, 'wdth' 100;
+}
+.rb-text-pressure:hover {
+  font-variation-settings: 'wght' 900, 'wdth' 75;
+}
+
+/* TrueFocus — 聚焦变亮 */
+.rb-true-focus {
+  transition: color 0.6s ease, text-shadow 0.6s ease;
+}
+.rb-true-focus.char-focused {
+  color: var(--rb-accent, #6366f1);
+  text-shadow: 0 0 20px var(--rb-accent, #6366f1);
+}
+
+/* CountUp — 数字跳动 */
+.rb-countup {
+  display: inline-block;
+  font-variant-numeric: tabular-nums;
+}
+.rb-countup-digit {
+  display: inline-block;
+  animation: rb-count-roll 0.4s ease-out;
+}
+@keyframes rb-count-roll {
+  from { transform: translateY(-100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* CircularText — 环形排列文字 */
+.rb-circular-text {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+.rb-circular-char {
+  position: absolute;
+  font-weight: 700;
+  transform-origin: center;
+}
+
+/* DecryptedText — 解密效果 */
+.rb-decrypted {
+  display: inline-block;
+}
+
+/* ════════════════════════════════════
+ * UI 组件效果
+ * ════════════════════════════════════ */
+
+/* TiltedCard — 3D倾斜卡片 */
+.rb-tilted-card {
+  perspective: 1000px;
+  transform-style: preserve-3d;
+  transition: transform 0.1s ease-out;
+  will-change: transform;
+}
+.rb-tilted-card:hover {
+  transform: rotateX(var(--rb-tilt-x, 0deg)) rotateY(var(--rb-tilt-y, 0deg)) scale3d(1.02, 1.02, 1.02);
+}
+.rb-tilted-card .tilt-inner {
+  transform: translateZ(30px);
+}
+
+/* StarBorder — 星星边框旋转 */
+.rb-star-border {
+  position: relative;
+  border-radius: 16px;
+  overflow: hidden;
+}
+.rb-star-border::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 18px;
+  background: conic-gradient(from var(--rb-angle, 0deg), transparent, var(--rb-accent, #6366f1), transparent, var(--rb-accent, #ec4899), transparent);
+  animation: rb-star-rotate 4s linear infinite;
+  z-index: -1;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.rb-star-border:hover::before { opacity: 1; }
+@keyframes rb-star-rotate {
+  to { --rb-angle: 360deg; }
+}
+
+/* BorderGlow — 发光边框 */
+.rb-border-glow {
+  position: relative;
+  border-radius: 16px;
+  overflow: hidden;
+}
+.rb-border-glow::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  padding: 2px;
+  background: linear-gradient(var(--rb-glow-angle, 0deg), #6366f1, #ec4899, #f59e0b, #10b981, #6366f1);
+  background-size: 400% 400%;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: rb-border-glow 6s ease infinite;
+  pointer-events: none;
+}
+@keyframes rb-border-glow {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+/* GlareHover — 光泽悬停 */
+.rb-glare-hover {
+  position: relative;
+  overflow: hidden;
+}
+.rb-glare-hover::after {
+  content: '';
+  position: absolute;
+  top: var(--rb-glare-y, -100%);
+  left: var(--rb-glare-x, -100%);
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle at center, rgba(255,255,255,0.3) 0%, transparent 60%);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.rb-glare-hover:hover::after { opacity: 1; }
+
+/* BounceCards — 弹跳卡片组 */
+.rb-bounce-card {
+  animation: rb-bounce-in 0.6s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+  opacity: 0;
+  transform: translateY(40px) scale(0.9);
+}
+.rb-bounce-card:nth-child(1) { animation-delay: 0s; }
+.rb-bounce-card:nth-child(2) { animation-delay: 0.1s; }
+.rb-bounce-card:nth-child(3) { animation-delay: 0.2s; }
+.rb-bounce-card:nth-child(4) { animation-delay: 0.3s; }
+.rb-bounce-card:nth-child(5) { animation-delay: 0.4s; }
+.rb-bounce-card:nth-child(6) { animation-delay: 0.5s; }
+@keyframes rb-bounce-in {
+  0% { opacity: 0; transform: translateY(40px) scale(0.9); }
+  60% { transform: translateY(-8px) scale(1.02); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* GlassSurface — 玻璃质感 */
+.rb-glass {
+  background: rgba(255,255,255,0.1);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: var(--rb-radius, 16px);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+}
+
+/* SpotlightCard — 聚光灯卡片 */
+.rb-spotlight-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 16px;
+}
+.rb-spotlight-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at var(--rb-spot-x, 50%) var(--rb-spot-y, 50%),
+    rgba(255,255,255,0.15) 0%, transparent 60%);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.rb-spotlight-card:hover::before { opacity: 1; }
+
+/* PixelCard — 像素风格卡片 */
+.rb-pixel-card {
+  clip-path: polygon(
+    0 8px, 8px 8px, 8px 0, calc(100% - 8px) 0, calc(100% - 8px) 8px, 100% 8px,
+    100% calc(100% - 8px), calc(100% - 8px) calc(100% - 8px), calc(100% - 8px) 100%, 8px 100%, 8px calc(100% - 8px), 0 calc(100% - 8px)
+  );
+  transition: box-shadow 0.3s;
+}
+
+/* ════════════════════════════════════
+ * 滚动动效
+ * ════════════════════════════════════ */
+
+/* ScrollReveal — 滚动渐显 */
+.rb-scroll-reveal {
+  opacity: 0;
+  transform: translateY(40px);
+  transition: opacity 0.8s cubic-bezier(0.22, 0.61, 0.36, 1),
+              transform 0.8s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+.rb-scroll-reveal.revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ScrollFloat — 滚动浮动 */
+.rb-scroll-float {
+  animation: rb-scroll-float-anim 3s ease-in-out infinite;
+}
+@keyframes rb-scroll-float-anim {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+
+/* ScrollVelocity — 视差速度 */
+.rb-scroll-velocity {
+  will-change: transform;
+  transition: transform 0.05s linear;
+}
+
+/* ImageTrail — 图片拖尾 */
+.rb-image-trail-container {
+  position: relative;
+  overflow: hidden;
+}
+
+/* ════════════════════════════════════
+ * 动画效果
+ * ════════════════════════════════════ */
+
+/* Noise — 噪点覆盖层 */
+.rb-noise-overlay {
+  position: relative;
+}
+.rb-noise-overlay::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+  pointer-events: none;
+  mix-blend-mode: overlay;
+}
+
+/* StickerPeel — 贴纸剥落效果 */
+.rb-sticker-peel {
+  position: relative;
+  transform-origin: top right;
+  transition: transform 0.5s cubic-bezier(0.22, 0.61, 0.36, 1),
+              box-shadow 0.5s ease;
+}
+.rb-sticker-peel:hover {
+  transform: rotate(-5deg) translateY(-8px);
+  box-shadow: 4px 12px 30px rgba(0,0,0,0.2);
+}
+
+/* PixelTransition — 像素过渡 */
+.rb-pixel-transition {
+  position: relative;
+  overflow: hidden;
+}
+.rb-pixel-transition canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* ════════════════════════════════════
+ * 背景效果 (纯 CSS 部分)
+ * ════════════════════════════════════ */
+
+/* Aurora — 极光渐变背景 */
+.rb-bg-aurora {
+  position: relative;
+  overflow: hidden;
+}
+.rb-bg-aurora::before {
+  content: '';
+  position: absolute;
+  inset: -50%;
+  background:
+    radial-gradient(ellipse at 20% 50%, rgba(99, 102, 241, 0.3) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, rgba(236, 72, 153, 0.25) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 80%, rgba(16, 185, 129, 0.2) 0%, transparent 50%);
+  animation: rb-aurora-drift 15s ease-in-out infinite;
+}
+@keyframes rb-aurora-drift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  25% { transform: translate(5%, -3%) scale(1.05); }
+  50% { transform: translate(-3%, 5%) scale(0.95); }
+  75% { transform: translate(-5%, -2%) scale(1.02); }
+}
+
+/* SoftAurora — 柔和极光 */
+.rb-bg-soft-aurora {
+  position: relative;
+  overflow: hidden;
+}
+.rb-bg-soft-aurora::before {
+  content: '';
+  position: absolute;
+  inset: -20%;
+  background:
+    radial-gradient(ellipse at 30% 50%, rgba(147, 197, 253, 0.4) 0%, transparent 60%),
+    radial-gradient(ellipse at 70% 30%, rgba(196, 181, 253, 0.35) 0%, transparent 60%),
+    radial-gradient(ellipse at 40% 70%, rgba(167, 243, 208, 0.3) 0%, transparent 60%);
+  animation: rb-aurora-drift 20s ease-in-out infinite;
+}
+
+/* GradientBlinds — 渐变百叶窗 */
+.rb-bg-gradient-blinds {
+  background: repeating-linear-gradient(
+    0deg,
+    var(--rb-gb1, #667eea) 0px,
+    var(--rb-gb2, #764ba2) 2px,
+    var(--rb-gb1, #667eea) 4px
+  );
+  animation: rb-blinds-move 0.5s linear infinite;
+}
+@keyframes rb-blinds-move {
+  to { background-position: 0 4px; }
+}
+
+/* Iridescence — 虹彩效果 */
+.rb-bg-iridescence {
+  background: linear-gradient(
+    45deg,
+    hsl(0, 80%, 60%), hsl(60, 80%, 60%), hsl(120, 80%, 60%),
+    hsl(180, 80%, 60%), hsl(240, 80%, 60%), hsl(300, 80%, 60%),
+    hsl(360, 80%, 60%)
+  );
+  background-size: 700% 100%;
+  animation: rb-iridescence 8s linear infinite;
+}
+@keyframes rb-iridescence {
+  to { background-position: 700% 0; }
+}
+
+/* Grainient — 颗粒渐变 */
+.rb-bg-grainient {
+  position: relative;
+}
+.rb-bg-grainient::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+  pointer-events: none;
+}
+
+
+/* ════════════════════════════════════
+ * 布局组件
+ * ════════════════════════════════════ */
+
+/* ElasticSlider — 弹性滑块 */
+.rb-elastic-slider {
+  transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Carousel — 基础轮播样式 */
+.rb-carousel-track {
+  display: flex;
+  transition: transform 0.5s cubic-bezier(0.22, 0.61, 0.36, 1);
+  will-change: transform;
+}
+.rb-carousel-slide {
+  flex-shrink: 0;
+  width: 100%;
+}
+.rb-carousel-dots {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 16px;
+}
+.rb-carousel-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ddd;
+  border: none;
+  cursor: pointer;
+  transition: background 0.3s, transform 0.3s;
+}
+.rb-carousel-dot.active {
+  background: var(--rb-accent, #6366f1);
+  transform: scale(1.3);
+}
+
+/* Masonry — 瀑布流 */
+.rb-masonry {
+  column-count: var(--rb-masonry-cols, 3);
+  column-gap: 16px;
+}
+.rb-masonry > * {
+  break-inside: avoid;
+  margin-bottom: 16px;
+}
+
+/* ════════════════════════════════════
+ * 容器 & 通用
+ * ════════════════════════════════════ */
+
+/* 动画暂停/播放控制 */
+.rb-paused { animation-play-state: paused !important; }
+.rb-running { animation-play-state: running !important; }
+
+/* 性能优化 */
+.rb-gpu {
+  will-change: transform, opacity;
+  transform: translateZ(0);
+}
+
+/* 交互光晕 (Magnet 桌面装饰) */
+.rb-magnet-area {
+  position: relative;
+}
+.rb-magnet-item {
+  transition: transform 0.1s ease-out;
+}

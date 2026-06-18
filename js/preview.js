@@ -459,6 +459,57 @@ const Preview = {
     `;
   },
 
+  // ═══════════════════════════════════
+  // ReactBits 动效模块
+  // ═══════════════════════════════════
+
+  /** 文字动效 */
+  render_rbTextFx(cfg, pc) {
+    const effectClasses = {
+      shiny: 'rb-shiny-text', gradient: 'rb-gradient-text', glitch: 'rb-glitch-text',
+      blur: 'rb-blur-text', fuzzy: 'rb-fuzzy-text', split: 'rb-split-text',
+      decrypt: 'rb-decrypted', truefocus: 'rb-true-focus'
+    };
+    const cls = effectClasses[cfg.effect] || 'rb-shiny-text';
+    const tag = cfg.tag || 'h2';
+    return '<section class="preview-rb-text" style="text-align:' + (cfg.align || 'center') + ';padding:' + (cfg.padding || '40px 20px') + ';--rb-g1:' + (cfg.color1||'') + ';--rb-g2:' + (cfg.color2||'') + ';--rb-g3:' + (cfg.color3||'') + ';"><' + tag + ' class="' + cls + '" data-text="' + this.esc(cfg.text) + '">' + this.esc(cfg.text) + '</' + tag + '></section>';
+  },
+
+  /** 动效背景 */
+  render_rbBgFx(cfg, pc) {
+    var id = 'rb-bg-' + Date.now() + '-' + Math.random().toString(36).slice(2);
+    return '<section class="preview-rb-bg" style="position:relative;height:' + (cfg.height||'500px') + ';display:flex;align-items:center;justify-content:center;text-align:center;overflow:hidden;border-radius:16px;margin:0 24px;"><div id="' + id + '" style="position:absolute;inset:0;"></div><div style="color:' + (cfg.textColor||'#fff') + ';position:relative;z-index:2;">' + (cfg.text ? '<h2 style="font-size:2em;margin-bottom:8px;text-shadow:0 2px 12px rgba(0,0,0,0.3);">' + this.esc(cfg.text) + '</h2>' : '') + (cfg.subText ? '<p style="font-size:1.1em;opacity:0.85;text-shadow:0 1px 6px rgba(0,0,0,0.3);">' + this.esc(cfg.subText) + '</p>' : '') + '</div><scr' + 'ipt>(function(){var c=document.getElementById(\'' + id + '\');if(c&&window.ReactBits)ReactBits.mountBackground(c,\'' + (cfg.effect||'aurora') + '\',' + JSON.stringify({colors:cfg.colors||['#6366f1','#ec4899']}) + ');})();</scr' + 'ipt></section>';
+  },
+
+  /** 3D倾斜卡片 */
+  render_rbTiltedCard(cfg, pc) {
+    var shadows = { small: '0 1px 3px rgba(0,0,0,0.08)', medium: '0 4px 24px rgba(0,0,0,0.12)', large: '0 8px 40px rgba(0,0,0,0.16)' };
+    return '<section class="preview-rb-tilted" style="padding:24px 32px;"><div class="rb-tilted-card" style="padding:' + (cfg.padding||'40px') + ';background:' + (cfg.bgColor||'#fff') + ';color:' + (cfg.textColor||'#1e293b') + ';border-radius:' + (cfg.borderRadius||'16px') + ';box-shadow:' + (shadows[cfg.shadow]||shadows.medium) + ';text-align:center;display:inline-block;min-width:280px;">' + (cfg.icon ? '<div style="font-size:3em;margin-bottom:16px;">' + this.esc(cfg.icon) + '</div>' : '') + '<h3 style="margin-bottom:8px;">' + this.esc(cfg.title) + '</h3><p style="opacity:0.7;">' + this.esc(cfg.content) + '</p></div></section>';
+  },
+
+  /** 弹跳卡片组 */
+  render_rbBounceCards(cfg, pc) {
+    var items = cfg.items || [];
+    return '<section class="preview-rb-bounce" style="padding:40px 32px;text-align:center;">' + (cfg.title ? '<h2 style="margin-bottom:32px;">' + this.esc(cfg.title) + '</h2>' : '') + '<div style="display:grid;grid-template-columns:repeat(' + (cfg.columns||3) + ',1fr);gap:' + (cfg.gap||'16px') + ';max-width:1000px;margin:0 auto;">' + items.map(function(item){ return '<div class="rb-bounce-card" style="padding:' + (cfg.padding||'24px') + ';background:' + (cfg.bgColor||'#fff') + ';color:' + (cfg.textColor||'#1e293b') + ';border-radius:' + (cfg.borderRadius||'12px') + ';box-shadow:0 2px 12px rgba(0,0,0,0.06);"><div style="font-size:2.5em;margin-bottom:12px;">' + this.esc(item.icon) + '</div><h3 style="margin-bottom:8px;">' + this.esc(item.title) + '</h3><p style="opacity:0.7;">' + this.esc(item.desc) + '</p></div>'; }, this).join('') + '</div></section>';
+  },
+
+  /** 玻璃质感 */
+  render_rbGlassSurface(cfg, pc) {
+    return '<section class="preview-rb-glass" style="padding:40px 32px;display:flex;justify-content:center;"><div class="rb-glass" style="padding:' + (cfg.padding||'40px') + ';border-radius:' + (cfg.borderRadius||'16px') + ';max-width:600px;width:100%;text-align:center;color:' + (cfg.textColor||'#1e293b') + ';">' + this.esc(cfg.content) + '</div></section>';
+  },
+
+  /** 轮播组件 */
+  render_rbCarousel(cfg, pc) {
+    var slides = cfg.slides || [];
+    var id = 'rb-carousel-' + Date.now() + '-' + Math.random().toString(36).slice(2);
+    return '<section class="preview-rb-carousel" style="padding:24px 32px;"><div id="' + id + '" style="position:relative;overflow:hidden;height:' + (cfg.height||'400px') + ';border-radius:' + (cfg.borderRadius||'16px') + ';box-shadow:0 4px 24px rgba(0,0,0,0.1);"><div class="rb-carousel-track" style="display:flex;height:100%;">' + slides.map(function(s){ return '<div class="rb-carousel-slide" style="flex-shrink:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;flex-direction:column;background:' + (s.bgColor||'#667eea') + ';color:' + (cfg.textColor||'#fff') + ';"><h2 style="font-size:2em;margin-bottom:12px;">' + this.esc(s.title) + '</h2><p style="font-size:1.1em;opacity:0.85;">' + this.esc(s.content) + '</p></div>'; }, this).join('') + '</div><div class="rb-carousel-dots"></div></div></section>';
+  },
+
+  /** 聚光灯卡片 */
+  render_rbSpotlightCard(cfg, pc) {
+    return '<section class="preview-rb-spotlight" style="padding:24px 32px;display:flex;justify-content:center;"><div class="rb-spotlight-card" style="padding:' + (cfg.padding||'40px') + ';background:' + (cfg.bgColor||'#1e293b') + ';color:' + (cfg.textColor||'#f1f5f9') + ';border-radius:' + (cfg.borderRadius||'16px') + ';max-width:500px;width:100%;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,0.2);">' + (cfg.icon ? '<div style="font-size:3em;margin-bottom:16px;">' + this.esc(cfg.icon) + '</div>' : '') + '<h3 style="margin-bottom:8px;">' + this.esc(cfg.title) + '</h3><p style="opacity:0.7;">' + this.esc(cfg.content) + '</p></div></section>';
+  },
+
   // ---- 配置树 ----
   buildConfigTree(state) {
     const { pageConfig, modules, analysis } = state;
