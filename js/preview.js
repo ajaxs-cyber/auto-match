@@ -27,6 +27,9 @@ const Preview = {
   buildPageHTML(state) {
     const { pageConfig, modules, selectedModuleIndex } = state || {};
     const pc = pageConfig || {};
+    // 注入设计系统风格 Token
+    const ds = pc._designStyle && window.DESIGN_SYSTEM && window.DESIGN_SYSTEM.styles[pc._designStyle]
+      ? window.DESIGN_SYSTEM.styles[pc._designStyle].css : null;
 
     let modulesHTML = (modules || [])
       .filter(m => m && m.visible)
@@ -79,53 +82,39 @@ const Preview = {
 
   // ---- 主视觉 ----
   render_hero(cfg, pc) {
-    const heights = { small: '300px', medium: '450px', large: '600px', fullscreen: '100vh' };
-    const height = heights[cfg.height] || '450px';
+    const heights = { small: '60vh', medium: '80vh', large: '100vh', fullscreen: '100vh' };
+    const height = heights[cfg.height] || '70vh';
+    const accent = pc.accentColor || '#f59e0b';
+    const primary = pc.primaryColor || '#6366f1';
+    const textColor = cfg.textColor || '#ffffff';
 
-    // 背景样式
-    let bgStyle, extraClass = '', overlay;
+    // 极光渐变背景 (替代单一紫蓝渐变)
+    let bgHTML = '';
     switch (cfg.bgType) {
       case 'aurora':
-        bgStyle = `background:linear-gradient(135deg, ${pc.primaryColor}, ${pc.accentColor});`;
-        extraClass = 'preview-hero-aurora';
-        overlay = '<div style="position:absolute;inset:0;background:rgba(0,0,0,0.25);z-index:0;"></div>';
+        bgHTML = '<div class="aurora-bg" style="position:absolute;inset:0;"></div>';
         break;
       case 'waves':
-        bgStyle = `background:linear-gradient(135deg, ${pc.primaryColor}, ${pc.accentColor});`;
-        extraClass = 'preview-hero-waves';
-        overlay = '<div style="position:absolute;inset:0;background:rgba(0,0,0,0.3);z-index:1;"></div>';
+        bgHTML = '<div class="aurora-bg" style="position:absolute;inset:0;"></div>';
         break;
       case 'grid':
-        bgStyle = `background:${cfg.bgColor || pc.primaryColor};`;
-        extraClass = 'preview-hero-grid';
-        overlay = '<div style="position:absolute;inset:0;background:rgba(0,0,0,0.3);z-index:0;"></div>';
+        bgHTML = '<div class="bg-dot-grid" style="position:absolute;inset:0;opacity:0.3;"></div>';
         break;
       case 'glassy':
-        bgStyle = `background:linear-gradient(135deg, ${pc.primaryColor}, ${pc.accentColor});`;
-        extraClass = 'preview-hero-glassy';
-        overlay = '<div class="glassy-overlay"></div>';
-        break;
-      case 'image':
-        bgStyle = `background-image:url('${cfg.bgImage}');background-size:cover;background-position:center;`;
-        extraClass = '';
-        overlay = '<div style="position:absolute;inset:0;background:rgba(0,0,0,0.35);"></div>';
+        bgHTML = '<div class="aurora-bg" style="position:absolute;inset:0;"></div>';
         break;
       default:
-        bgStyle = `background:linear-gradient(135deg, ${pc.primaryColor}, ${pc.accentColor});`;
-        extraClass = '';
-        overlay = '<div style="position:absolute;inset:0;background:rgba(0,0,0,0.35);"></div>';
+        bgHTML = '<div class="aurora-bg" style="position:absolute;inset:0;"></div>';
     }
+    // 光晕装饰
+    var orbsHTML = '<div class="glow-orb purple" style="top:10%;left:20%;"></div><div class="glow-orb pink" style="bottom:20%;right:15%;"></div><div class="glow-orb amber" style="top:50%;right:30%;width:150px;height:150px;"></div>';
 
-    return `
-      <section class="preview-hero ${extraClass}" style="${bgStyle}height:${height};display:flex;align-items:center;justify-content:center;text-align:center;padding:40px;position:relative;">
-        ${overlay}
-        <div style="position:relative;z-index:2;max-width:700px;">
-          <h1 style="font-size:2.8em;color:${cfg.textColor || '#fff'};margin-bottom:12px;text-shadow:0 2px 12px rgba(0,0,0,0.3);">${this.esc(cfg.title)}</h1>
-          <p style="font-size:1.2em;color:${cfg.textColor || '#fff'};opacity:0.9;margin-bottom:24px;">${this.esc(cfg.subtitle)}</p>
-          <a href="${this.esc(cfg.ctaLink)}" style="display:inline-block;padding:14px 40px;background:${pc.accent};color:#fff;border-radius:50px;text-decoration:none;font-weight:600;font-size:1.05em;box-shadow:0 4px 20px rgba(0,0,0,0.2);">${this.esc(cfg.ctaText)}</a>
-        </div>
-      </section>
-    `;
+    return '<section class="hero-premium" style="min-height:' + height + ';background:linear-gradient(160deg,' + primary + ' 0%,#4c1d95 35%,#1a1a2e 100%);">'
+      + bgHTML + orbsHTML
+      + '<div class="hero-content"><h1 class="hero-title" style="color:' + textColor + ';">' + this.esc(cfg.title) + '</h1>'
+      + '<p class="hero-subtitle" style="color:' + textColor + ';">' + this.esc(cfg.subtitle) + '</p>'
+      + (cfg.ctaText ? '<a href="' + this.esc(cfg.ctaLink) + '" class="btn-glass" style="display:inline-block;padding:16px 48px;border-radius:50px;font-size:1.05em;font-weight:600;text-decoration:none;color:#fff;">' + this.esc(cfg.ctaText) + '</a>' : '')
+      + '</div></section>';
   },
 
   // ---- 文本块 ----

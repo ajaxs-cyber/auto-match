@@ -31,6 +31,7 @@ const App = {
     this.bindEvents();
     this.showStep('welcome');
     this.renderModulePalette();
+    this.renderDesignStyleOptions();
     this.checkApiStatus();
   },
 
@@ -141,6 +142,14 @@ const App = {
         if (type) {
           this.addModule(type);
         }
+      });
+    }
+
+    // 设计风格选择
+    const styleSel = document.getElementById('page-design-style');
+    if (styleSel) {
+      styleSel.addEventListener('change', (e) => {
+        this.applyDesignStyle(e.target.value);
       });
     }
 
@@ -386,6 +395,12 @@ const App = {
       document.getElementById('editor-site-name').textContent = analysis.suggestion;
       document.getElementById('editor-module-count').textContent = this.state.modules.length + ' 个模块';
 
+      // 同步设计风格下拉
+      const styleSel = document.getElementById('page-design-style');
+      if (styleSel && this.state.pageConfig._designStyle) {
+        styleSel.value = this.state.pageConfig._designStyle;
+      }
+
       // 渲染
       this.renderModuleList();
       this.renderModuleProperties();
@@ -547,6 +562,34 @@ const App = {
     } catch (e) {
       console.error('addModule 出错:', e);
     }
+  },
+
+  // ---- 设计风格选项 ----
+  renderDesignStyleOptions() {
+    const sel = document.getElementById('page-design-style');
+    if (!sel) return;
+    const styles = window.DESIGN_SYSTEM && window.DESIGN_SYSTEM.styles ? window.DESIGN_SYSTEM.styles : {};
+    sel.innerHTML = '<option value="">默认风格</option>' +
+      Object.entries(styles).map(([k, v]) => '<option value="' + k + '">' + v.name + '</option>').join('');
+  },
+
+  /** 应用设计风格到页面 */
+  applyDesignStyle(styleKey) {
+    if (!styleKey || !window.DESIGN_SYSTEM || !window.DESIGN_SYSTEM.styles[styleKey]) return;
+    const s = window.DESIGN_SYSTEM.styles[styleKey].css;
+    if (!s) return;
+    // 同步配色
+    if (s.primary) this.state.pageConfig.primaryColor = s.primary;
+    if (s.accent) this.state.pageConfig.accentColor = s.accent;
+    if (s.bg) this.state.pageConfig.bgColor = s.bg;
+    if (s.text) this.state.pageConfig.textColor = s.text;
+    this.state.pageConfig._designStyle = styleKey;
+    // 刷新属性面板
+    ['page-primary-color','page-accent-color','page-bg-color','page-text-color'].forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) el.value = this.state.pageConfig[id.replace('page-','').replace('-','') === 'primarycolor' ? 'primaryColor' : id.replace('page-','').replace('-color','')];
+    });
+    this.renderPreview();
   },
 
   // ---- 模块面板 ----
