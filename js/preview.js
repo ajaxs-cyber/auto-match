@@ -18,9 +18,41 @@ const Preview = {
       const html = this.buildPageHTML(state);
       container.innerHTML = html;
       if (fullContainer) fullContainer.innerHTML = html;
+      // innerHTML 不会执行 <script>，手动挂载 Canvas 背景
+      this._mountBgCanvases(container);
+      if (fullContainer) this._mountBgCanvases(fullContainer);
+      // 初始化轮播
+      this._initCarousels(container);
+      if (fullContainer) this._initCarousels(fullContainer);
     } catch (e) {
       console.error('Preview.render 渲染出错:', e);
       container.innerHTML = '<div style="text-align:center;padding:60px;color:#ef4444;">预览渲染出错，请查看控制台日志</div>';
+    }
+  },
+
+  _mountBgCanvases(container) {
+    if (!window.ReactBits) return;
+    var els = container.querySelectorAll('[data-rb-bg]');
+    for (var i = 0; i < els.length; i++) {
+      var el = els[i];
+      if (el._rbMounted) continue;
+      el._rbMounted = true;
+      var effect = el.getAttribute('data-rb-bg');
+      var colorsStr = el.getAttribute('data-rb-colors') || '["#6366f1","#ec4899"]';
+      var colors = JSON.parse(colorsStr);
+      ReactBits.mountBackground(el, effect, { colors: colors });
+    }
+  },
+
+  _initCarousels(container) {
+    if (!window.ReactBits || !window.ReactBits.initCarousel) return;
+    var els = container.querySelectorAll('.rb-carousel-track');
+    for (var i = 0; i < els.length; i++) {
+      var parent = els[i].parentElement;
+      if (parent && !parent._rbCarouselInit) {
+        parent._rbCarouselInit = true;
+        ReactBits.initCarousel(parent);
+      }
     }
   },
 
@@ -466,8 +498,8 @@ const Preview = {
 
   /** 动效背景 */
   render_rbBgFx(cfg, pc) {
-    var id = 'rb-bg-' + Date.now() + '-' + Math.random().toString(36).slice(2);
-    return '<section class="preview-rb-bg" style="position:relative;height:' + (cfg.height||'500px') + ';display:flex;align-items:center;justify-content:center;text-align:center;overflow:hidden;border-radius:16px;margin:0 24px;"><div id="' + id + '" style="position:absolute;inset:0;"></div><div style="color:' + (cfg.textColor||'#fff') + ';position:relative;z-index:2;">' + (cfg.text ? '<h2 style="font-size:2em;margin-bottom:8px;text-shadow:0 2px 12px rgba(0,0,0,0.3);">' + this.esc(cfg.text) + '</h2>' : '') + (cfg.subText ? '<p style="font-size:1.1em;opacity:0.85;text-shadow:0 1px 6px rgba(0,0,0,0.3);">' + this.esc(cfg.subText) + '</p>' : '') + '</div><scr' + 'ipt>(function(){var c=document.getElementById(\'' + id + '\');if(c&&window.ReactBits)ReactBits.mountBackground(c,\'' + (cfg.effect||'aurora') + '\',' + JSON.stringify({colors:cfg.colors||['#6366f1','#ec4899']}) + ');})();</scr' + 'ipt></section>';
+    var colorsJSON = JSON.stringify(cfg.colors||['#6366f1','#ec4899']);
+    return '<section class="preview-rb-bg" data-rb-bg="' + (cfg.effect||'aurora') + '" data-rb-colors=\'' + colorsJSON + '\' style="position:relative;height:' + (cfg.height||'500px') + ';display:flex;align-items:center;justify-content:center;text-align:center;overflow:hidden;border-radius:16px;margin:0 24px;background:#0f0f1a;"><div style="color:' + (cfg.textColor||'#fff') + ';position:relative;z-index:2;">' + (cfg.text ? '<h2 style="font-size:2em;margin-bottom:8px;text-shadow:0 2px 12px rgba(0,0,0,0.3);">' + this.esc(cfg.text) + '</h2>' : '') + (cfg.subText ? '<p style="font-size:1.1em;opacity:0.85;text-shadow:0 1px 6px rgba(0,0,0,0.3);">' + this.esc(cfg.subText) + '</p>' : '') + '</div></section>';
   },
 
   /** 3D倾斜卡片 */
