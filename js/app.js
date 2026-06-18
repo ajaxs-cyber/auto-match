@@ -124,6 +124,24 @@ const App = {
           this.selectModule(index);
         }
       });
+
+      // 预览区作为拖拽放置目标（允许从模块面板拖入）
+      previewArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'copy';
+        previewArea.classList.add('drag-over');
+      });
+      previewArea.addEventListener('dragleave', () => {
+        previewArea.classList.remove('drag-over');
+      });
+      previewArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        previewArea.classList.remove('drag-over');
+        const type = e.dataTransfer.getData('text/plain');
+        if (type) {
+          this.addModule(type);
+        }
+      });
     }
 
     // 页面配置变更
@@ -541,11 +559,23 @@ const App = {
     );
 
     container.innerHTML = types.map(t => `
-      <div class="palette-item" data-type="${t.type}">
+      <div class="palette-item" data-type="${t.type}" draggable="true">
         <span>${t.icon}</span>
         <span>${t.label}</span>
       </div>
     `).join('');
+
+    // 拖拽开始：保存模块类型
+    container.querySelectorAll('.palette-item').forEach(el => {
+      el.addEventListener('dragstart', (e) => {
+        e.dataTransfer.setData('text/plain', el.dataset.type);
+        e.dataTransfer.effectAllowed = 'copy';
+        el.classList.add('dragging');
+      });
+      el.addEventListener('dragend', () => {
+        el.classList.remove('dragging');
+      });
+    });
   },
 
   // ---- 模块属性面板 ----
