@@ -513,3 +513,6 @@ const Preview = {
     return Math.abs(hash).toString(36);
   }
 };
+
+// 暴露到 window 上供 app.js 通过 window.Preview 访问
+window.Preview = Preview;
