@@ -429,7 +429,7 @@ body {
   background: var(--bg-card);
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow-y: auto;
 }
 
 .editor-sidebar.left {
