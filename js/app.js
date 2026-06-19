@@ -30,6 +30,7 @@ const App = {
     window.App = this;            // 暴露到全局，确保 inline onclick 兼容
     this.bindEvents();
     this.showStep('welcome');
+    this.renderTemplateGallery();
     this.renderModulePalette();
     this.renderDesignStyleOptions();
     this.checkApiStatus();
@@ -95,7 +96,7 @@ const App = {
 
     // 编辑器操作
     document.getElementById('btn-preview-page').addEventListener('click', () => this.showPreview());
-    document.getElementById('btn-export-config').addEventListener('click', () => this.exportConfig());
+    document.getElementById('btn-export-config')?.addEventListener('click', () => this.exportConfig());
     document.getElementById('btn-export-config-preview').addEventListener('click', () => this.exportConfig());
     document.getElementById('btn-back-to-editor').addEventListener('click', () => this.showStep('editor'));
     document.getElementById('btn-publish-draft').addEventListener('click', () => this.publishDraft());
@@ -522,6 +523,72 @@ const App = {
     } catch (e) {
       console.error('addModule 出错:', e);
     }
+  },
+
+  // ---- 模板库数据 ----
+  TEMPLATE_ITEMS: [
+    { cat:'餐饮', name:'精品咖啡店', desc:'暖色调 · 菜单展示 · 在线预约', icon:'☕', colors:['#78350f','#f97316'], kw:'高端咖啡店，展示菜单和店面环境' },
+    { cat:'餐饮', name:'日料餐厅', desc:'极简东方 · 菜品相册 · 预订系统', icon:'🍣', colors:['#1a1a2e','#dc2626'], kw:'日式料理餐厅，展示菜品和预订' },
+    { cat:'餐饮', name:'烘焙甜品', desc:'甜美粉色 · 产品展示 · 在线订购', icon:'🧁', colors:['#831843','#ec4899'], kw:'法式甜品烘焙店，展示蛋糕和订购' },
+    { cat:'科技', name:'SaaS 平台', desc:'深蓝科技 · 功能介绍 · 定价方案', icon:'☁', colors:['#1e40af','#06b6d4'], kw:'科技SaaS公司官网，展示产品功能' },
+    { cat:'科技', name:'AI 产品', desc:'暗紫霓虹 · 智能感 · 体验入口', icon:'🤖', colors:['#1e1b4b','#a855f7'], kw:'AI人工智能产品展示官网' },
+    { cat:'科技', name:'App 着陆页', desc:'渐变现代 · 下载引导 · 截图展示', icon:'📱', colors:['#1a1a2e','#6366f1'], kw:'App移动应用下载着陆页' },
+    { cat:'零售', name:'潮流服饰', desc:'黑白极简 · 商品陈列 · 品牌故事', icon:'👗', colors:['#171717','#d4af37'], kw:'时尚服装品牌官网，展示新品和品牌' },
+    { cat:'零售', name:'家居生活', desc:'温暖米色 · 产品目录 · 生活方式', icon:'🪑', colors:['#78350f','#d97706'], kw:'北欧风家居品牌，展示产品和理念' },
+    { cat:'零售', name:'手作集市', desc:'手工艺感 · 匠人故事 · 作品集', icon:'🧵', colors:['#3f2e1e','#b45309'], kw:'手工工艺品市集，展示匠人作品' },
+    { cat:'创意', name:'设计作品集', desc:'暗黑画布 · 作品陈列 · 关于我', icon:'🎨', colors:['#0f0f0f','#ec4899'], kw:'个人设计作品集，展示项目和技能' },
+    { cat:'创意', name:'摄影画廊', desc:'全屏影像 · 极简留白 · 预约拍摄', icon:'📷', colors:['#ffffff','#1e293b'], kw:'摄影师个人网站，展示作品和预约' },
+    { cat:'创意', name:'音乐人官网', desc:'暗黑炫酷 · 作品集 · 巡演日程', icon:'🎵', colors:['#0f0f0f','#f59e0b'], kw:'独立音乐人官网，展示作品和巡演' },
+    { cat:'服务', name:'企业官网', desc:'专业深蓝 · 业务介绍 · 客户案例', icon:'🏢', colors:['#1e3a5f','#3b82f6'], kw:'企业公司官网，展示业务和案例' },
+    { cat:'服务', name:'律师事务所', desc:'稳重典雅 · 团队介绍 · 服务领域', icon:'⚖', colors:['#1e3a5f','#b45309'], kw:'律师事务所官网，展示团队和服务' },
+    { cat:'服务', name:'房产中介', desc:'大气现代 · 楼盘展示 · 在线咨询', icon:'🏠', colors:['#1e40af','#f97316'], kw:'房地产公司官网，展示楼盘项目' },
+    { cat:'健康', name:'美容 SPA', desc:'柔和粉调 · 服务项目 · 在线预约', icon:'💆', colors:['#831843','#ec4899'], kw:'高端美容SPA会所，展示服务和预约' },
+    { cat:'健康', name:'瑜伽冥想', desc:'自然绿意 · 课程介绍 · 导师团队', icon:'🧘', colors:['#065f46','#10b981'], kw:'瑜伽冥想工作室，展示课程和导师' },
+    { cat:'健康', name:'心理咨询', desc:'温暖安心 · 咨询师介绍 · 预约咨询', icon:'🕊', colors:['#475569','#6366f1'], kw:'心理咨询中心官网，展示服务和预约' },
+    { cat:'科技', name:'在线教育', desc:'活力蓝紫 · 课程展示 · 名师团队', icon:'📚', colors:['#3b0764','#8b5cf6'], kw:'在线教育平台，销售课程和训练营' },
+    { cat:'零售', name:'美妆品牌', desc:'奢华金粉 · 产品线 · 品牌故事', icon:'💄', colors:['#831843','#d4af37'], kw:'高端美妆品牌官网，展示产品和品牌故事' },
+    { cat:'服务', name:'婚礼策划', desc:'浪漫玫瑰 · 案例展示 · 服务流程', icon:'💒', colors:['#831843','#f472b6'], kw:'婚礼策划公司官网，展示案例和服务' },
+    { cat:'创意', name:'游戏工作室', desc:'赛博朋克 · 作品展示 · 团队招募', icon:'🎮', colors:['#0f0f23','#00f0ff'], kw:'游戏开发工作室官网，展示游戏作品' },
+    { cat:'餐饮', name:'精酿酒吧', desc:'复古工业 · 酒单展示 · 活动预告', icon:'🍺', colors:['#1a1a1a','#d97706'], kw:'精酿啤酒吧，展示酒单和活动' }
+  ],
+
+  renderTemplateGallery() {
+    var grid = document.getElementById('template-grid');
+    var tabs = document.getElementById('template-tabs');
+    if (!grid) return;
+    var self = this;
+    var activeCat = 'all';
+
+    // 筛选 + 渲染
+    var render = function() {
+      var items = self.TEMPLATE_ITEMS.filter(function(t) { return activeCat === 'all' || t.cat === activeCat; });
+      grid.innerHTML = items.map(function(t) {
+        return '<div class="tpl-card" data-kw="' + self.esc(t.kw) + '" onclick="document.getElementById(\'keyword-input\').value=\'' + t.kw + '\';App.startAnalysis();">'
+          + '<div class="tpl-card-preview" style="background:linear-gradient(135deg,' + t.colors[0] + ',' + t.colors[1] + ');">'
+          + '<span class="tpl-bg-icon">' + t.icon + '</span>'
+          + '<div class="tpl-overlay"></div>'
+          + '</div>'
+          + '<div class="tpl-card-body">'
+          + '<h3>' + t.name + '</h3>'
+          + '<p>' + t.desc + '</p>'
+          + '<div class="tpl-tags"><span class="tpl-tag">' + t.cat + '</span></div>'
+          + '</div></div>';
+      }).join('');
+    };
+
+    // Tab 切换
+    if (tabs) {
+      tabs.addEventListener('click', function(e) {
+        var btn = e.target.closest('.tpl-tab');
+        if (!btn) return;
+        tabs.querySelectorAll('.tpl-tab').forEach(function(b) { b.classList.remove('active'); });
+        btn.classList.add('active');
+        activeCat = btn.dataset.cat;
+        render();
+      });
+    }
+
+    render();
   },
 
   // ---- 设计风格选项 ----

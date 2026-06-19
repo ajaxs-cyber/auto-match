@@ -26,42 +26,37 @@
     </div>
   </nav>
 
-  <!-- ========== Step 1: 欢迎 + 关键词输入 ========== -->
+  <!-- ========== Step 1: 模板展示大厅 ========== -->
   <div class="step-container active" id="step-welcome">
-    <div class="welcome-hero">
-      <div class="welcome-aurora"></div>
-      <div class="welcome-content">
-        <div class="welcome-badge">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
-          智能建站平台
-        </div>
-        <h1 class="welcome-title">用一句话<br><span class="text-gradient">生成完整网站</span></h1>
-        <p class="welcome-desc">从关键词到在线发布，AI 自动匹配行业模板、配色方案、页面结构</p>
-        <div class="keyword-input-area">
-          <div class="keyword-input-wrapper">
-            <svg class="kw-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
-            <input type="text" id="keyword-input" class="keyword-input" placeholder="试试输入：我想做一个高端美容SPA品牌官网..." autofocus/>
-            <button class="btn btn-primary btn-glow" id="btn-start-analyze">
-              开始分析
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-            </button>
-          </div>
-          <div class="keyword-hints">
-            <span class="hints-label">快速体验：</span>
-            <span class="hint-tag" onclick="document.getElementById('keyword-input').value='我想开一家高端咖啡店，展示菜单和店面环境'; App.startAnalysis();">☕ 咖啡店</span>
-            <span class="hint-tag" onclick="document.getElementById('keyword-input').value='科技SaaS公司官网，展示产品功能和客户案例'; App.startAnalysis();">💻 SaaS</span>
-            <span class="hint-tag" onclick="document.getElementById('keyword-input').value='个人设计作品集，展示我的项目和技能'; App.startAnalysis();">🎨 作品集</span>
-            <span class="hint-tag" onclick="document.getElementById('keyword-input').value='在线教育平台，销售课程和训练营'; App.startAnalysis();">📚 教育</span>
-            <span class="hint-tag" onclick="document.getElementById('keyword-input').value='高端美容SPA会所，展示服务和预约'; App.startAnalysis();">💆 SPA</span>
-            <span class="hint-tag" onclick="document.getElementById('keyword-input').value='独立音乐人官网，展示作品和巡演日程'; App.startAnalysis();">🎵 音乐</span>
+    <div class="landing-page">
+      <!-- Hero -->
+      <section class="landing-hero">
+        <div class="landing-aurora"></div>
+        <div class="landing-hero-content">
+          <div class="landing-badge">AI 智能建站平台</div>
+          <h1>选择模板，<span class="text-gradient">即刻开始</span></h1>
+          <p>从 24+ 行业模板中选择，或输入你的想法让 AI 为你定制</p>
+          <div class="landing-search-wrap">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
+            <input type="text" id="keyword-input" class="landing-search" placeholder="描述你想要的网站，如：高端日料餐厅..." />
+            <button class="btn btn-primary btn-glow" id="btn-start-analyze">AI 生成</button>
           </div>
         </div>
-        <div class="welcome-stats">
-          <div class="stat-item"><span class="stat-num">24+</span><span class="stat-label">行业模板</span></div>
-          <div class="stat-item"><span class="stat-num">67</span><span class="stat-label">视觉风格</span></div>
-          <div class="stat-item"><span class="stat-num">130+</span><span class="stat-label">动效组件</span></div>
-        </div>
+      </section>
+
+      <!-- 分类 tab -->
+      <div class="template-tabs" id="template-tabs">
+        <button class="tpl-tab active" data-cat="all">全部</button>
+        <button class="tpl-tab" data-cat="餐饮">🍽 餐饮</button>
+        <button class="tpl-tab" data-cat="科技">💻 科技</button>
+        <button class="tpl-tab" data-cat="零售">🛍 零售</button>
+        <button class="tpl-tab" data-cat="创意">🎨 创意</button>
+        <button class="tpl-tab" data-cat="服务">💼 服务</button>
+        <button class="tpl-tab" data-cat="健康">🌿 健康</button>
       </div>
+
+      <!-- 模板卡片网格 -->
+      <div class="template-grid" id="template-grid"></div>
     </div>
   </div>
 
@@ -120,13 +115,21 @@
           <div class="preview-frame" id="page-preview"></div>
         </div>
 
-        <!-- 配置树 -->
-        <div class="config-tree-section">
-          <h4>📋 配置树 (JSON)</h4>
-          <div id="config-tree-view"><pre style="margin:0;color:#999;">等待生成...</pre></div>
+        <!-- 配置树(付费) -->
+        <div class="config-tree-section" style="position:relative;">
+          <h4>📋 网站代码 & 导出</h4>
+          <div style="position:relative;">
+            <div id="config-tree-view"><pre style="margin:0;color:#999;filter:blur(8px);user-select:none;">等待生成...</pre></div>
+            <div class="code-paywall" id="code-paywall">
+              <div class="paywall-icon">🔒</div>
+              <p>查看 & 导出网站代码</p>
+              <span class="paywall-price">¥9.9 / 永久</span>
+              <button class="btn btn-primary btn-small" onclick="alert('支付功能即将上线')" style="margin-top:8px;">立即解锁</button>
+            </div>
+          </div>
           <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
-            <button class="btn btn-secondary btn-small" id="btn-export-config">导出配置</button>
-            <button class="btn btn-primary btn-small" id="btn-publish-draft">保存草稿</button>
+            <button class="btn btn-secondary btn-small" onclick="alert('请先解锁代码查看权限')" style="opacity:0.5;">导出HTML</button>
+            <button class="btn btn-secondary btn-small" id="btn-publish-draft">保存草稿</button>
           </div>
         </div>
 
