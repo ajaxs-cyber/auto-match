@@ -110,10 +110,10 @@ const App = {
         }
       });
     }
-    document.getElementById('btn-go-music-standalone').addEventListener('click', () => this.showStep('music'));
-    document.getElementById('btn-back-from-music').addEventListener('click', () => this.showStep('welcome'));
+    document.getElementById('btn-go-music-standalone')?.addEventListener('click', () => this.showStep('music'));
+    document.getElementById('btn-back-from-music')?.addEventListener('click', () => this.showStep('welcome'));
     document.getElementById('btn-analyze-music')?.addEventListener('click', () => this.analyzeMusicStandalone());
-    document.getElementById('toggle-music-panel').addEventListener('click', () => this.toggleMusicPanel());
+    document.getElementById('toggle-music-panel')?.addEventListener('click', () => this.toggleMusicPanel());
 
     // 预览区点击选中模块
     const previewArea = document.querySelector('.preview-area');
