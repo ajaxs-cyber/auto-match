@@ -24,7 +24,7 @@ P.render_header = function(cfg, pc) {
     + '</header>';
 };
 
-// ---- 主视觉 (专业版) ----
+// ---- 主视觉 (专业版, 集成文字动效/背景动效) ----
 P.render_hero = function(cfg, pc) {
   var title = this.esc(cfg.title || '');
   var sub = this.esc(cfg.subtitle || '');
@@ -33,10 +33,21 @@ P.render_hero = function(cfg, pc) {
   var h = cfg.height === 'fullscreen' ? '100vh' : cfg.height === 'large' ? '90vh' : cfg.height === 'small' ? '50vh' : '75vh';
   var p = pc.primaryColor || '#6366f1';
   var a = pc.accentColor || '#f59e0b';
-  return '<section style="min-height:'+h+';display:flex;align-items:center;justify-content:center;text-align:center;position:relative;overflow:hidden;background:linear-gradient(160deg,'+p+' 0%,#1e1b4b 50%,#0f0f1a 100%);">'
+  // 文字动效 class
+  var fxClass = '';
+  if (cfg.textFx === 'shiny') fxClass = ' rb-shiny-text';
+  else if (cfg.textFx === 'gradient') fxClass = ' rb-gradient-text';
+  else if (cfg.textFx === 'glitch') fxClass = ' rb-glitch-text';
+  // 背景动效 data 属性
+  var bgAttr = '';
+  if (cfg.bgFx === 'aurora') bgAttr = ' data-rb-bg="aurora" data-rb-colors=\'["#6366f1","#ec4899"]\'';
+  else if (cfg.bgFx === 'particles') bgAttr = ' data-rb-bg="particles" data-rb-colors=\'["#818cf8"]\'';
+  else if (cfg.bgFx === 'beams') bgAttr = ' data-rb-bg="beams" data-rb-colors=\'["#a78bfa"]\'';
+  return '<section style="min-height:'+h+';display:flex;align-items:center;justify-content:center;text-align:center;position:relative;overflow:hidden;background:linear-gradient(160deg,'+p+' 0%,#1e1b4b 50%,#0f0f1a 100%);"'
+    + bgAttr + '>'
     + '<div style="position:absolute;inset:0;background:radial-gradient(ellipse at 30% 50%,rgba(99,102,241,0.15) 0%,transparent 50%),radial-gradient(ellipse at 70% 30%,rgba(236,72,153,0.1) 0%,transparent 50%);"></div>'
     + '<div style="position:relative;z-index:2;max-width:720px;padding:40px 24px;">'
-    + '<h1 style="font-family:Outfit,system-ui,sans-serif;font-size:clamp(2.2rem,5vw,4rem);font-weight:800;letter-spacing:-0.03em;line-height:1.1;color:#f8fafc;margin-bottom:16px;">'+title+'</h1>'
+    + '<h1 class="'+fxClass+'" style="font-family:Outfit,system-ui,sans-serif;font-size:clamp(2.2rem,5vw,4rem);font-weight:800;letter-spacing:-0.03em;line-height:1.1;color:#f8fafc;margin-bottom:16px;" data-text="'+title+'">'+title+'</h1>'
     + (sub ? '<p style="font-size:1.15rem;color:#94a3b8;max-width:500px;margin:0 auto 32px;">'+sub+'</p>' : '')
     + (btn ? '<a href="'+link+'" style="display:inline-block;padding:14px 40px;background:linear-gradient(135deg,'+p+','+a+');color:#fff;border-radius:50px;text-decoration:none;font-weight:600;font-size:1rem;box-shadow:0 4px 20px rgba(99,102,241,0.35);">'+btn+'</a>' : '')
     + '</div></section>';
@@ -64,11 +75,15 @@ P.render_features = function(cfg, pc) {
   return html;
 };
 
-// ---- 文本块 (编辑风) ----
+// ---- 文本块 (编辑风, 集成文字动效) ----
 P.render_text = function(cfg, pc) {
+  var fxClass = '';
+  if (cfg.textFx === 'shiny') fxClass = ' rb-shiny-text';
+  else if (cfg.textFx === 'gradient') fxClass = ' rb-gradient-text';
+  else if (cfg.textFx === 'glitch') fxClass = ' rb-glitch-text';
   return '<section style="padding:60px 24px;background:'+(cfg.bgColor||'#fff')+';">'
     + '<div style="max-width:'+(cfg.maxWidth||'720px')+';margin:0 auto;text-align:'+(cfg.align||'left')+';">'
-    + (cfg.title ? '<h2 style="font-size:1.8rem;font-weight:700;margin-bottom:16px;color:'+(pc.textColor||'#1a1a2e')+';">'+this.esc(cfg.title)+'</h2>' : '')
+    + (cfg.title ? '<h2 class="'+fxClass+'" style="font-size:1.8rem;font-weight:700;margin-bottom:16px;color:'+(pc.textColor||'#1a1a2e')+'" data-text="'+this.esc(cfg.title)+'">'+this.esc(cfg.title)+'</h2>' : '')
     + '<div style="line-height:1.9;color:#475569;font-size:1.05rem;">'+this.esc(cfg.content||'')+'</div>'
     + '</div></section>';
 };

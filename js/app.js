@@ -127,6 +127,49 @@ const App = {
         }
       });
 
+      // 预览区双击编辑文字
+      previewArea.addEventListener('dblclick', (e) => {
+        var target = e.target.closest('h1,h2,h3,p,span,strong');
+        if (!target || !target.textContent || target.closest('button,a,img')) return;
+        if (target.isContentEditable) return;
+        target.contentEditable = true;
+        target.focus();
+        // 选中全部文字
+        var range = document.createRange();
+        range.selectNodeContents(target);
+        var sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+        // blur 时保存
+        target._saveInline = function() {
+          target.contentEditable = false;
+          var newText = target.textContent;
+          // 找到对应的 wrapper 和 module index
+          var wrapper = target.closest('.preview-module-wrapper');
+          if (wrapper) {
+            var idx = parseInt(wrapper.dataset.moduleIndex);
+            if (!isNaN(idx) && App.state.modules && App.state.modules[idx]) {
+              var mod = App.state.modules[idx];
+              // 尝试匹配 config 中的字段
+              var tagName = target.tagName.toLowerCase();
+              if (tagName === 'h1' && mod.config.title !== undefined) mod.config.title = newText;
+              else if (tagName === 'h2' && mod.config.title !== undefined) mod.config.title = newText;
+              else if (tagName === 'h3' && (mod.config.title !== undefined && !mod.config.subtitle)) mod.config.title = newText;
+              else if (tagName === 'p' && mod.config.content !== undefined) mod.config.content = newText;
+              else if (mod.config.subtitle !== undefined) mod.config.subtitle = newText;
+              else if (mod.config.content !== undefined) mod.config.content = newText;
+              App.renderModuleProperties();
+              App.renderConfigTree();
+            }
+          }
+        };
+        target.addEventListener('blur', target._saveInline, {once: true});
+        target.addEventListener('keydown', function(e) {
+          if (e.key === 'Escape') { target.contentEditable = false; target.removeEventListener('blur', target._saveInline); }
+          if (e.key === 'Enter') { e.preventDefault(); target.blur(); }
+        });
+      });
+
       // 预览区作为拖拽放置目标（允许从模块面板拖入）
       previewArea.addEventListener('dragover', (e) => {
         e.preventDefault();
@@ -685,6 +728,14 @@ const App = {
           { key: 'height', label: '高度', type: 'select', options: [
             { value: 'small', label: '小' }, { value: 'medium', label: '中' },
             { value: 'large', label: '大' }, { value: 'fullscreen', label: '全屏' }
+          ]},
+          { key: 'textFx', label: '文字动效', type: 'select', options: [
+            { value: '', label: '无' }, { value: 'shiny', label: '闪光' },
+            { value: 'gradient', label: '渐变' }, { value: 'glitch', label: '故障' }
+          ]},
+          { key: 'bgFx', label: '背景动效', type: 'select', options: [
+            { value: '', label: '无' }, { value: 'aurora', label: '极光' },
+            { value: 'particles', label: '粒子' }, { value: 'beams', label: '光束' }
           ]}
         ]);
         break;
@@ -694,6 +745,10 @@ const App = {
           { key: 'content', label: '内容', type: 'textarea' },
           { key: 'align', label: '对齐', type: 'select', options: [
             { value: 'left', label: '左对齐' }, { value: 'center', label: '居中' }, { value: 'right', label: '右对齐' }
+          ]},
+          { key: 'textFx', label: '文字动效', type: 'select', options: [
+            { value: '', label: '无' }, { value: 'shiny', label: '闪光' },
+            { value: 'gradient', label: '渐变' }, { value: 'glitch', label: '故障' }
           ]}
         ]);
         break;
@@ -793,83 +848,6 @@ const App = {
           ]}
         ]);
         break;
-
-      // ── ReactBits 特效模块 ──
-      case 'rbTextFx':
-        html += this.buildSimpleForm(cfg, [
-          { key: 'text', label: '文字内容', type: 'text' },
-          { key: 'effect', label: '动画效果', type: 'select', options: [
-            { value: 'shiny', label: '闪光' }, { value: 'gradient', label: '渐变' },
-            { value: 'glitch', label: '故障' }, { value: 'blur', label: '模糊渐显' },
-            { value: 'fuzzy', label: '毛刺' }, { value: 'truefocus', label: '聚焦' }
-          ]},
-          { key: 'tag', label: '字号层级', type: 'select', options: [
-            { value: 'h1', label: 'H1 大标题' }, { value: 'h2', label: 'H2 标题' },
-            { value: 'h3', label: 'H3 副标题' }, { value: 'p', label: '段落' }
-          ]},
-          { key: 'color1', label: '渐变颜色1', type: 'color' },
-          { key: 'color2', label: '渐变颜色2', type: 'color' }
-        ]);
-        break;
-      case 'rbBgFx':
-        html += this.buildSimpleForm(cfg, [
-          { key: 'text', label: '标题文字', type: 'text' },
-          { key: 'subText', label: '副标题', type: 'text' },
-          { key: 'effect', label: '背景效果', type: 'select', options: [
-            { value: 'aurora', label: '极光' }, { value: 'particles', label: '粒子网络' },
-            { value: 'waves', label: '波浪' }, { value: 'hyperspeed', label: '光速穿梭' },
-            { value: 'galaxy', label: '银河' }, { value: 'beams', label: '光束' },
-            { value: 'noise', label: '噪点' }, { value: 'plasma', label: '等离子' },
-            { value: 'gridmotion', label: '运动网格' }, { value: 'floatinglines', label: '浮动线条' }
-          ]},
-          { key: 'height', label: '高度', type: 'text' },
-          { key: 'textColor', label: '文字颜色', type: 'color' }
-        ]);
-        break;
-      case 'rbTiltedCard':
-        html += this.buildSimpleForm(cfg, [
-          { key: 'title', label: '标题', type: 'text' },
-          { key: 'content', label: '内容', type: 'text' },
-          { key: 'icon', label: '图标(emoji)', type: 'text' },
-          { key: 'bgColor', label: '背景色', type: 'color' },
-          { key: 'shadow', label: '阴影', type: 'select', options: [
-            { value: 'small', label: '小' }, { value: 'medium', label: '中' }, { value: 'large', label: '大' }
-          ]}
-        ]);
-        break;
-      case 'rbBounceCards':
-        html += this.buildSimpleForm(cfg, [
-          { key: 'title', label: '标题', type: 'text' },
-          { key: 'columns', label: '列数', type: 'select', options: [
-            { value: 2, label: '2列' }, { value: 3, label: '3列' }, { value: 4, label: '4列' }
-          ]},
-          { key: 'bgColor', label: '背景色', type: 'color' }
-        ]);
-        break;
-      case 'rbGlassSurface':
-        html += this.buildSimpleForm(cfg, [
-          { key: 'content', label: '内容', type: 'text' },
-          { key: 'bgOpacity', label: '透明(0-1)', type: 'text' },
-          { key: 'borderRadius', label: '圆角', type: 'text' }
-        ]);
-        break;
-      case 'rbCarousel':
-        html += this.buildSimpleForm(cfg, [
-          { key: 'height', label: '高度', type: 'text' },
-          { key: 'interval', label: '自动播放(ms)', type: 'text' },
-          { key: 'borderRadius', label: '圆角', type: 'text' }
-        ]);
-        break;
-      case 'rbSpotlightCard':
-        html += this.buildSimpleForm(cfg, [
-          { key: 'title', label: '标题', type: 'text' },
-          { key: 'content', label: '内容', type: 'text' },
-          { key: 'icon', label: '图标(emoji)', type: 'text' },
-          { key: 'bgColor', label: '背景色', type: 'color' },
-          { key: 'textColor', label: '文字色', type: 'color' }
-        ]);
-        break;
-
       default:
         html += '<p style="color:#888;font-size:0.9em;">该模块暂无可编辑属性</p>';
     }
