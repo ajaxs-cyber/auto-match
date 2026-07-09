@@ -1,5 +1,5 @@
 // ============================================
-// AutoMatch v2 — Enhanced Type Definitions
+// AutoMatch v4 — Complete Music-First Type System
 // ============================================
 
 export interface ColorPalette {
@@ -94,7 +94,6 @@ export interface BaseModule {
   elements?: Record<string, ElementConfig>;
 }
 
-// Hero with flexible element positioning
 export interface HeroModule extends BaseModule {
   type: 'hero';
   content: {
@@ -268,6 +267,7 @@ export interface Page {
   isHome: boolean;
   modules: WebsiteModule[];
   musicTrackId?: string;
+  musicStyle?: string;
 }
 
 export interface Website {
@@ -277,7 +277,12 @@ export interface Website {
   colors: ColorPalette;
   fonts: FontPair;
   favicon?: string;
+  industry?: string;
 }
+
+// ============================================
+// Music System Types
+// ============================================
 
 export interface MusicTrack {
   id: string;
@@ -285,11 +290,14 @@ export interface MusicTrack {
   artist: string;
   album: string;
   duration: string;
+  durationSeconds: number;
   cover: string;
   moods: string[];
   genre: string;
   bpm: number;
   reason?: string;
+  license: 'royalty-free' | 'cc' | 'premium' | 'custom';
+  tags: string[];
 }
 
 export interface BrandMoodProfile {
@@ -300,12 +308,89 @@ export interface BrandMoodProfile {
   sophistication: number;
 }
 
+export interface BrandMoodAnalysis {
+  industry: string;
+  moodProfile: BrandMoodProfile;
+  keywords: string[];
+  colorStyle: string;
+  visualRhythm: string;
+  targetAudience: string;
+  brandPersonality: string;
+}
+
 export interface MusicRecommendation {
   primary: MusicTrack;
   alternatives: MusicTrack[];
   reasoning: string;
   moodProfile: BrandMoodProfile;
+  analysis: BrandMoodAnalysis;
+  style: string;
 }
+
+export interface AnalysisDimension {
+  id: string;
+  label: string;
+  labelZh: string;
+  description: string;
+  descriptionZh: string;
+  icon: string;
+  value: string;
+  valueZh: string;
+  confidence: number;
+}
+
+export interface AnalysisStep {
+  id: string;
+  label: string;
+  labelZh: string;
+  description: string;
+  descriptionZh: string;
+  status: 'pending' | 'analyzing' | 'complete';
+  dimensions?: AnalysisDimension[];
+}
+
+export interface MusicStylePreset {
+  id: string;
+  name: string;
+  nameZh: string;
+  description: string;
+  descriptionZh: string;
+  icon: string;
+  genres: string[];
+  moodProfile: BrandMoodProfile;
+}
+
+export interface PageMusicMapping {
+  pageId: string;
+  trackId: string;
+  volume: number;
+  fadeIn: number;
+  fadeOut: number;
+  loop: boolean;
+  autoplay: boolean;
+}
+
+export interface MusicLibraryItem {
+  track: MusicTrack;
+  addedAt: string;
+  source: 'ai-recommend' | 'upload' | 'search';
+  isFavorite: boolean;
+  notes?: string;
+}
+
+export interface MusicHistoryEntry {
+  id: string;
+  timestamp: string;
+  websiteName: string;
+  industry: string;
+  recommendedTracks: MusicTrack[];
+  selectedTrackId: string;
+  stylePreset: string;
+}
+
+// ============================================
+// Template & Editor Types
+// ============================================
 
 export interface Template {
   id: string;
@@ -341,6 +426,17 @@ export interface EditorState {
   saved: boolean;
   lastSaved: Date | null;
   inlineEditing: string | null;
+  musicPlayer: {
+    isPlaying: boolean;
+    currentTrackIndex: number;
+    volume: number;
+    loop: boolean;
+    autoplay: boolean;
+    progress: number;
+  };
+  musicLibrary: MusicLibraryItem[];
+  musicHistory: MusicHistoryEntry[];
+  pageMusicMappings: PageMusicMapping[];
 }
 
 export type EditorAction =
@@ -368,6 +464,13 @@ export type EditorAction =
   | { type: 'UPDATE_FONTS'; fonts: Partial<FontPair> }
   | { type: 'UPDATE_WEBSITE_NAME'; name: string }
   | { type: 'SET_PAGE_MUSIC'; pageId: string; trackId: string }
+  | { type: 'SET_PAGE_MUSIC_STYLE'; pageId: string; style: string }
+  | { type: 'SET_PAGE_MUSIC_MAPPING'; mapping: PageMusicMapping }
+  | { type: 'UPDATE_MUSIC_PLAYER'; updates: Partial<EditorState['musicPlayer']> }
+  | { type: 'ADD_TO_MUSIC_LIBRARY'; item: MusicLibraryItem }
+  | { type: 'REMOVE_FROM_MUSIC_LIBRARY'; trackId: string }
+  | { type: 'TOGGLE_FAVORITE'; trackId: string }
+  | { type: 'ADD_MUSIC_HISTORY'; entry: MusicHistoryEntry }
   | { type: 'UNDO' }
   | { type: 'REDO' }
   | { type: 'SAVE' }
@@ -375,3 +478,38 @@ export type EditorAction =
   | { type: 'TOGGLE_RIGHT_PANEL' }
   | { type: 'SET_PREVIEW_DEVICE'; device: 'desktop' | 'tablet' | 'mobile' }
   | { type: 'SET_INLINE_EDITING'; elementId: string | null };
+
+// ============================================
+// i18n Types
+// ============================================
+
+export type Language = 'en' | 'zh';
+
+export interface I18nContextValue {
+  lang: Language;
+  setLang: (lang: Language) => void;
+  t: (key: string, fallback?: string) => string;
+}
+
+// ============================================
+// Case Study Types
+// ============================================
+
+export interface CaseStudy {
+  id: string;
+  industry: string;
+  industryZh: string;
+  brandName: string;
+  description: string;
+  descriptionZh: string;
+  musicGenre: string;
+  musicTitle: string;
+  musicArtist: string;
+  coverImage: string;
+  websiteImage: string;
+  colorPalette: ColorPalette;
+  moodProfile: BrandMoodProfile;
+  reasoning: string;
+  reasoningZh: string;
+  metrics: { label: string; value: string }[];
+}

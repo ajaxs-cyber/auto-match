@@ -332,6 +332,14 @@ export const t: Record<Lang, Record<string, string>> = {
     'toast.duplicated': 'Duplicated',
     'toast.added': 'added',
     'toast.homeSet': 'Home page set',
+
+    // Case Studies
+    'cases.label': 'REAL CASES',
+    'cases.title': 'Real Brand-Music Pairings',
+    'cases.subtitle': 'See how AI matches music to different industries and brand personalities to create complete brand experiences.',
+    'cases.moodProfile': 'Brand Mood Profile',
+    'cases.why': 'Why AI recommends this:',
+    'cases.impact': 'Impact Metrics',
   },
 
   zh: {
@@ -648,5 +656,12 @@ export const t: Record<Lang, Record<string, string>> = {
     'toast.duplicated': '已复制',
     'toast.added': '已添加',
     'toast.homeSet': '已设为首页',
+
+    'cases.label': '真实案例',
+    'cases.title': '真实品牌 - 音乐配对案例',
+    'cases.subtitle': '看看 AI 如何将音乐与不同行业和品牌个性匹配，创造完整的品牌体验。',
+    'cases.moodProfile': '品牌情绪画像',
+    'cases.why': 'AI 推荐原因',
+    'cases.impact': '效果指标',
   }
 };
