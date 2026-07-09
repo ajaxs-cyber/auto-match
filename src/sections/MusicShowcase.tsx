@@ -1,12 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { CheckCircle, Play, Pause, SkipBack, SkipForward } from 'lucide-react';
-
-const FEATURES = [
-  'Mood-based track recommendations',
-  'Industry-curated playlists',
-  'Real-time preview with your website',
-  'Licensed, royalty-free tracks',
-];
+import { useLang } from '@/i18n/LanguageContext';
 
 const TRACKS = [
   {
@@ -29,7 +23,10 @@ const TRACKS = [
   },
 ];
 
+const FEATURE_KEYS = ['ms.f1', 'ms.f2', 'ms.f3', 'ms.f4'];
+
 export default function MusicShowcase() {
+  const { lang, __ } = useLang();
   const sectionRef = useRef<HTMLDivElement>(null);
   const [isVisible, setIsVisible] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -89,27 +86,25 @@ export default function MusicShowcase() {
               className="text-xs font-semibold uppercase tracking-widest"
               style={{ color: 'var(--text-tertiary)' }}
             >
-              MUSIC MATCHING
+              {__('ms.label')}
             </span>
             <h2
               className="mt-3 text-[clamp(1.5rem,3vw,2.25rem)] font-bold"
               style={{ color: 'var(--text-primary)' }}
             >
-              Sound that fits your brand
+              {__('ms.title')}
             </h2>
             <p
               className="mt-4 text-base leading-relaxed"
               style={{ color: 'var(--text-secondary)' }}
             >
-              Our AI doesn't just build your site — it listens to your brand. By
-              analyzing your industry, mood, and audience, AutoMatch recommends
-              background music that strengthens your message.
+              {__('ms.desc')}
             </p>
 
             {/* Feature List */}
             <div className="mt-8 space-y-4">
-              {FEATURES.map((feature) => (
-                <div key={feature} className="flex items-center gap-3">
+              {FEATURE_KEYS.map((featureKey) => (
+                <div key={featureKey} className="flex items-center gap-3">
                   <CheckCircle
                     size={18}
                     style={{ color: 'var(--accent)', flexShrink: 0 }}
@@ -118,7 +113,7 @@ export default function MusicShowcase() {
                     className="text-sm"
                     style={{ color: 'var(--text-secondary)' }}
                   >
-                    {feature}
+                    {__(featureKey)}
                   </span>
                 </div>
               ))}

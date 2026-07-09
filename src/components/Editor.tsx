@@ -1,6 +1,7 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { useEditor } from '@/hooks/useEditor';
 import { useToast } from '@/hooks/useToast';
+import { useLang } from '@/i18n/LanguageContext';
 import { getTrackById, generateMusicRecommendation, getGenreLabel, getGenreColor } from '@/data/music';
 import { detectIndustry } from '@/components/AnalysisModal';
 import {
@@ -12,37 +13,12 @@ import {
 } from 'lucide-react';
 import type { WebsiteModule, Page, EditorPanel } from '@/types';
 
-const MODULE_TYPES = [
-  { type: 'hero', name: 'Hero Section', icon: <Layout size={16} />, desc: 'Full-width banner with title, subtitle, buttons' },
-  { type: 'navbar', name: 'Navigation', icon: <CircleDot size={16} />, desc: 'Top nav with logo, links, CTA' },
-  { type: 'text', name: 'Text Block', icon: <Type size={16} />, desc: 'Rich text with heading and body' },
-  { type: 'features', name: 'Features', icon: <Star size={16} />, desc: 'Grid of feature cards with icons' },
-  { type: 'gallery', name: 'Gallery', icon: <Image size={16} />, desc: 'Image grid with configurable columns' },
-  { type: 'services', name: 'Services', icon: <Briefcase size={16} />, desc: 'Service cards with descriptions' },
-  { type: 'testimonials', name: 'Testimonials', icon: <Users size={16} />, desc: 'Customer review cards' },
-  { type: 'team', name: 'Team', icon: <Users size={16} />, desc: 'Team member profiles' },
-  { type: 'pricing', name: 'Pricing', icon: <CreditCard size={16} />, desc: 'Pricing plan comparison cards' },
-  { type: 'faq', name: 'FAQ', icon: <HelpCircle size={16} />, desc: 'Collapsible Q&A accordion' },
-  { type: 'contact', name: 'Contact', icon: <Phone size={16} />, desc: 'Contact form with info' },
-  { type: 'stats', name: 'Stats', icon: <BarChart3 size={16} />, desc: 'Number/statistic counters' },
-  { type: 'cta', name: 'CTA Section', icon: <Sparkles size={16} />, desc: 'Call-to-action banner' },
-  { type: 'footer', name: 'Footer', icon: <Layout size={16} />, desc: 'Site footer with links' },
-  { type: 'divider', name: 'Divider', icon: <SeparatorHorizontal size={16} />, desc: 'Section separator line' },
-  { type: 'music', name: 'Music Player', icon: <Music size={16} />, desc: 'Background music display' },
-];
-
-const PANEL_TABS: { id: EditorPanel; label: string; icon: React.ReactNode }[] = [
-  { id: 'components', label: 'Components', icon: <Layout size={14} /> },
-  { id: 'pages', label: 'Pages', icon: <FilePlus size={14} /> },
-  { id: 'music', label: 'Music', icon: <Music size={14} /> },
-  { id: 'styles', label: 'Styles', icon: <Settings size={14} /> },
-];
-
 interface EditorProps { onClose: () => void; onPreview: () => void; }
 
 export default function Editor({ onClose, onPreview }: EditorProps) {
   const { state, dispatch, currentPage, selectedModule, canUndo, canRedo } = useEditor();
   const toast = useToast();
+  const { lang, __ } = useLang();
   const [dragModId, setDragModId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
   const [showPageMenu, setShowPageMenu] = useState<string | null>(null);
@@ -55,6 +31,32 @@ export default function Editor({ onClose, onPreview }: EditorProps) {
   const rec = currentPage ? generateMusicRecommendation(detectIndustryFromPage(currentPage)) : null;
   const tracks = rec ? [rec.primary, ...rec.alternatives] : [];
 
+  const MODULE_TYPES = useMemo(() => [
+    { type: 'hero', name: __('mod.hero'), icon: <Layout size={16} />, desc: __('mod.hero.desc') },
+    { type: 'navbar', name: __('mod.navbar'), icon: <CircleDot size={16} />, desc: __('mod.navbar.desc') },
+    { type: 'text', name: __('mod.text'), icon: <Type size={16} />, desc: __('mod.text.desc') },
+    { type: 'features', name: __('mod.features'), icon: <Star size={16} />, desc: __('mod.features.desc') },
+    { type: 'gallery', name: __('mod.gallery'), icon: <Image size={16} />, desc: __('mod.gallery.desc') },
+    { type: 'services', name: __('mod.services'), icon: <Briefcase size={16} />, desc: __('mod.services.desc') },
+    { type: 'testimonials', name: __('mod.testimonials'), icon: <Users size={16} />, desc: __('mod.testimonials.desc') },
+    { type: 'team', name: __('mod.team'), icon: <Users size={16} />, desc: __('mod.team.desc') },
+    { type: 'pricing', name: __('mod.pricing'), icon: <CreditCard size={16} />, desc: __('mod.pricing.desc') },
+    { type: 'faq', name: __('mod.faq'), icon: <HelpCircle size={16} />, desc: __('mod.faq.desc') },
+    { type: 'contact', name: __('mod.contact'), icon: <Phone size={16} />, desc: __('mod.contact.desc') },
+    { type: 'stats', name: __('mod.stats'), icon: <BarChart3 size={16} />, desc: __('mod.stats.desc') },
+    { type: 'cta', name: __('mod.cta'), icon: <Sparkles size={16} />, desc: __('mod.cta.desc') },
+    { type: 'footer', name: __('mod.footer'), icon: <Layout size={16} />, desc: __('mod.footer.desc') },
+    { type: 'divider', name: __('mod.divider'), icon: <SeparatorHorizontal size={16} />, desc: __('mod.divider.desc') },
+    { type: 'music', name: __('mod.music'), icon: <Music size={16} />, desc: __('mod.music.desc') },
+  ], [__]);
+
+  const PANEL_TABS: { id: EditorPanel; label: string; icon: React.ReactNode }[] = useMemo(() => [
+    { id: 'components', label: __('editor.components'), icon: <Layout size={14} /> },
+    { id: 'pages', label: __('editor.pages'), icon: <FilePlus size={14} /> },
+    { id: 'music', label: __('editor.music'), icon: <Music size={14} /> },
+    { id: 'styles', label: __('editor.styles'), icon: <Settings size={14} /> },
+  ], [__]);
+
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'z') { e.preventDefault(); e.shiftKey ? dispatch({ type: 'REDO' }) : dispatch({ type: 'UNDO' }); }
@@ -64,15 +66,15 @@ export default function Editor({ onClose, onPreview }: EditorProps) {
     return () => window.removeEventListener('keydown', handler);
   });
 
-  const handleSave = useCallback(() => { dispatch({ type: 'SAVE' }); toast.success('Project saved'); }, [dispatch, toast]);
+  const handleSave = useCallback(() => { dispatch({ type: 'SAVE' }); toast.success(__('editor.savedToast')); }, [dispatch, toast, __]);
   const handleUndo = useCallback(() => { if (canUndo) dispatch({ type: 'UNDO' }); }, [canUndo, dispatch]);
   const handleRedo = useCallback(() => { if (canRedo) dispatch({ type: 'REDO' }); }, [canRedo, dispatch]);
 
   const addModule = (type: string) => {
     if (!currentPage) return;
-    const mod = createDefaultModule(type);
+    const mod = createDefaultModule(type, __);
     dispatch({ type: 'ADD_MODULE', pageId: currentPage.id, module: mod });
-    toast.success(`${mod.name} added`);
+    toast.success(`${mod.name} ${__('toast.added')}`);
   };
 
   const handleDrop = (targetId: string) => {
@@ -92,14 +94,14 @@ export default function Editor({ onClose, onPreview }: EditorProps) {
       {/* Toolbar */}
       <div className="h-12 flex items-center justify-between px-3 border-b flex-shrink-0" style={{ background: 'white', borderColor: 'var(--border-color)' }}>
         <div className="flex items-center gap-2">
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 bg-transparent border-none cursor-pointer" style={{ color: 'var(--text-secondary)' }} title="Back"><ChevronLeft size={18} /></button>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 bg-transparent border-none cursor-pointer" style={{ color: 'var(--text-secondary)' }} title={__('editor.back')}><ChevronLeft size={18} /></button>
           <div className="w-px h-5 mx-1" style={{ background: 'var(--border-color)' }} />
           <input type="text" value={state.website.name} onChange={e => dispatch({ type: 'UPDATE_WEBSITE_NAME', name: e.target.value })} className="text-sm font-semibold bg-transparent border-none outline-none w-36" style={{ color: 'var(--text-primary)' }} />
           <div className="w-px h-5 mx-1" style={{ background: 'var(--border-color)' }} />
-          <button onClick={handleUndo} disabled={!canUndo} className="p-1.5 rounded-lg hover:bg-gray-100 bg-transparent border-none cursor-pointer disabled:opacity-30" style={{ color: 'var(--text-tertiary)' }} title="Undo"><Undo2 size={16} /></button>
-          <button onClick={handleRedo} disabled={!canRedo} className="p-1.5 rounded-lg hover:bg-gray-100 bg-transparent border-none cursor-pointer disabled:opacity-30" style={{ color: 'var(--text-tertiary)' }} title="Redo"><Redo2 size={16} /></button>
-          <button onClick={handleSave} className="p-1.5 rounded-lg hover:bg-gray-100 bg-transparent border-none cursor-pointer" style={{ color: 'var(--text-tertiary)' }} title="Save"><Save size={16} /></button>
-          {state.lastSaved && <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Saved {state.lastSaved.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>}
+          <button onClick={handleUndo} disabled={!canUndo} className="p-1.5 rounded-lg hover:bg-gray-100 bg-transparent border-none cursor-pointer disabled:opacity-30" style={{ color: 'var(--text-tertiary)' }} title={__('editor.undo')}><Undo2 size={16} /></button>
+          <button onClick={handleRedo} disabled={!canRedo} className="p-1.5 rounded-lg hover:bg-gray-100 bg-transparent border-none cursor-pointer disabled:opacity-30" style={{ color: 'var(--text-tertiary)' }} title={__('editor.redo')}><Redo2 size={16} /></button>
+          <button onClick={handleSave} className="p-1.5 rounded-lg hover:bg-gray-100 bg-transparent border-none cursor-pointer" style={{ color: 'var(--text-tertiary)' }} title={__('editor.save')}><Save size={16} /></button>
+          {state.lastSaved && <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>{__('editor.saved')} {state.lastSaved.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>}
         </div>
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1 p-0.5 rounded-lg" style={{ background: '#f5f5f3' }}>
@@ -109,8 +111,8 @@ export default function Editor({ onClose, onPreview }: EditorProps) {
               </button>
             ))}
           </div>
-          <button onClick={onPreview} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-transparent border cursor-pointer hover:bg-gray-50" style={{ borderColor: 'rgba(26,43,60,0.15)', color: 'var(--text-primary)' }}><Eye size={14} /> Preview</button>
-          <button onClick={handleSave} className="btn-primary py-2 px-4 text-xs">Export</button>
+          <button onClick={onPreview} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-transparent border cursor-pointer hover:bg-gray-50" style={{ borderColor: 'rgba(26,43,60,0.15)', color: 'var(--text-primary)' }}><Eye size={14} /> {__('editor.preview')}</button>
+          <button onClick={handleSave} className="btn-primary py-2 px-4 text-xs">{__('editor.export')}</button>
         </div>
       </div>
 
@@ -131,7 +133,7 @@ export default function Editor({ onClose, onPreview }: EditorProps) {
           <div className="flex-1 overflow-y-auto">
             {state.activePanel === 'components' && (
               <div className="p-3 space-y-1.5">
-                <p className="text-xs font-semibold uppercase tracking-wider px-2 mb-2" style={{ color: 'var(--text-tertiary)' }}>Drag to add</p>
+                <p className="text-xs font-semibold uppercase tracking-wider px-2 mb-2" style={{ color: 'var(--text-tertiary)' }}>{__('editor.dragToAdd')}</p>
                 {MODULE_TYPES.map(mt => (
                   <button key={mt.type} onClick={() => addModule(mt.type)} className="w-full flex items-start gap-3 p-3 rounded-xl text-left cursor-pointer bg-transparent border hover:border-[var(--accent)] hover:shadow-sm transition-all group" style={{ borderColor: 'rgba(26,43,60,0.06)' }}>
                     <span className="mt-0.5" style={{ color: 'var(--text-tertiary)' }}>{mt.icon}</span>
@@ -145,8 +147,8 @@ export default function Editor({ onClose, onPreview }: EditorProps) {
             {state.activePanel === 'pages' && (
               <div>
                 <div className="px-3 py-2 border-b flex items-center justify-between" style={{ borderColor: 'var(--border-color)' }}>
-                  <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>Pages</span>
-                  <button onClick={() => { const np: Page = { id: `page-${Date.now()}`, name: `Page ${state.website.pages.length + 1}`, slug: `/page-${state.website.pages.length + 1}`, isHome: false, modules: [createDefaultModule('hero'), createDefaultModule('text'), createDefaultModule('footer')] }; dispatch({ type: 'ADD_PAGE', page: np }); }} className="p-1 rounded hover:bg-gray-100 bg-transparent border-none cursor-pointer" style={{ color: 'var(--accent)' }}><FilePlus size={14} /></button>
+                  <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>{__('editor.pages')}</span>
+                  <button onClick={() => { const np: Page = { id: `page-${Date.now()}`, name: `Page ${state.website.pages.length + 1}`, slug: `/page-${state.website.pages.length + 1}`, isHome: false, modules: [createDefaultModule('hero', __), createDefaultModule('text', __), createDefaultModule('footer', __)] }; dispatch({ type: 'ADD_PAGE', page: np }); }} className="p-1 rounded hover:bg-gray-100 bg-transparent border-none cursor-pointer" style={{ color: 'var(--accent)' }}><FilePlus size={14} /></button>
                 </div>
                 {state.website.pages.map(page => (
                   <div key={page.id} onClick={() => dispatch({ type: 'SELECT_PAGE', pageId: page.id })} className={`flex items-center justify-between px-3 py-2.5 cursor-pointer transition-colors ${state.currentPageId === page.id ? 'bg-[var(--accent-light)]' : 'hover:bg-gray-50'}`}>
@@ -162,10 +164,10 @@ export default function Editor({ onClose, onPreview }: EditorProps) {
                       <Settings size={12} />
                       {showPageMenu === page.id && (
                         <div className="absolute right-0 top-6 w-36 rounded-xl py-1.5 z-50 shadow-xl bg-white border" style={{ borderColor: 'var(--border-color)' }}>
-                          {!page.isHome && <button onClick={e => { e.stopPropagation(); dispatch({ type: 'SET_HOME_PAGE', pageId: page.id }); setShowPageMenu(null); toast.success('Home page set'); }} className="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 bg-transparent border-none cursor-pointer flex items-center gap-2" style={{ color: 'var(--text-primary)' }}><Home size={12} /> Set as Home</button>}
-                          <button onClick={e => { e.stopPropagation(); setRenamingPage(page.id); setRenameVal(page.name); setShowPageMenu(null); }} className="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 bg-transparent border-none cursor-pointer" style={{ color: 'var(--text-primary)' }}>Rename</button>
-                          <button onClick={e => { e.stopPropagation(); dispatch({ type: 'DUPLICATE_PAGE', pageId: page.id }); setShowPageMenu(null); }} className="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 bg-transparent border-none cursor-pointer flex items-center gap-2" style={{ color: 'var(--text-primary)' }}><Copy size={12} /> Duplicate</button>
-                          {state.website.pages.length > 1 && <button onClick={e => { e.stopPropagation(); dispatch({ type: 'DELETE_PAGE', pageId: page.id }); setShowPageMenu(null); }} className="w-full text-left px-3 py-1.5 text-xs hover:bg-red-50 bg-transparent border-none cursor-pointer flex items-center gap-2 text-red-500"><Trash2 size={12} /> Delete</button>}
+                          {!page.isHome && <button onClick={e => { e.stopPropagation(); dispatch({ type: 'SET_HOME_PAGE', pageId: page.id }); setShowPageMenu(null); toast.success(__('toast.homeSet')); }} className="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 bg-transparent border-none cursor-pointer flex items-center gap-2" style={{ color: 'var(--text-primary)' }}><Home size={12} /> {__('action.setHome')}</button>}
+                          <button onClick={e => { e.stopPropagation(); setRenamingPage(page.id); setRenameVal(page.name); setShowPageMenu(null); }} className="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 bg-transparent border-none cursor-pointer" style={{ color: 'var(--text-primary)' }}>{__('action.rename')}</button>
+                          <button onClick={e => { e.stopPropagation(); dispatch({ type: 'DUPLICATE_PAGE', pageId: page.id }); setShowPageMenu(null); }} className="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 bg-transparent border-none cursor-pointer flex items-center gap-2" style={{ color: 'var(--text-primary)' }}><Copy size={12} /> {__('action.duplicate')}</button>
+                          {state.website.pages.length > 1 && <button onClick={e => { e.stopPropagation(); dispatch({ type: 'DELETE_PAGE', pageId: page.id }); setShowPageMenu(null); }} className="w-full text-left px-3 py-1.5 text-xs hover:bg-red-50 bg-transparent border-none cursor-pointer flex items-center gap-2 text-red-500"><Trash2 size={12} /> {__('action.delete')}</button>}
                         </div>
                       )}
                     </button>
@@ -174,14 +176,14 @@ export default function Editor({ onClose, onPreview }: EditorProps) {
 
                 {/* Module list for current page */}
                 <div className="mt-4 border-t pt-3" style={{ borderColor: 'var(--border-color)' }}>
-                  <p className="px-3 text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-tertiary)' }}>Modules on this page</p>
+                  <p className="px-3 text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-tertiary)' }}>{__('editor.modulesOnPage')}</p>
                   {currentPage.modules.map((mod, i) => (
                     <div key={mod.id} draggable onDragStart={() => setDragModId(mod.id)} onDragOver={e => { e.preventDefault(); setDragOverId(mod.id); }} onDrop={() => handleDrop(mod.id)}
                       onClick={() => dispatch({ type: 'SELECT_MODULE', moduleId: mod.id })}
                       className={`flex items-center gap-2 px-3 py-2 cursor-pointer transition-all border-l-2 ${state.selectedModuleId === mod.id ? 'border-l-[var(--accent)] bg-[var(--accent-light)]' : 'border-l-transparent hover:bg-gray-50'}`}>
                       <span style={{ color: 'var(--text-tertiary)', cursor: 'grab' }}><GripVertical size={14} /></span>
                       <span className={`text-xs font-medium flex-1 truncate ${!mod.visible ? 'line-through opacity-50' : ''}`} style={{ color: state.selectedModuleId === mod.id ? 'var(--accent)' : 'var(--text-primary)' }}>{i + 1}. {mod.name}</span>
-                      {!mod.visible && <span className="text-[9px] px-1 py-0.5 rounded" style={{ background: 'var(--text-tertiary)', color: 'white' }}>HIDDEN</span>}
+                      {!mod.visible && <span className="text-[9px] px-1 py-0.5 rounded" style={{ background: 'var(--text-tertiary)', color: 'white' }}>{__('editor.hidden')}</span>}
                     </div>
                   ))}
                 </div>
@@ -192,13 +194,13 @@ export default function Editor({ onClose, onPreview }: EditorProps) {
               <div className="p-4 space-y-5">
                 {/* AI Reasoning */}
                 <div className="p-3 rounded-xl" style={{ background: 'rgba(123,97,255,0.06)', border: '1px solid rgba(123,97,255,0.12)' }}>
-                  <p className="text-xs font-semibold mb-1" style={{ color: 'var(--music-accent)' }}>AI Recommendation Reasoning</p>
+                  <p className="text-xs font-semibold mb-1" style={{ color: 'var(--music-accent)' }}>{__('editor.aiReasoning')}</p>
                   <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{rec.reasoning}</p>
                 </div>
 
                 {/* Current Track */}
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-tertiary)' }}>Now Playing</p>
+                  <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-tertiary)' }}>{__('editor.nowPlaying')}</p>
                   <div className="flex items-center gap-3 p-3 rounded-xl card-surface">
                     <img src={tracks[currentTrack]?.cover} alt="" className="w-12 h-12 rounded-lg object-cover" />
                     <div className="flex-1 min-w-0">
@@ -211,7 +213,7 @@ export default function Editor({ onClose, onPreview }: EditorProps) {
 
                 {/* Track List */}
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-tertiary)' }}>Recommended Tracks</p>
+                  <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-tertiary)' }}>{__('editor.recommended')}</p>
                   <div className="space-y-2">
                     {tracks.map((t, i) => (
                       <div key={t.id} onClick={() => setCurrentTrack(i)} className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-all ${currentTrack === i ? 'bg-[var(--music-accent-light)]' : 'hover:bg-gray-50'}`}>
@@ -225,16 +227,16 @@ export default function Editor({ onClose, onPreview }: EditorProps) {
 
                 {/* Playback Settings */}
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-tertiary)' }}>Playback</p>
+                  <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-tertiary)' }}>{__('editor.playback')}</p>
                   <div className="space-y-2">
-                    <div className="flex items-center justify-between"><span className="text-xs" style={{ color: 'var(--text-secondary)' }}>Autoplay</span><Toggle /></div>
-                    <div className="flex items-center justify-between"><span className="text-xs" style={{ color: 'var(--text-secondary)' }}>Loop</span><Toggle /></div>
+                    <div className="flex items-center justify-between"><span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{__('editor.autoplay')}</span><Toggle /></div>
+                    <div className="flex items-center justify-between"><span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{__('editor.loop')}</span><Toggle /></div>
                     <div className="flex items-center gap-2"><Volume2 size={12} style={{ color: 'var(--text-tertiary)' }} /><input type="range" min="0" max="100" defaultValue="70" className="flex-1 h-1 accent-[var(--music-accent)]" /></div>
                   </div>
                 </div>
 
                 <button className="w-full py-2.5 rounded-xl text-xs font-medium border-dashed border cursor-pointer hover:border-[var(--accent)] flex items-center justify-center gap-2" style={{ borderColor: 'var(--border-color)', color: 'var(--text-tertiary)', background: 'transparent' }}>
-                  <Upload size={12} /> Upload Custom Music
+                  <Upload size={12} /> {__('editor.upload')}
                 </button>
               </div>
             )}
@@ -242,7 +244,7 @@ export default function Editor({ onClose, onPreview }: EditorProps) {
             {state.activePanel === 'styles' && (
               <div className="p-4 space-y-5">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: 'var(--text-tertiary)' }}>Colors</p>
+                  <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: 'var(--text-tertiary)' }}>{__('editor.colors')}</p>
                   {Object.entries(state.website.colors).map(([key, val]) => (
                     <div key={key} className="flex items-center justify-between mb-2">
                       <span className="text-xs capitalize" style={{ color: 'var(--text-secondary)' }}>{key.replace(/([A-Z])/g, ' $1').trim()}</span>
@@ -251,9 +253,9 @@ export default function Editor({ onClose, onPreview }: EditorProps) {
                   ))}
                 </div>
                 <div className="border-t pt-4" style={{ borderColor: 'var(--border-color)' }}>
-                  <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: 'var(--text-tertiary)' }}>Typography</p>
-                  <div className="mb-2"><label className="text-xs block mb-1" style={{ color: 'var(--text-secondary)' }}>Heading Font</label><select value={state.website.fonts.heading} onChange={e => dispatch({ type: 'UPDATE_FONTS', fonts: { heading: e.target.value } })} className="prop-input text-xs"><option>Inter</option><option>Playfair Display</option><option>Georgia</option><option>system-ui</option></select></div>
-                  <div><label className="text-xs block mb-1" style={{ color: 'var(--text-secondary)' }}>Body Font</label><select value={state.website.fonts.body} onChange={e => dispatch({ type: 'UPDATE_FONTS', fonts: { body: e.target.value } })} className="prop-input text-xs"><option>Inter</option><option>Georgia</option><option>system-ui</option></select></div>
+                  <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: 'var(--text-tertiary)' }}>{__('editor.typography')}</p>
+                  <div className="mb-2"><label className="text-xs block mb-1" style={{ color: 'var(--text-secondary)' }}>{__('editor.headingFont')}</label><select value={state.website.fonts.heading} onChange={e => dispatch({ type: 'UPDATE_FONTS', fonts: { heading: e.target.value } })} className="prop-input text-xs"><option>Inter</option><option>Playfair Display</option><option>Georgia</option><option>system-ui</option></select></div>
+                  <div><label className="text-xs block mb-1" style={{ color: 'var(--text-secondary)' }}>{__('editor.bodyFont')}</label><select value={state.website.fonts.body} onChange={e => dispatch({ type: 'UPDATE_FONTS', fonts: { body: e.target.value } })} className="prop-input text-xs"><option>Inter</option><option>Georgia</option><option>system-ui</option></select></div>
                 </div>
               </div>
             )}
@@ -268,8 +270,8 @@ export default function Editor({ onClose, onPreview }: EditorProps) {
                 <ModuleBlock mod={mod} isSelected={state.selectedModuleId === mod.id} colors={state.website.colors} fonts={state.website.fonts}
                   onSelect={() => dispatch({ type: 'SELECT_MODULE', moduleId: mod.id })}
                   onUpdateContent={(c: any) => dispatch({ type: 'UPDATE_MODULE_CONTENT', pageId: currentPage.id, moduleId: mod.id, content: c })}
-                  onDelete={() => { dispatch({ type: 'DELETE_MODULE', pageId: currentPage.id, moduleId: mod.id }); toast.success('Deleted'); }}
-                  onDuplicate={() => { dispatch({ type: 'DUPLICATE_MODULE', pageId: currentPage.id, moduleId: mod.id }); toast.success('Duplicated'); }}
+                  onDelete={() => { dispatch({ type: 'DELETE_MODULE', pageId: currentPage.id, moduleId: mod.id }); toast.success(__('editor.deletedToast')); }}
+                  onDuplicate={() => { dispatch({ type: 'DUPLICATE_MODULE', pageId: currentPage.id, moduleId: mod.id }); toast.success(__('editor.duplicatedToast')); }}
                   onToggleVisibility={() => dispatch({ type: 'TOGGLE_MODULE_VISIBILITY', pageId: currentPage.id, moduleId: mod.id })}
                 />
               </div>
@@ -277,8 +279,8 @@ export default function Editor({ onClose, onPreview }: EditorProps) {
             {currentPage.modules.filter(m => m.visible).length === 0 && (
               <div className="flex flex-col items-center justify-center py-32 text-center" style={{ color: 'var(--text-tertiary)' }}>
                 <Layout size={48} className="mb-4 opacity-30" />
-                <p className="text-sm font-medium">This page is empty</p>
-                <p className="text-xs mt-1">Click a component from the left panel to add</p>
+                <p className="text-sm font-medium">{__('editor.empty')}</p>
+                <p className="text-xs mt-1">{__('editor.emptyHint')}</p>
               </div>
             )}
           </div>
@@ -293,6 +295,7 @@ export default function Editor({ onClose, onPreview }: EditorProps) {
 
 // Module Block with inline editing
 function ModuleBlock({ mod, isSelected, colors, fonts, onSelect, onUpdateContent, onDelete, onDuplicate, onToggleVisibility }: any) {
+  const { __ } = useLang();
   const c = mod.content as any;
   const [editingField, setEditingField] = useState<string | null>(null);
   const [hovered, setHovered] = useState(false);
@@ -392,7 +395,7 @@ function ModuleBlock({ mod, isSelected, colors, fonts, onSelect, onUpdateContent
             <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(c.images?.length || 3, 3)}, 1fr)`, gap: 12 }}>
               {c.images?.map((img: any, i: number) => (
                 <div key={i} style={{ aspectRatio: '4/3', borderRadius: 12, overflow: 'hidden', background: `linear-gradient(135deg, ${colors.primary}22, ${colors.accent}22)`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  {img.src ? <img src={img.src} alt={img.alt} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: '0.75rem', opacity: 0.4 }}>Image {i + 1}</span>}
+                  {img.src ? <img src={img.src} alt={img.alt} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: '0.75rem', opacity: 0.4 }}>{__('editor.image')} {i + 1}</span>}
                 </div>
               ))}
             </div>
@@ -451,10 +454,10 @@ function ModuleBlock({ mod, isSelected, colors, fonts, onSelect, onUpdateContent
             </div>
             {c.showForm && (
               <div style={{ maxWidth: 480, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 10, textAlign: 'left' }}>
-                <input type="text" placeholder="Your Name" readOnly style={{ padding: '10px 14px', borderRadius: 8, border: '1px solid rgba(0,0,0,0.1)', fontSize: '0.82rem' }} />
-                <input type="email" placeholder="Your Email" readOnly style={{ padding: '10px 14px', borderRadius: 8, border: '1px solid rgba(0,0,0,0.1)', fontSize: '0.82rem' }} />
-                <textarea placeholder="Your Message" rows={3} readOnly style={{ padding: '10px 14px', borderRadius: 8, border: '1px solid rgba(0,0,0,0.1)', fontSize: '0.82rem', resize: 'vertical' }} />
-                <span style={{ padding: '10px 24px', borderRadius: 9999, background: colors.primary, color: 'white', fontSize: '0.75rem', fontWeight: 600, textAlign: 'center', alignSelf: 'center' }}>Send Message</span>
+                <input type="text" placeholder={__('editor.yourName')} readOnly style={{ padding: '10px 14px', borderRadius: 8, border: '1px solid rgba(0,0,0,0.1)', fontSize: '0.82rem' }} />
+                <input type="email" placeholder={__('editor.yourEmail')} readOnly style={{ padding: '10px 14px', borderRadius: 8, border: '1px solid rgba(0,0,0,0.1)', fontSize: '0.82rem' }} />
+                <textarea placeholder={__('editor.yourMessage')} rows={3} readOnly style={{ padding: '10px 14px', borderRadius: 8, border: '1px solid rgba(0,0,0,0.1)', fontSize: '0.82rem', resize: 'vertical' }} />
+                <span style={{ padding: '10px 24px', borderRadius: 9999, background: colors.primary, color: 'white', fontSize: '0.75rem', fontWeight: 600, textAlign: 'center', alignSelf: 'center' }}>{__('editor.sendMessage')}</span>
               </div>
             )}
           </>
@@ -501,7 +504,7 @@ function ModuleBlock({ mod, isSelected, colors, fonts, onSelect, onUpdateContent
           <div style={{ maxWidth: 600, margin: '0 auto' }}>
             <div style={{ padding: 20, borderRadius: 16, background: 'rgba(123,97,255,0.08)', border: '1px solid rgba(123,97,255,0.15)', display: 'flex', alignItems: 'center', gap: 16 }}>
               <div style={{ width: 48, height: 48, borderRadius: 12, background: 'linear-gradient(135deg, #7B61FF33, #E85D4C33)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.3rem' }}>&#9835;</div>
-              <div style={{ flex: 1 }}><EditableText field="title" val={c.title} tag="p" style={{ fontSize: '0.88rem', fontWeight: 600 }} /><p style={{ fontSize: '0.72rem', opacity: 0.55 }}>Background Music</p></div>
+              <div style={{ flex: 1 }}><EditableText field="title" val={c.title} tag="p" style={{ fontSize: '0.88rem', fontWeight: 600 }} /><p style={{ fontSize: '0.72rem', opacity: 0.55 }}>{__('editor.backgroundMusic')}</p></div>
               <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#7B61FF', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>&#9654;</div>
             </div>
           </div>
@@ -530,14 +533,15 @@ function ModuleBlock({ mod, isSelected, colors, fonts, onSelect, onUpdateContent
 // Right Properties Panel
 function RightPanel() {
   const { state, dispatch, currentPage, selectedModule } = useEditor();
+  const { __ } = useLang();
   const mod = selectedModule;
   if (!mod || !currentPage) {
     return (
       <div className="w-[260px] flex-shrink-0 flex flex-col border-l overflow-hidden" style={{ background: 'white', borderColor: 'var(--border-color)' }}>
         <div className="flex-1 flex flex-col items-center justify-center p-6 text-center" style={{ color: 'var(--text-tertiary)' }}>
           <Settings size={32} className="mb-3 opacity-30" />
-          <p className="text-sm font-medium">Select a module to edit</p>
-          <p className="text-xs mt-1 opacity-60">Click any module or click text to edit inline</p>
+          <p className="text-sm font-medium">{__('editor.selectHint')}</p>
+          <p className="text-xs mt-1 opacity-60">{__('editor.selectHint2')}</p>
         </div>
       </div>
     );
@@ -560,29 +564,42 @@ function RightPanel() {
         {/* Visibility Toggle */}
         <label className="flex items-center gap-2 cursor-pointer">
           <input type="checkbox" checked={mod.visible} onChange={() => dispatch({ type: 'TOGGLE_MODULE_VISIBILITY', pageId: currentPage.id, moduleId: mod.id })} className="w-4 h-4 accent-[var(--accent)]" />
-          <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>Visible on page</span>
+          <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{__('editor.visible')}</span>
         </label>
 
         {/* Layout Controls */}
         {l.columns !== undefined && (
-          <Field label="Columns"><select value={l.columns} onChange={e => updateLayout({ columns: parseInt(e.target.value) })} className="prop-input text-xs">{[1, 2, 3, 4].map(n => <option key={n} value={n}>{n} Column{n > 1 ? 's' : ''}</option>)}</select></Field>
+          <Field label={__('editor.columns')}><select value={l.columns} onChange={e => updateLayout({ columns: parseInt(e.target.value) })} className="prop-input text-xs">{[1, 2, 3, 4].map(n => <option key={n} value={n}>{n} {__('editor.column')}{n > 1 ? 's' : ''}</option>)}</select></Field>
         )}
 
         {/* Appearance */}
-        <Field label="Background Color">
+        <Field label={__('editor.bgColor')}>
           <div className="flex items-center gap-2"><input type="color" value={mod.styles?.bgColor || '#ffffff'} onChange={e => updateStyles({ bgColor: e.target.value })} className="w-7 h-7 rounded border-none cursor-pointer" /><input type="text" value={mod.styles?.bgColor || ''} onChange={e => updateStyles({ bgColor: e.target.value })} className="prop-input text-xs flex-1" /></div>
         </Field>
-        <Field label="Text Color">
+        <Field label={__('editor.textColor')}>
           <div className="flex items-center gap-2"><input type="color" value={mod.styles?.textColor || '#1A2B3C'} onChange={e => updateStyles({ textColor: e.target.value })} className="w-7 h-7 rounded border-none cursor-pointer" /><input type="text" value={mod.styles?.textColor || ''} onChange={e => updateStyles({ textColor: e.target.value })} className="prop-input text-xs flex-1" /></div>
         </Field>
-        <Field label="Text Align"><select value={mod.styles?.textAlign || 'center'} onChange={e => updateStyles({ textAlign: e.target.value as any })} className="prop-input text-xs"><option value="left">Left</option><option value="center">Center</option><option value="right">Right</option></select></Field>
-        <Field label="Padding"><select value={mod.styles?.padding || '48px 24px'} onChange={e => updateStyles({ padding: e.target.value })} className="prop-input text-xs"><option value="24px 24px">Small</option><option value="48px 24px">Medium</option><option value="80px 24px">Large</option><option value="120px 24px">Extra Large</option></select></Field>
+        <Field label={__('editor.textAlign')}>
+          <select value={mod.styles?.textAlign || 'center'} onChange={e => updateStyles({ textAlign: e.target.value as any })} className="prop-input text-xs">
+            <option value="left">{__('editor.alignLeft')}</option>
+            <option value="center">{__('editor.alignCenter')}</option>
+            <option value="right">{__('editor.alignRight')}</option>
+          </select>
+        </Field>
+        <Field label={__('editor.padding')}>
+          <select value={mod.styles?.padding || '48px 24px'} onChange={e => updateStyles({ padding: e.target.value })} className="prop-input text-xs">
+            <option value="24px 24px">{__('editor.paddingSmall')}</option>
+            <option value="48px 24px">{__('editor.paddingMedium')}</option>
+            <option value="80px 24px">{__('editor.paddingLarge')}</option>
+            <option value="120px 24px">{__('editor.paddingXLarge')}</option>
+          </select>
+        </Field>
 
         {/* Content Quick Edit */}
-        {c.title !== undefined && <Field label="Title"><input type="text" value={c.title} onChange={e => updateContent({ title: e.target.value })} className="prop-input text-xs" /></Field>}
-        {c.subtitle !== undefined && <Field label="Subtitle"><input type="text" value={c.subtitle} onChange={e => updateContent({ subtitle: e.target.value })} className="prop-input text-xs" /></Field>}
-        {c.buttonText !== undefined && <Field label="Button Text"><input type="text" value={c.buttonText} onChange={e => updateContent({ buttonText: e.target.value })} className="prop-input text-xs" /></Field>}
-        {c.logo !== undefined && <Field label="Logo"><input type="text" value={c.logo} onChange={e => updateContent({ logo: e.target.value })} className="prop-input text-xs" /></Field>}
+        {c.title !== undefined && <Field label={__('editor.title')}><input type="text" value={c.title} onChange={e => updateContent({ title: e.target.value })} className="prop-input text-xs" /></Field>}
+        {c.subtitle !== undefined && <Field label={__('editor.subtitle')}><input type="text" value={c.subtitle} onChange={e => updateContent({ subtitle: e.target.value })} className="prop-input text-xs" /></Field>}
+        {c.buttonText !== undefined && <Field label={__('editor.buttonText')}><input type="text" value={c.buttonText} onChange={e => updateContent({ buttonText: e.target.value })} className="prop-input text-xs" /></Field>}
+        {c.logo !== undefined && <Field label={__('editor.logo')}><input type="text" value={c.logo} onChange={e => updateContent({ logo: e.target.value })} className="prop-input text-xs" /></Field>}
       </div>
     </div>
   );
@@ -606,27 +623,35 @@ function detectIndustryFromPage(page: Page): string {
   return 'Services';
 }
 
-function createDefaultModule(type: string): WebsiteModule {
+const MODULE_NAME_KEY_MAP: Record<string, string> = {
+  hero: 'mod.hero', navbar: 'mod.navbar', text: 'mod.text', features: 'mod.features',
+  gallery: 'mod.gallery', services: 'mod.services', testimonials: 'mod.testimonials',
+  team: 'mod.team', pricing: 'mod.pricing', faq: 'mod.faq', contact: 'mod.contact',
+  stats: 'mod.stats', cta: 'mod.cta', footer: 'mod.footer', divider: 'mod.divider', music: 'mod.music',
+};
+
+function createDefaultModule(type: string, __: (key: string) => string): WebsiteModule {
   const id = `mod-${Date.now()}-${Math.random().toString(36).slice(2, 5)}`;
-  const base: any = { id, type, name: type.charAt(0).toUpperCase() + type.slice(1), visible: true, styles: {}, layout: {} };
+  const name = __(MODULE_NAME_KEY_MAP[type] || type);
+  const base: any = { id, type, name, visible: true, styles: {}, layout: {} };
 
   switch (type) {
-    case 'hero': return { ...base, styles: { bgColor: '#1A2B3C', textColor: '#FFFFFF', textAlign: 'center' }, layout: { imagePosition: 'background', buttonLayout: 'stacked', alignment: 'center' }, content: { title: 'Your Hero Title', subtitle: 'Add a compelling subtitle here.', buttonText: 'Get Started', buttonLink: '#' } };
-    case 'navbar': return { ...base, styles: { bgColor: '#FFFFFF', textColor: '#1A2B3C' }, layout: { position: 'static', style: 'solid' }, content: { logo: 'Brand', links: [{ label: 'Home', href: '#' }, { label: 'About', href: '#' }, { label: 'Contact', href: '#' }], ctaText: 'Get Started', ctaLink: '#' } };
-    case 'text': return { ...base, styles: { bgColor: '#F5F3EE', textColor: '#1A2B3C', textAlign: 'center', padding: '60px 24px' }, layout: { alignment: 'center', maxWidth: '720px' }, content: { title: 'Section Title', body: 'Add your content here. Describe what makes your business unique and why visitors should care.' } };
-    case 'features': return { ...base, styles: { bgColor: '#FFFFFF', padding: '60px 24px' }, layout: { columns: 3, cardStyle: 'flat' }, content: { title: 'Key Features', items: [{ icon: 'star', title: 'Feature 1', description: 'Describe your feature' }, { icon: 'star', title: 'Feature 2', description: 'Describe your feature' }, { icon: 'star', title: 'Feature 3', description: 'Describe your feature' }] } };
-    case 'gallery': return { ...base, styles: { bgColor: '#F5F3EE', padding: '60px 24px' }, layout: { style: 'grid', columns: 3, gap: '12px' }, content: { title: 'Gallery', images: [{ src: '', alt: '1' }, { src: '', alt: '2' }, { src: '', alt: '3' }] } };
-    case 'services': return { ...base, styles: { bgColor: '#F5F3EE', padding: '60px 24px' }, layout: { columns: 3, layout: 'grid' }, content: { title: 'Our Services', items: [{ title: 'Service 1', description: 'Description', icon: 'briefcase' }, { title: 'Service 2', description: 'Description', icon: 'briefcase' }] } };
-    case 'testimonials': return { ...base, styles: { bgColor: '#FFFFFF', padding: '60px 24px' }, layout: { columns: 2, style: 'cards' }, content: { title: 'What People Say', items: [{ name: 'Customer', role: 'Role', text: 'Amazing experience!' }] } };
-    case 'team': return { ...base, styles: { bgColor: '#F5F3EE', padding: '60px 24px' }, layout: { columns: 3, showAvatars: true }, content: { title: 'Our Team', members: [{ name: 'Name', role: 'Position', bio: 'Short bio' }] } };
-    case 'pricing': return { ...base, styles: { bgColor: '#FFFFFF', padding: '60px 24px' }, layout: { columns: 3, style: 'cards' }, content: { title: 'Pricing', plans: [{ name: 'Basic', price: '$9', period: '/mo', features: ['Feature 1', 'Feature 2'] }, { name: 'Pro', price: '$29', period: '/mo', features: ['Feature 1', 'Feature 2', 'Feature 3'], highlighted: true }] } };
-    case 'faq': return { ...base, styles: { bgColor: '#F5F3EE', padding: '60px 24px' }, layout: { style: 'accordion' }, content: { title: 'FAQ', items: [{ question: 'Question 1?', answer: 'Answer here.' }] } };
-    case 'contact': return { ...base, styles: { bgColor: '#1A2B3C', textColor: '#FFFFFF', padding: '60px 24px' }, layout: { layout: 'centered', showMap: false }, content: { title: 'Contact Us', email: 'hello@example.com', phone: '+1 000-000-0000', showForm: true } };
-    case 'stats': return { ...base, styles: { bgColor: '#FFFFFF', padding: '60px 24px' }, layout: { columns: 4, style: 'simple' }, content: { title: 'Our Impact', items: [{ value: '1,000+', label: 'Customers' }, { value: '99%', label: 'Satisfaction' }] } };
-    case 'cta': return { ...base, styles: { bgColor: 'var(--accent)', textColor: '#FFFFFF', padding: '80px 24px' }, layout: { style: 'simple' }, content: { title: 'Ready to get started?', subtitle: 'Join thousands of happy customers', buttonText: 'Start Now', buttonLink: '#' } };
-    case 'footer': return { ...base, styles: { bgColor: '#1A2B3C', textColor: '#FFFFFF' }, layout: { columns: 4, style: 'multi-column' }, content: { logo: 'Brand', tagline: 'Built with care.', links: [{ label: 'Home', href: '#' }, { label: 'About', href: '#' }, { label: 'Contact', href: '#' }], social: [], copyright: `\u00A9 ${new Date().getFullYear()} Brand. All rights reserved.` } };
+    case 'hero': return { ...base, styles: { bgColor: '#1A2B3C', textColor: '#FFFFFF', textAlign: 'center' }, layout: { imagePosition: 'background', buttonLayout: 'stacked', alignment: 'center' }, content: { title: __('default.heroTitle'), subtitle: __('default.heroSubtitle'), buttonText: __('default.getStarted'), buttonLink: '#' } };
+    case 'navbar': return { ...base, styles: { bgColor: '#FFFFFF', textColor: '#1A2B3C' }, layout: { position: 'static', style: 'solid' }, content: { logo: 'Brand', links: [{ label: __('default.home'), href: '#' }, { label: __('default.about'), href: '#' }, { label: __('default.contact'), href: '#' }], ctaText: __('default.getStarted'), ctaLink: '#' } };
+    case 'text': return { ...base, styles: { bgColor: '#F5F3EE', textColor: '#1A2B3C', textAlign: 'center', padding: '60px 24px' }, layout: { alignment: 'center', maxWidth: '720px' }, content: { title: __('default.sectionTitle'), body: __('default.sectionBody') } };
+    case 'features': return { ...base, styles: { bgColor: '#FFFFFF', padding: '60px 24px' }, layout: { columns: 3, cardStyle: 'flat' }, content: { title: __('default.keyFeatures'), items: [{ icon: 'star', title: __('default.feature1'), description: __('default.describeFeature') }, { icon: 'star', title: __('default.feature2'), description: __('default.describeFeature') }, { icon: 'star', title: __('default.feature3'), description: __('default.describeFeature') }] } };
+    case 'gallery': return { ...base, styles: { bgColor: '#F5F3EE', padding: '60px 24px' }, layout: { style: 'grid', columns: 3, gap: '12px' }, content: { title: __('default.gallery'), images: [{ src: '', alt: '1' }, { src: '', alt: '2' }, { src: '', alt: '3' }] } };
+    case 'services': return { ...base, styles: { bgColor: '#F5F3EE', padding: '60px 24px' }, layout: { columns: 3, layout: 'grid' }, content: { title: __('default.ourServices'), items: [{ title: __('default.service1'), description: __('default.description'), icon: 'briefcase' }, { title: __('default.service2'), description: __('default.description'), icon: 'briefcase' }] } };
+    case 'testimonials': return { ...base, styles: { bgColor: '#FFFFFF', padding: '60px 24px' }, layout: { columns: 2, style: 'cards' }, content: { title: __('default.whatPeopleSay'), items: [{ name: __('default.customer'), role: __('default.role'), text: __('default.amazingExperience') }] } };
+    case 'team': return { ...base, styles: { bgColor: '#F5F3EE', padding: '60px 24px' }, layout: { columns: 3, showAvatars: true }, content: { title: __('default.ourTeam'), members: [{ name: __('default.name'), role: __('default.position'), bio: __('default.shortBio') }] } };
+    case 'pricing': return { ...base, styles: { bgColor: '#FFFFFF', padding: '60px 24px' }, layout: { columns: 3, style: 'cards' }, content: { title: __('default.pricing'), plans: [{ name: __('default.basic'), price: '$9', period: '/mo', features: [__('default.feature1'), __('default.feature2')] }, { name: __('default.pro'), price: '$29', period: '/mo', features: [__('default.feature1'), __('default.feature2'), __('default.feature3')], highlighted: true }] } };
+    case 'faq': return { ...base, styles: { bgColor: '#F5F3EE', padding: '60px 24px' }, layout: { style: 'accordion' }, content: { title: __('default.faq'), items: [{ question: __('default.question'), answer: __('default.answer') }] } };
+    case 'contact': return { ...base, styles: { bgColor: '#1A2B3C', textColor: '#FFFFFF', padding: '60px 24px' }, layout: { layout: 'centered', showMap: false }, content: { title: __('default.contactUs'), email: 'hello@example.com', phone: '+1 000-000-0000', showForm: true } };
+    case 'stats': return { ...base, styles: { bgColor: '#FFFFFF', padding: '60px 24px' }, layout: { columns: 4, style: 'simple' }, content: { title: __('default.ourImpact'), items: [{ value: '1,000+', label: __('default.customers') }, { value: '99%', label: __('default.satisfaction') }] } };
+    case 'cta': return { ...base, styles: { bgColor: 'var(--accent)', textColor: '#FFFFFF', padding: '80px 24px' }, layout: { style: 'simple' }, content: { title: __('default.readyToStart'), subtitle: __('default.joinThousands'), buttonText: __('default.startNow'), buttonLink: '#' } };
+    case 'footer': return { ...base, styles: { bgColor: '#1A2B3C', textColor: '#FFFFFF' }, layout: { columns: 4, style: 'multi-column' }, content: { logo: 'Brand', tagline: __('default.builtWithCare'), links: [{ label: __('default.home'), href: '#' }, { label: __('default.about'), href: '#' }, { label: __('default.contact'), href: '#' }], social: [], copyright: `\u00A9 ${new Date().getFullYear()} Brand. All rights reserved.` } };
     case 'divider': return { ...base, styles: { padding: '16px 24px' }, layout: { width: '100%', align: 'center' }, content: { style: 'line', label: '' } };
-    case 'music': return { ...base, styles: { padding: '24px' }, layout: { style: 'minimal' }, content: { title: 'Background Music', trackId: 'track-1', autoplay: false, loop: true, showControls: true } };
+    case 'music': return { ...base, styles: { padding: '24px' }, layout: { style: 'minimal' }, content: { title: __('default.backgroundMusic'), trackId: 'track-1', autoplay: false, loop: true, showControls: true } };
     default: return base;
   }
 }

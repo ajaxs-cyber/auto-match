@@ -1,12 +1,15 @@
 import { Github, Twitter } from 'lucide-react';
+import { useLang } from '@/i18n/LanguageContext';
 
-const FOOTER_LINKS = {
-  Product: ['Templates', 'Editor', 'Music Library', 'Integrations', 'Changelog'],
-  Resources: ['Documentation', 'Tutorials', 'Blog', 'Community'],
-  Company: ['About', 'Careers', 'Contact', 'Privacy', 'Terms'],
-};
+const FOOTER_SECTIONS = [
+  { titleKey: 'footer.product', itemsKey: 'footer.product.items' },
+  { titleKey: 'footer.resources', itemsKey: 'footer.resources.items' },
+  { titleKey: 'footer.company', itemsKey: 'footer.company.items' },
+];
 
 export default function Footer() {
+  const { lang, __ } = useLang();
+
   return (
     <footer
       className="relative py-16 px-6 lg:px-10"
@@ -29,34 +32,37 @@ export default function Footer() {
               </span>
             </div>
             <p className="text-xs leading-relaxed" style={{ color: 'rgba(255,255,255,0.5)' }}>
-              AI-powered websites with perfect music.
+              {__('footer.tagline')}
             </p>
           </div>
 
           {/* Link Columns */}
-          {Object.entries(FOOTER_LINKS).map(([title, links]) => (
-            <div key={title}>
-              <h4
-                className="text-xs font-semibold uppercase tracking-widest mb-4"
-                style={{ color: 'white' }}
-              >
-                {title}
-              </h4>
-              <ul className="space-y-3">
-                {links.map((link) => (
-                  <li key={link}>
-                    <a
-                      href="#"
-                      className="text-sm transition-colors duration-200 hover:text-white"
-                      style={{ color: 'rgba(255,255,255,0.6)' }}
-                    >
-                      {link}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+          {FOOTER_SECTIONS.map((section) => {
+            const items: string[] = JSON.parse(__(section.itemsKey));
+            return (
+              <div key={section.titleKey}>
+                <h4
+                  className="text-xs font-semibold uppercase tracking-widest mb-4"
+                  style={{ color: 'white' }}
+                >
+                  {__(section.titleKey)}
+                </h4>
+                <ul className="space-y-3">
+                  {items.map((link) => (
+                    <li key={link}>
+                      <a
+                        href="#"
+                        className="text-sm transition-colors duration-200 hover:text-white"
+                        style={{ color: 'rgba(255,255,255,0.6)' }}
+                      >
+                        {link}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            );
+          })}
         </div>
 
         {/* Bottom Row */}
@@ -65,7 +71,7 @@ export default function Footer() {
           style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}
         >
           <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
-            &copy; 2025 AutoMatch. All rights reserved.
+            &copy; {new Date().getFullYear()} AutoMatch. {__('footer.rights')}
           </p>
           <div className="flex items-center gap-4">
             <a

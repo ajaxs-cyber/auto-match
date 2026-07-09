@@ -1,63 +1,47 @@
 import { useEffect, useRef, useState } from 'react';
 import { Check } from 'lucide-react';
+import { useLang } from '@/i18n/LanguageContext';
 
 interface Plan {
-  name: string;
+  nameKey: string;
   price: number;
   period: string;
-  description: string;
-  features: string[];
-  cta: string;
+  descKey: string;
+  featureKeys: string[];
+  ctaKey: string;
   highlighted?: boolean;
 }
 
 const PLANS: Plan[] = [
   {
-    name: 'Starter',
+    nameKey: 'pricing.starter.name',
     price: 0,
     period: '/mo',
-    description: 'For experimenting and learning',
-    features: [
-      'AI generation (3/mo)',
-      '10 templates',
-      'Basic editor',
-      'Watermarked preview',
-    ],
-    cta: 'Start Free',
+    descKey: 'pricing.starter.desc',
+    featureKeys: ['pricing.starter.f1', 'pricing.starter.f2', 'pricing.starter.f3', 'pricing.starter.f4'],
+    ctaKey: 'pricing.starter.cta',
   },
   {
-    name: 'Pro',
+    nameKey: 'pricing.pro.name',
     price: 12,
     period: '/mo',
-    description: 'For creators ready to launch',
-    features: [
-      'Unlimited AI generation',
-      'All templates',
-      'Full editor',
-      'Music matching',
-      'Custom domain',
-      'No watermark',
-    ],
-    cta: 'Start Pro Trial',
+    descKey: 'pricing.pro.desc',
+    featureKeys: ['pricing.pro.f1', 'pricing.pro.f2', 'pricing.pro.f3', 'pricing.pro.f4', 'pricing.pro.f5', 'pricing.pro.f6'],
+    ctaKey: 'pricing.pro.cta',
     highlighted: true,
   },
   {
-    name: 'Enterprise',
+    nameKey: 'pricing.enterprise.name',
     price: 29,
     period: '/mo',
-    description: 'For teams and agencies',
-    features: [
-      'Everything in Pro',
-      'Team collaboration',
-      'Priority support',
-      'API access',
-      'White-label export',
-    ],
-    cta: 'Contact Sales',
+    descKey: 'pricing.enterprise.desc',
+    featureKeys: ['pricing.enterprise.f1', 'pricing.enterprise.f2', 'pricing.enterprise.f3', 'pricing.enterprise.f4', 'pricing.enterprise.f5'],
+    ctaKey: 'pricing.enterprise.cta',
   },
 ];
 
 export default function Pricing() {
+  const { lang, __ } = useLang();
   const sectionRef = useRef<HTMLDivElement>(null);
   const [isYearly, setIsYearly] = useState(false);
 
@@ -110,19 +94,19 @@ export default function Pricing() {
             className="text-xs font-semibold uppercase tracking-widest"
             style={{ color: 'var(--text-tertiary)' }}
           >
-            PRICING
+            {__('pricing.label')}
           </span>
           <h2
             className="mt-3 text-[clamp(1.5rem,3vw,2.25rem)] font-bold"
             style={{ color: 'var(--text-primary)' }}
           >
-            Simple, transparent pricing
+            {__('pricing.title')}
           </h2>
           <p
             className="mt-2 text-base"
             style={{ color: 'var(--text-secondary)' }}
           >
-            Start free. Upgrade when you're ready to launch.
+            {__('pricing.subtitle')}
           </p>
         </div>
 
@@ -133,7 +117,7 @@ export default function Pricing() {
               !isYearly ? 'text-[var(--text-primary)]' : 'text-[var(--text-tertiary)]'
             }`}
           >
-            Monthly
+            {__('pricing.monthly')}
           </span>
           <button
             onClick={() => setIsYearly(!isYearly)}
@@ -150,14 +134,14 @@ export default function Pricing() {
               isYearly ? 'text-[var(--text-primary)]' : 'text-[var(--text-tertiary)]'
             }`}
           >
-            Yearly
+            {__('pricing.yearly')}
           </span>
           {isYearly && (
             <span
               className="px-2 py-0.5 rounded-full text-xs font-medium"
               style={{ background: 'var(--accent-light)', color: 'var(--accent)' }}
             >
-              Save 20%
+              {__('pricing.save')}
             </span>
           )}
         </div>
@@ -166,7 +150,7 @@ export default function Pricing() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {PLANS.map((plan) => (
             <div
-              key={plan.name}
+              key={plan.nameKey}
               className={`pricing-card relative p-8 sm:p-10 rounded-2xl opacity-0 translate-y-10 transition-all duration-600 ${
                 plan.highlighted
                   ? 'border-2 md:-mt-4 md:mb-4'
@@ -185,7 +169,7 @@ export default function Pricing() {
                   className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider text-white"
                   style={{ background: 'var(--accent)' }}
                 >
-                  Most Popular
+                  {__('pricing.popular')}
                 </div>
               )}
 
@@ -194,7 +178,7 @@ export default function Pricing() {
                 className="text-xl font-bold"
                 style={{ color: 'var(--text-primary)' }}
               >
-                {plan.name}
+                {__(plan.nameKey)}
               </h3>
 
               {/* Price */}
@@ -218,7 +202,7 @@ export default function Pricing() {
                 className="mt-2 text-sm"
                 style={{ color: 'var(--text-secondary)' }}
               >
-                {plan.description}
+                {__(plan.descKey)}
               </p>
 
               {/* Divider */}
@@ -229,8 +213,8 @@ export default function Pricing() {
 
               {/* Features */}
               <ul className="space-y-3">
-                {plan.features.map((feature) => (
-                  <li key={feature} className="flex items-center gap-3">
+                {plan.featureKeys.map((featureKey) => (
+                  <li key={featureKey} className="flex items-center gap-3">
                     <Check
                       size={16}
                       style={{ color: 'var(--success)', flexShrink: 0 }}
@@ -239,7 +223,7 @@ export default function Pricing() {
                       className="text-sm"
                       style={{ color: 'var(--text-secondary)' }}
                     >
-                      {feature}
+                      {__(featureKey)}
                     </span>
                   </li>
                 ))}
@@ -269,7 +253,7 @@ export default function Pricing() {
                   }
                 }}
               >
-                {plan.cta}
+                {__(plan.ctaKey)}
               </button>
             </div>
           ))}
