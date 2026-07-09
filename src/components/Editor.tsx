@@ -1,581 +1,346 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
+import { useEditor } from '@/hooks/useEditor';
+import { useToast } from '@/hooks/useToast';
+import ModuleRenderer from './ModuleRenderer';
+import PropertiesPanel from './PropertiesPanel';
+import ExportDialog from './ExportDialog';
 import {
-  Undo2,
-  Redo2,
-  Save,
-  Eye,
-  ChevronLeft,
-  GripVertical,
-  Plus,
-  Type,
-  Image,
-  Layout,
-  Music,
-  MapPin,
-  Phone,
-  Star,
-  Settings,
-  Play,
-  Pause,
-  SkipBack,
-  SkipForward,
-  Volume2,
-  ChevronDown,
+  Undo2, Redo2, Save, Eye, ChevronLeft, GripVertical,
+  Plus, Trash2, Copy, Home, FilePlus, Play,
+  Music, Settings, Type, Layout, Image,
+  Star as StarIcon, Phone, Users, HelpCircle, CreditCard,
+  ShoppingBag, Briefcase, Video, CircleDot, SeparatorHorizontal,
 } from 'lucide-react';
+import type { WebsiteModule, Page } from '@/types';
+
+const MODULE_TYPES = [
+  { type: 'hero', name: 'Hero Section', icon: <Layout size={16} /> },
+  { type: 'navbar', name: 'Navigation', icon: <CircleDot size={16} /> },
+  { type: 'text', name: 'Text Block', icon: <Type size={16} /> },
+  { type: 'features', name: 'Features', icon: <StarIcon size={16} /> },
+  { type: 'gallery', name: 'Gallery', icon: <Image size={16} /> },
+  { type: 'products', name: 'Products', icon: <ShoppingBag size={16} /> },
+  { type: 'services', name: 'Services', icon: <Briefcase size={16} /> },
+  { type: 'testimonials', name: 'Testimonials', icon: <Users size={16} /> },
+  { type: 'team', name: 'Team', icon: <Users size={16} /> },
+  { type: 'pricing', name: 'Pricing', icon: <CreditCard size={16} /> },
+  { type: 'faq', name: 'FAQ', icon: <HelpCircle size={16} /> },
+  { type: 'contact', name: 'Contact', icon: <Phone size={16} /> },
+  { type: 'footer', name: 'Footer', icon: <Layout size={16} /> },
+  { type: 'carousel', name: 'Carousel', icon: <Play size={16} /> },
+  { type: 'video', name: 'Video', icon: <Video size={16} /> },
+  { type: 'button', name: 'Button', icon: <CircleDot size={16} /> },
+  { type: 'divider', name: 'Divider', icon: <SeparatorHorizontal size={16} /> },
+  { type: 'music', name: 'Music Player', icon: <Music size={16} /> },
+];
 
 interface EditorProps {
   onClose: () => void;
   onPreview: () => void;
 }
 
-interface Module {
-  id: string;
-  name: string;
-  icon: React.ReactNode;
-  visible: boolean;
-}
-
-const INITIAL_MODULES: Module[] = [
-  { id: '1', name: 'Hero Section', icon: <Layout size={16} />, visible: true },
-  { id: '2', name: 'About', icon: <Type size={16} />, visible: true },
-  { id: '3', name: 'Services', icon: <Star size={16} />, visible: true },
-  { id: '4', name: 'Gallery', icon: <Image size={16} />, visible: true },
-  { id: '5', name: 'Music Player', icon: <Music size={16} />, visible: true },
-  { id: '6', name: 'Contact', icon: <Phone size={16} />, visible: true },
-  { id: '7', name: 'Location', icon: <MapPin size={16} />, visible: false },
-];
-
-const MODULE_PALETTE = [
-  { name: 'Text Block', icon: <Type size={16} /> },
-  { name: 'Image', icon: <Image size={16} /> },
-  { name: 'Gallery', icon: <Layout size={16} /> },
-  { name: 'Music', icon: <Music size={16} /> },
-  { name: 'Contact', icon: <Phone size={16} /> },
-  { name: 'Map', icon: <MapPin size={16} /> },
-];
-
-const TRACKS = [
-  { title: 'Autumn Breeze', artist: 'Whispering Woods', duration: '3:42' },
-  { title: 'Sunday Morning', artist: 'Various Artists', duration: '4:15' },
-  { title: 'Urban Flow', artist: 'Chillhop Beats', duration: '3:28' },
-];
-
 export default function Editor({ onClose, onPreview }: EditorProps) {
-  const [modules, setModules] = useState<Module[]>(INITIAL_MODULES);
-  const [selectedId, setSelectedId] = useState<string>('1');
-  const [musicOpen, setMusicOpen] = useState(true);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTrack, setCurrentTrack] = useState(0);
-  const [siteTitle, setSiteTitle] = useState('My Coffee Shop');
-  const [primaryColor, setPrimaryColor] = useState('#6B3A2A');
-  const [accentColor, setAccentColor] = useState('#D4A574');
-  const [bgColor, setBgColor] = useState('#F5E6D3');
+  const { state, dispatch, currentPage } = useEditor();
+  const toast = useToast();
+  const [showAddModule, setShowAddModule] = useState(false);
+  const [showPageMenu, setShowPageMenu] = useState<string | null>(null);
+  const [showExport, setShowExport] = useState(false);
+  const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
 
-  const toggleModule = (id: string) => {
-    setModules((prev) =>
-      prev.map((m) => (m.id === id ? { ...m, visible: !m.visible } : m))
-    );
-  };
+  const handleSave = useCallback(() => {
+    dispatch({ type: 'SAVE' });
+    toast.success('Project saved');
+  }, [dispatch, toast]);
 
-  const selectedModule = modules.find((m) => m.id === selectedId);
+  const handleUndo = useCallback(() => {
+    if (state.undoStack.length > 0) {
+      dispatch({ type: 'UNDO' });
+      toast.info('Undo');
+    }
+  }, [dispatch, state.undoStack.length, toast]);
+
+  const handleRedo = useCallback(() => {
+    if (state.redoStack.length > 0) {
+      dispatch({ type: 'REDO' });
+      toast.info('Redo');
+    }
+  }, [dispatch, state.redoStack.length, toast]);
+
+  const handleAddPage = useCallback(() => {
+    const newPage: Page = {
+      id: `page-${Date.now()}`,
+      name: `Page ${state.website.pages.length + 1}`,
+      slug: `/page-${state.website.pages.length + 1}`,
+      isHome: false,
+      modules: [createDefaultModule('hero'), createDefaultModule('text'), createDefaultModule('footer')],
+    };
+    dispatch({ type: 'ADD_PAGE', page: newPage });
+    toast.success('Page added');
+  }, [dispatch, state.website.pages.length, toast]);
+
+  const handleAddModule = useCallback((type: string) => {
+    if (!currentPage) return;
+    const mod = createDefaultModule(type);
+    dispatch({ type: 'ADD_MODULE', pageId: currentPage.id, module: mod });
+    setShowAddModule(false);
+    toast.success(`${mod.name} added`);
+  }, [dispatch, currentPage, toast]);
+
+  const handleDragStart = useCallback((id: string) => {
+    setDraggedId(id);
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent, id: string) => {
+    e.preventDefault();
+    setDragOverId(id);
+  }, []);
+
+  const handleDrop = useCallback((targetId: string) => {
+    if (!draggedId || !currentPage || draggedId === targetId) { setDraggedId(null); setDragOverId(null); return; }
+    const ids = currentPage.modules.map(m => m.id);
+    const fromIdx = ids.indexOf(draggedId);
+    const toIdx = ids.indexOf(targetId);
+    if (fromIdx === -1 || toIdx === -1) { setDraggedId(null); setDragOverId(null); return; }
+    const newIds = [...ids];
+    newIds.splice(fromIdx, 1);
+    newIds.splice(toIdx, 0, draggedId);
+    dispatch({ type: 'REORDER_MODULES', pageId: currentPage.id, moduleIds: newIds });
+    setDraggedId(null);
+    setDragOverId(null);
+    toast.success('Module reordered');
+  }, [draggedId, currentPage, dispatch, toast]);
+
+  // Keyboard shortcuts
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'z') {
+      e.preventDefault();
+      if (e.shiftKey) handleRedo();
+      else handleUndo();
+    }
+    if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+      e.preventDefault();
+      handleSave();
+    }
+  }, [handleUndo, handleRedo, handleSave]);
+
+  if (!currentPage) return null;
 
   return (
-    <div className="fixed inset-0 z-[90] flex flex-col" style={{ background: '#F0EEEA' }}>
+    <div className="fixed inset-0 z-[90] flex flex-col" style={{ background: '#F0EEEA' }} onKeyDown={handleKeyDown} tabIndex={0}>
       {/* Toolbar */}
-      <div
-        className="h-12 flex items-center justify-between px-4 border-b flex-shrink-0"
-        style={{
-          background: 'white',
-          borderColor: 'var(--border-color)',
-          boxShadow: 'var(--shadow-sm)',
-        }}
-      >
-        <div className="flex items-center gap-3">
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-lg bg-transparent border-none cursor-pointer hover:bg-gray-100 transition-colors"
-            style={{ color: 'var(--text-secondary)' }}
-          >
+      <div className="h-12 flex items-center justify-between px-3 border-b flex-shrink-0" style={{ background: 'white', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
+        <div className="flex items-center gap-2">
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 bg-transparent border-none cursor-pointer" style={{ color: 'var(--text-secondary)' }} title="Back">
             <ChevronLeft size={18} />
           </button>
-          <div
-            className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold"
-            style={{ background: 'var(--accent)' }}
-          >
-            A
-          </div>
-          <div className="flex items-center gap-1 cursor-pointer">
-            <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-              {siteTitle}
-            </span>
-            <ChevronDown size={14} style={{ color: 'var(--text-tertiary)' }} />
-          </div>
-          <div className="w-px h-6 mx-1" style={{ background: 'var(--border-color)' }} />
-          <button className="p-1.5 rounded-lg bg-transparent border-none cursor-pointer hover:bg-gray-100 transition-colors" style={{ color: 'var(--text-tertiary)' }}>
+          <div className="w-px h-5 mx-1" style={{ background: 'var(--border-color)' }} />
+          <input
+            type="text"
+            value={state.website.name}
+            onChange={(e) => dispatch({ type: 'UPDATE_WEBSITE_NAME', name: e.target.value })}
+            className="text-sm font-semibold bg-transparent border-none outline-none w-40"
+            style={{ color: 'var(--text-primary)' }}
+          />
+          <div className="w-px h-5 mx-1" style={{ background: 'var(--border-color)' }} />
+          <button onClick={handleUndo} disabled={!state.undoStack.length} className="p-1.5 rounded-lg hover:bg-gray-100 bg-transparent border-none cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed" style={{ color: 'var(--text-tertiary)' }} title="Undo (Ctrl+Z)">
             <Undo2 size={16} />
           </button>
-          <button className="p-1.5 rounded-lg bg-transparent border-none cursor-pointer hover:bg-gray-100 transition-colors" style={{ color: 'var(--text-tertiary)' }}>
+          <button onClick={handleRedo} disabled={!state.redoStack.length} className="p-1.5 rounded-lg hover:bg-gray-100 bg-transparent border-none cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed" style={{ color: 'var(--text-tertiary)' }} title="Redo (Ctrl+Shift+Z)">
             <Redo2 size={16} />
           </button>
-          <button className="p-1.5 rounded-lg bg-transparent border-none cursor-pointer hover:bg-gray-100 transition-colors" style={{ color: 'var(--text-tertiary)' }}>
+          <button onClick={handleSave} className="p-1.5 rounded-lg hover:bg-gray-100 bg-transparent border-none cursor-pointer" style={{ color: 'var(--text-tertiary)' }} title="Save (Ctrl+S)">
             <Save size={16} />
           </button>
+          {state.lastSaved && (
+            <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+              Saved {state.lastSaved.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={onPreview}
-            className="flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider cursor-pointer transition-all border"
-            style={{
-              background: 'transparent',
-              borderColor: 'rgba(26,43,60,0.15)',
-              color: 'var(--text-primary)',
-            }}
-          >
-            <Eye size={14} />
-            Preview
+          <button onClick={onPreview} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-transparent border cursor-pointer hover:bg-gray-50 transition-colors" style={{ borderColor: 'rgba(26,43,60,0.15)', color: 'var(--text-primary)' }}>
+            <Eye size={14} /> Preview
           </button>
-          <button className="btn-primary py-2 px-5 text-xs">Publish</button>
+          <button onClick={() => setShowExport(true)} className="btn-primary py-2 px-4 text-xs">Export</button>
         </div>
       </div>
 
       {/* Main Area */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Left Panel - Modules */}
-        <div
-          className="w-[280px] flex-shrink-0 flex flex-col border-r overflow-y-auto"
-          style={{
-            background: 'white',
-            borderColor: 'var(--border-color)',
-          }}
-        >
-          <div className="px-4 py-3">
-            <span
-              className="text-xs font-semibold uppercase tracking-widest"
-              style={{ color: 'var(--text-tertiary)' }}
-            >
-              MODULES
-            </span>
+        {/* Left Panel */}
+        <div className="w-[260px] flex-shrink-0 flex flex-col border-r overflow-hidden" style={{ background: 'white', borderColor: 'var(--border-color)' }}>
+          {/* Pages Section */}
+          <div className="px-3 py-2 border-b flex items-center justify-between" style={{ borderColor: 'var(--border-color)' }}>
+            <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--text-tertiary)' }}>Pages ({state.website.pages.length})</span>
+            <button onClick={handleAddPage} className="p-1 rounded-md hover:bg-gray-100 bg-transparent border-none cursor-pointer" style={{ color: 'var(--accent)' }} title="Add page">
+              <FilePlus size={14} />
+            </button>
           </div>
-
-          {/* Module List */}
-          <div className="px-3 space-y-1">
-            {modules.map((mod) => (
+          <div className="max-h-32 overflow-y-auto border-b" style={{ borderColor: 'var(--border-color)' }}>
+            {state.website.pages.map(page => (
               <div
-                key={mod.id}
-                onClick={() => setSelectedId(mod.id)}
-                className={`flex items-center gap-2 px-3 py-2.5 rounded-xl cursor-pointer transition-all border ${
-                  selectedId === mod.id
-                    ? 'border-2'
-                    : 'border-transparent hover:border'
-                }`}
-                style={{
-                  background: selectedId === mod.id ? 'white' : 'transparent',
-                  borderColor:
-                    selectedId === mod.id
-                      ? 'var(--accent)'
-                      : 'rgba(26,43,60,0.06)',
-                  boxShadow:
-                    selectedId === mod.id ? 'var(--shadow-sm)' : 'none',
-                }}
+                key={page.id}
+                onClick={() => dispatch({ type: 'SELECT_PAGE', pageId: page.id })}
+                className={`flex items-center justify-between px-3 py-2 cursor-pointer transition-colors ${state.currentPageId === page.id ? 'bg-[var(--accent-light)]' : 'hover:bg-gray-50'}`}
               >
-                <span style={{ color: 'var(--text-tertiary)' }}>
-                  <GripVertical size={14} />
-                </span>
-                <span style={{ color: 'var(--text-secondary)' }}>{mod.icon}</span>
-                <span
-                  className="flex-1 text-sm font-medium"
-                  style={{
-                    color: mod.visible
-                      ? 'var(--text-primary)'
-                      : 'var(--text-tertiary)',
-                    textDecoration: mod.visible ? 'none' : 'line-through',
-                  }}
-                >
-                  {mod.name}
-                </span>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleModule(mod.id);
-                  }}
-                  className="p-1 rounded bg-transparent border-none cursor-pointer"
-                  style={{ color: mod.visible ? 'var(--success)' : 'var(--text-tertiary)' }}
-                >
-                  {mod.visible ? (
-                    <div className="w-4 h-4 rounded-full border-2 flex items-center justify-center" style={{ borderColor: 'var(--success)' }}>
-                      <div className="w-2 h-2 rounded-full" style={{ background: 'var(--success)' }} />
-                    </div>
-                  ) : (
-                    <div className="w-4 h-4 rounded-full border-2" style={{ borderColor: 'var(--text-tertiary)' }} />
+                <div className="flex items-center gap-2 min-w-0">
+                  {page.isHome && <Home size={12} style={{ color: 'var(--accent)', flexShrink: 0 }} />}
+                  <span className="text-xs font-medium truncate" style={{ color: state.currentPageId === page.id ? 'var(--accent)' : 'var(--text-primary)' }}>{page.name}</span>
+                </div>
+                <div className="relative">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setShowPageMenu(showPageMenu === page.id ? null : page.id); }}
+                    className="p-1 rounded bg-transparent border-none cursor-pointer hover:bg-gray-100"
+                    style={{ color: 'var(--text-tertiary)' }}
+                  >
+                    <Settings size={12} />
+                  </button>
+                  {showPageMenu === page.id && (
+                    <PageMenuDropdown
+                      page={page}
+                      onClose={() => setShowPageMenu(null)}
+                      onSetHome={() => { dispatch({ type: 'SET_HOME_PAGE', pageId: page.id }); setShowPageMenu(null); toast.success('Home page set'); }}
+                      onRename={(name) => { dispatch({ type: 'RENAME_PAGE', pageId: page.id, name }); setShowPageMenu(null); }}
+                      onDuplicate={() => { dispatch({ type: 'DUPLICATE_PAGE', pageId: page.id }); setShowPageMenu(null); toast.success('Page duplicated'); }}
+                      onDelete={() => { dispatch({ type: 'DELETE_PAGE', pageId: page.id }); setShowPageMenu(null); toast.success('Page deleted'); }}
+                      canDelete={state.website.pages.length > 1}
+                    />
                   )}
-                </button>
+                </div>
               </div>
             ))}
           </div>
 
-          {/* Add Module */}
-          <div className="px-3 mt-3">
-            <button
-              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium cursor-pointer transition-all border-dashed border"
-              style={{
-                color: 'var(--text-tertiary)',
-                borderColor: 'var(--border-color)',
-                background: 'transparent',
-              }}
-            >
-              <Plus size={16} />
-              Add Module
+          {/* Modules Section */}
+          <div className="px-3 py-2 border-b flex items-center justify-between" style={{ borderColor: 'var(--border-color)' }}>
+            <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--text-tertiary)' }}>Modules ({currentPage.modules.length})</span>
+            <button onClick={() => setShowAddModule(!showAddModule)} className="p-1 rounded-md hover:bg-gray-100 bg-transparent border-none cursor-pointer" style={{ color: 'var(--accent)' }}>
+              <Plus size={14} />
             </button>
           </div>
 
-          {/* Module Palette */}
-          <div className="px-4 pt-6 pb-3">
-            <span
-              className="text-xs font-semibold uppercase tracking-widest"
-              style={{ color: 'var(--text-tertiary)' }}
-            >
-              ADD MODULE
-            </span>
-          </div>
-          <div className="px-3 pb-4 grid grid-cols-2 gap-2">
-            {MODULE_PALETTE.map((item) => (
-              <button
-                key={item.name}
-                className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm cursor-pointer transition-all border hover:shadow-sm bg-transparent"
-                style={{
-                  borderColor: 'rgba(26,43,60,0.06)',
-                  color: 'var(--text-secondary)',
-                }}
+          {/* Add Module Panel */}
+          {showAddModule && (
+            <div className="p-2 border-b grid grid-cols-2 gap-1.5" style={{ borderColor: 'var(--border-color)', background: '#FAFAF8' }}>
+              {MODULE_TYPES.map(mt => (
+                <button key={mt.type} onClick={() => handleAddModule(mt.type)} className="flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs cursor-pointer bg-transparent border hover:border-[var(--accent)] hover:text-[var(--accent)] transition-all" style={{ borderColor: 'rgba(26,43,60,0.08)', color: 'var(--text-secondary)' }}>
+                  {mt.icon} {mt.name}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Module List */}
+          <div className="flex-1 overflow-y-auto">
+            {currentPage.modules.map((mod, index) => (
+              <div
+                key={mod.id}
+                draggable
+                onDragStart={() => handleDragStart(mod.id)}
+                onDragOver={(e) => handleDragOver(e, mod.id)}
+                onDrop={() => handleDrop(mod.id)}
+                onClick={() => dispatch({ type: 'SELECT_MODULE', moduleId: mod.id })}
+                className={`flex items-center gap-2 px-3 py-2 cursor-pointer transition-all border-l-2 ${state.selectedModuleId === mod.id ? 'border-l-[var(--accent)] bg-[var(--accent-light)]' : 'border-l-transparent hover:bg-gray-50'}`}
+                style={{ opacity: dragOverId === mod.id && draggedId !== mod.id ? 0.5 : 1 }}
               >
-                {item.icon}
-                {item.name}
-              </button>
+                <span style={{ color: 'var(--text-tertiary)', cursor: 'grab' }}><GripVertical size={14} /></span>
+                <span style={{ color: mod.visible ? 'var(--text-secondary)' : 'var(--text-tertiary)' }}>
+                  {MODULE_TYPES.find(m => m.type === mod.type)?.icon}
+                </span>
+                <span className={`text-xs font-medium flex-1 truncate ${!mod.visible ? 'line-through opacity-50' : ''}`} style={{ color: state.selectedModuleId === mod.id ? 'var(--accent)' : 'var(--text-primary)' }}>
+                  {index + 1}. {mod.name}
+                </span>
+                {!mod.visible && <span className="text-xs px-1 rounded" style={{ background: 'var(--text-tertiary)', color: 'white', fontSize: '0.6rem' }}>HIDDEN</span>}
+              </div>
             ))}
           </div>
         </div>
 
         {/* Center - Preview */}
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <div className="flex-1 p-6 overflow-y-auto">
-            <div
-              className="w-full max-w-[900px] mx-auto rounded-2xl overflow-hidden min-h-[600px]"
-              style={{
-                background: bgColor,
-                boxShadow: 'var(--shadow-lg)',
-              }}
-            >
-              {/* Mock Website Preview */}
-              {/* Hero */}
-              {modules.find((m) => m.id === '1')?.visible && (
-                <div
-                  className="h-64 flex flex-col items-center justify-center text-center px-8"
-                  style={{ background: `linear-gradient(135deg, ${primaryColor}, ${accentColor})` }}
-                >
-                  <h1 className="text-3xl font-bold text-white">{siteTitle}</h1>
-                  <p className="mt-2 text-white/80">Welcome to our world</p>
-                </div>
-              )}
-              {/* About */}
-              {modules.find((m) => m.id === '2')?.visible && (
-                <div className="py-12 px-8 text-center">
-                  <h2 className="text-2xl font-bold" style={{ color: primaryColor }}>About Us</h2>
-                  <p className="mt-3 max-w-md mx-auto text-sm" style={{ color: 'var(--text-secondary)' }}>
-                    We are passionate about creating amazing experiences for our customers.
-                  </p>
-                </div>
-              )}
-              {/* Services */}
-              {modules.find((m) => m.id === '3')?.visible && (
-                <div className="py-10 px-8">
-                  <h2 className="text-xl font-bold text-center mb-6" style={{ color: primaryColor }}>Our Services</h2>
-                  <div className="grid grid-cols-3 gap-4">
-                    {[1, 2, 3].map((i) => (
-                      <div key={i} className="p-4 rounded-xl text-center" style={{ background: 'rgba(255,255,255,0.5)' }}>
-                        <Star size={20} style={{ color: accentColor, margin: '0 auto' }} />
-                        <p className="mt-2 text-xs font-medium" style={{ color: primaryColor }}>Service {i}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {/* Gallery */}
-              {modules.find((m) => m.id === '4')?.visible && (
-                <div className="py-10 px-8">
-                  <h2 className="text-xl font-bold text-center mb-6" style={{ color: primaryColor }}>Gallery</h2>
-                  <div className="grid grid-cols-3 gap-3">
-                    {[1, 2, 3, 4, 5, 6].map((i) => (
-                      <div
-                        key={i}
-                        className="aspect-square rounded-lg"
-                        style={{ background: `linear-gradient(135deg, ${accentColor}22, ${primaryColor}22)` }}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-              {/* Music */}
-              {modules.find((m) => m.id === '5')?.visible && (
-                <div className="py-10 px-8">
-                  <h2 className="text-xl font-bold text-center mb-4" style={{ color: primaryColor }}>Music</h2>
-                  <div
-                    className="max-w-sm mx-auto p-4 rounded-xl flex items-center gap-3"
-                    style={{ background: 'rgba(255,255,255,0.6)' }}
-                  >
-                    <div
-                      className="w-10 h-10 rounded-lg flex items-center justify-center"
-                      style={{ background: 'var(--music-accent-light)' }}
-                    >
-                      <Music size={16} style={{ color: 'var(--music-accent)' }} />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Autumn Breeze</p>
-                      <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Whispering Woods</p>
-                    </div>
-                    <button
-                      className="w-8 h-8 rounded-full flex items-center justify-center text-white border-none cursor-pointer"
-                      style={{ background: 'var(--music-accent)' }}
-                    >
-                      <Play size={12} />
-                    </button>
-                  </div>
-                </div>
-              )}
-              {/* Contact */}
-              {modules.find((m) => m.id === '6')?.visible && (
-                <div className="py-10 px-8 text-center">
-                  <h2 className="text-xl font-bold mb-4" style={{ color: primaryColor }}>Contact Us</h2>
-                  <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>hello@example.com</p>
-                </div>
-              )}
-            </div>
+        <div className="flex-1 overflow-y-auto p-4" style={{ background: '#E8E6E0' }}>
+          <div style={{ maxWidth: 1100, margin: '0 auto' }}>
+            {currentPage.modules.map(mod => (
+              <div key={mod.id} style={{ display: mod.visible ? 'block' : 'none' }}>
+                <ModuleRenderer
+                  mod={mod}
+                  colors={state.website.colors}
+                  fonts={state.website.fonts}
+                  isSelected={state.selectedModuleId === mod.id}
+                  onClick={() => dispatch({ type: 'SELECT_MODULE', moduleId: mod.id })}
+                />
+              </div>
+            ))}
+            {currentPage.modules.filter(m => m.visible).length === 0 && (
+              <div className="flex flex-col items-center justify-center py-20 text-center" style={{ color: 'var(--text-tertiary)' }}>
+                <Layout size={40} className="mb-3 opacity-30" />
+                <p className="text-sm font-medium">No visible modules</p>
+                <p className="text-xs mt-1 opacity-60">Add modules from the left panel</p>
+              </div>
+            )}
           </div>
         </div>
 
         {/* Right Panel - Properties */}
-        <div
-          className="w-[300px] flex-shrink-0 flex flex-col border-l overflow-y-auto"
-          style={{
-            background: 'white',
-            borderColor: 'var(--border-color)',
-          }}
-        >
-          <div className="px-4 py-3">
-            <span
-              className="text-xs font-semibold uppercase tracking-widest"
-              style={{ color: 'var(--text-tertiary)' }}
-            >
-              PROPERTIES
-            </span>
-          </div>
-
-          {selectedModule && (
-            <div className="px-4 space-y-5 pb-6">
-              {/* Page Info */}
-              <div>
-                <label
-                  className="text-xs font-medium mb-1.5 block"
-                  style={{ color: 'var(--text-tertiary)' }}
-                >
-                  Site Title
-                </label>
-                <input
-                  type="text"
-                  value={siteTitle}
-                  onChange={(e) => setSiteTitle(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg text-sm border outline-none transition-all focus:ring-2"
-                  style={{
-                    background: '#F8F6F0',
-                    borderColor: 'var(--border-color)',
-                    color: 'var(--text-primary)',
-                  }}
-                />
-              </div>
-
-              {/* Colors */}
-              <div>
-                <label
-                  className="text-xs font-medium mb-2 block"
-                  style={{ color: 'var(--text-tertiary)' }}
-                >
-                  Colors
-                </label>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>Primary</span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-mono" style={{ color: 'var(--text-tertiary)' }}>{primaryColor}</span>
-                      <input
-                        type="color"
-                        value={primaryColor}
-                        onChange={(e) => setPrimaryColor(e.target.value)}
-                        className="w-8 h-8 rounded-lg border-none cursor-pointer"
-                      />
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>Accent</span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-mono" style={{ color: 'var(--text-tertiary)' }}>{accentColor}</span>
-                      <input
-                        type="color"
-                        value={accentColor}
-                        onChange={(e) => setAccentColor(e.target.value)}
-                        className="w-8 h-8 rounded-lg border-none cursor-pointer"
-                      />
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>Background</span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-mono" style={{ color: 'var(--text-tertiary)' }}>{bgColor}</span>
-                      <input
-                        type="color"
-                        value={bgColor}
-                        onChange={(e) => setBgColor(e.target.value)}
-                        className="w-8 h-8 rounded-lg border-none cursor-pointer"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Module Settings */}
-              <div>
-                <label
-                  className="text-xs font-medium mb-2 block"
-                  style={{ color: 'var(--text-tertiary)' }}
-                >
-                  Module: {selectedModule.name}
-                </label>
-                <div className="space-y-2">
-                  <button className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm cursor-pointer bg-transparent border transition-all hover:shadow-sm"
-                    style={{ borderColor: 'rgba(26,43,60,0.08)', color: 'var(--text-secondary)' }}>
-                    <Settings size={14} />
-                    Edit Content
-                  </button>
-                  <button
-                    onClick={() => toggleModule(selectedModule.id)}
-                    className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm cursor-pointer bg-transparent border transition-all hover:shadow-sm"
-                    style={{ borderColor: 'rgba(26,43,60,0.08)', color: 'var(--text-secondary)' }}
-                  >
-                    <Eye size={14} />
-                    {selectedModule.visible ? 'Hide' : 'Show'} Module
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
+        <div className="w-[280px] flex-shrink-0 flex flex-col border-l overflow-hidden" style={{ background: 'white', borderColor: 'var(--border-color)' }}>
+          <PropertiesPanel />
         </div>
       </div>
 
-      {/* Music Panel */}
-      <div
-        className="flex-shrink-0 border-t transition-all duration-300"
-        style={{
-          background: 'white',
-          borderColor: 'var(--border-color)',
-          height: musicOpen ? '200px' : '48px',
-        }}
-      >
-        {/* Collapsed Bar */}
-        <div
-          className="h-12 flex items-center justify-between px-4 cursor-pointer"
-          onClick={() => setMusicOpen(!musicOpen)}
-        >
-          <div className="flex items-center gap-2">
-            <button className="p-1 bg-transparent border-none cursor-pointer" style={{ color: 'var(--text-secondary)' }}>
-              {musicOpen ? (
-                <ChevronDown size={16} />
-              ) : (
-                <ChevronLeft size={16} className="rotate-90" />
-              )}
-            </button>
-            <Music size={16} style={{ color: 'var(--music-accent)' }} />
-            <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-              Music Matching
-            </span>
-          </div>
-          <div className="flex items-center gap-3">
-            <span
-              className="px-3 py-1 rounded-full text-xs font-medium"
-              style={{ background: 'var(--music-accent-light)', color: 'var(--music-accent)' }}
-            >
-              {TRACKS[currentTrack].title}
-            </span>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsPlaying(!isPlaying);
-              }}
-              className="w-7 h-7 rounded-full flex items-center justify-center text-white border-none cursor-pointer"
-              style={{ background: 'var(--music-accent)' }}
-            >
-              {isPlaying ? <Pause size={12} /> : <Play size={12} />}
-            </button>
-          </div>
-        </div>
-
-        {/* Expanded Content */}
-        {musicOpen && (
-          <div className="px-4 pb-4">
-            {/* Track List */}
-            <div className="flex gap-3 overflow-x-auto pb-2">
-              {TRACKS.map((track, i) => (
-                <div
-                  key={track.title}
-                  onClick={() => setCurrentTrack(i)}
-                  className={`flex-shrink-0 w-40 p-3 rounded-xl cursor-pointer transition-all border ${
-                    currentTrack === i ? 'border-2' : 'border'
-                  }`}
-                  style={{
-                    background: currentTrack === i ? 'var(--music-accent-light)' : 'white',
-                    borderColor: currentTrack === i ? 'var(--music-accent)' : 'rgba(26,43,60,0.08)',
-                  }}
-                >
-                  <div
-                    className="w-10 h-10 rounded-lg mb-2 flex items-center justify-center"
-                    style={{ background: 'var(--music-accent-light)' }}
-                  >
-                    <Music size={16} style={{ color: 'var(--music-accent)' }} />
-                  </div>
-                  <p className="text-xs font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
-                    {track.title}
-                  </p>
-                  <p className="text-xs truncate" style={{ color: 'var(--text-tertiary)' }}>
-                    {track.artist}
-                  </p>
-                </div>
-              ))}
-            </div>
-
-            {/* Controls */}
-            <div className="flex items-center gap-4 mt-3">
-              <button className="p-1 bg-transparent border-none cursor-pointer" style={{ color: 'var(--text-secondary)' }}>
-                <SkipBack size={16} />
-              </button>
-              <button
-                onClick={() => setIsPlaying(!isPlaying)}
-                className="w-9 h-9 rounded-full flex items-center justify-center text-white border-none cursor-pointer"
-                style={{ background: 'var(--music-accent)' }}
-              >
-                {isPlaying ? <Pause size={16} /> : <Play size={16} />}
-              </button>
-              <button className="p-1 bg-transparent border-none cursor-pointer" style={{ color: 'var(--text-secondary)' }}>
-                <SkipForward size={16} />
-              </button>
-              <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: 'rgba(26,43,60,0.08)' }}>
-                <div
-                  className="h-full rounded-full transition-all"
-                  style={{ background: 'var(--music-accent)', width: isPlaying ? `${(Date.now() % 10000) / 100}%` : '30%' }}
-                />
-              </div>
-              <button className="p-1 bg-transparent border-none cursor-pointer" style={{ color: 'var(--text-secondary)' }}>
-                <Volume2 size={16} />
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
+      {/* Export Dialog */}
+      {showExport && <ExportDialog onClose={() => setShowExport(false)} />}
     </div>
   );
+}
+
+// Page Menu Dropdown
+function PageMenuDropdown({ page, onClose: _onClose, onSetHome, onRename, onDuplicate, onDelete, canDelete }: {
+  page: Page; onClose: () => void; onSetHome: () => void; onRename: (n: string) => void;
+  onDuplicate: () => void; onDelete: () => void; canDelete: boolean;
+}) {
+  const [renaming, setRenaming] = useState(false);
+  const [name, setName] = useState(page.name);
+
+  return (
+    <div className="absolute right-0 top-6 w-40 rounded-xl py-1.5 z-50 shadow-xl" style={{ background: 'white', border: '1px solid var(--border-color)' }}>
+      {!page.isHome && <button onClick={onSetHome} className="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 bg-transparent border-none cursor-pointer flex items-center gap-2" style={{ color: 'var(--text-primary)' }}><Home size={12} /> Set as Home</button>}
+      {renaming ? (
+        <div className="px-3 py-1">
+          <input type="text" value={name} onChange={e => setName(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { onRename(name); setRenaming(false); } }} className="prop-input text-xs w-full" autoFocus />
+        </div>
+      ) : (
+        <button onClick={() => setRenaming(true)} className="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 bg-transparent border-none cursor-pointer" style={{ color: 'var(--text-primary)' }}>Rename</button>
+      )}
+      <button onClick={onDuplicate} className="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 bg-transparent border-none cursor-pointer flex items-center gap-2" style={{ color: 'var(--text-primary)' }}><Copy size={12} /> Duplicate</button>
+      {canDelete && <button onClick={onDelete} className="w-full text-left px-3 py-1.5 text-xs hover:bg-red-50 bg-transparent border-none cursor-pointer flex items-center gap-2" style={{ color: '#ef4444' }}><Trash2 size={12} /> Delete</button>}
+    </div>
+  );
+}
+
+// Create default module
+function createDefaultModule(type: string): WebsiteModule {
+  const id = `mod-${Date.now()}-${Math.random().toString(36).slice(2, 5)}`;
+  const base = { id, type: type as any, name: type.charAt(0).toUpperCase() + type.slice(1), visible: true, styles: {} };
+
+  switch (type) {
+    case 'hero': return { ...base, styles: { bgColor: '#1A2B3C', textColor: '#FFFFFF', textAlign: 'center' as const, padding: '80px 24px' }, content: { title: 'Your Hero Title', subtitle: 'Add a compelling subtitle here.', buttonText: 'Get Started', buttonLink: '#' } } as WebsiteModule;
+    case 'navbar': return { ...base, styles: { bgColor: '#FFFFFF', textColor: '#1A2B3C' }, content: { logo: 'Brand', links: [{ label: 'Home', href: '#' }, { label: 'About', href: '#' }, { label: 'Contact', href: '#' }], ctaText: 'Get Started', ctaLink: '#' } } as WebsiteModule;
+    case 'text': return { ...base, styles: { bgColor: '#F5F3EE', textColor: '#1A2B3C', textAlign: 'center' as const, padding: '60px 24px' }, content: { title: 'Section Title', body: 'Add your content here. Describe what makes your business unique and why visitors should care.' } } as WebsiteModule;
+    case 'features': return { ...base, styles: { bgColor: '#FFFFFF', textColor: '#1A2B3C', padding: '60px 24px' }, content: { title: 'Key Features', items: [{ icon: 'star', title: 'Feature 1', description: 'Describe your feature' }, { icon: 'star', title: 'Feature 2', description: 'Describe your feature' }, { icon: 'star', title: 'Feature 3', description: 'Describe your feature' }] } } as WebsiteModule;
+    case 'gallery': return { ...base, styles: { bgColor: '#F5F3EE', textColor: '#1A2B3C', padding: '60px 24px' }, content: { title: 'Gallery', images: [{ src: '', alt: 'Image 1' }, { src: '', alt: 'Image 2' }, { src: '', alt: 'Image 3' }], columns: 3 } } as WebsiteModule;
+    case 'products': return { ...base, styles: { bgColor: '#FFFFFF', textColor: '#1A2B3C', padding: '60px 24px' }, content: { title: 'Our Products', items: [{ name: 'Product 1', price: '$29', description: 'Product description' }, { name: 'Product 2', price: '$49', description: 'Product description' }] } } as WebsiteModule;
+    case 'services': return { ...base, styles: { bgColor: '#F5F3EE', textColor: '#1A2B3C', padding: '60px 24px' }, content: { title: 'Our Services', items: [{ icon: 'briefcase', title: 'Service 1', description: 'Service description' }, { icon: 'briefcase', title: 'Service 2', description: 'Service description' }] } } as WebsiteModule;
+    case 'testimonials': return { ...base, styles: { bgColor: '#FFFFFF', textColor: '#1A2B3C', padding: '60px 24px' }, content: { title: 'What People Say', items: [{ name: 'Customer Name', role: 'Role', text: 'Amazing experience working with this team!' }] } } as WebsiteModule;
+    case 'team': return { ...base, styles: { bgColor: '#F5F3EE', textColor: '#1A2B3C', padding: '60px 24px' }, content: { title: 'Our Team', members: [{ name: 'Team Member', role: 'Position', bio: 'Short bio' }] } } as WebsiteModule;
+    case 'pricing': return { ...base, styles: { bgColor: '#FFFFFF', textColor: '#1A2B3C', padding: '60px 24px' }, content: { title: 'Pricing', plans: [{ name: 'Basic', price: '$9', period: '/mo', features: ['Feature 1', 'Feature 2'] }, { name: 'Pro', price: '$29', period: '/mo', features: ['Feature 1', 'Feature 2', 'Feature 3'], highlighted: true }] } } as WebsiteModule;
+    case 'faq': return { ...base, styles: { bgColor: '#F5F3EE', textColor: '#1A2B3C', padding: '60px 24px' }, content: { title: 'FAQ', items: [{ question: 'What is your return policy?', answer: 'We offer a 30-day money-back guarantee on all plans.' }] } } as WebsiteModule;
+    case 'contact': return { ...base, styles: { bgColor: '#1A2B3C', textColor: '#FFFFFF', padding: '60px 24px' }, content: { title: 'Contact Us', email: 'hello@example.com', phone: '+1 (555) 000-0000', showForm: true } } as WebsiteModule;
+    case 'footer': return { ...base, styles: { bgColor: '#1A2B3C', textColor: '#FFFFFF' }, content: { logo: 'Brand', tagline: 'Built with care.', links: [{ label: 'Home', href: '#' }, { label: 'About', href: '#' }, { label: 'Contact', href: '#' }], social: [], copyright: `© ${new Date().getFullYear()} Brand. All rights reserved.` } } as WebsiteModule;
+    case 'carousel': return { ...base, styles: { bgColor: '#FFFFFF', padding: '0' }, content: { slides: [{ image: '', title: 'Slide 1' }], autoplay: true, interval: 5 } } as WebsiteModule;
+    case 'video': return { ...base, styles: { bgColor: '#FFFFFF', padding: '60px 24px' }, content: { url: '', title: 'Video Section', autoplay: false, muted: true } } as WebsiteModule;
+    case 'button': return { ...base, styles: { bgColor: 'transparent', textColor: '#1A2B3C', padding: '24px' }, content: { text: 'Click Me', link: '#', variant: 'primary', size: 'medium', align: 'center' } } as WebsiteModule;
+    case 'divider': return { ...base, styles: { bgColor: 'transparent', padding: '16px 24px' }, content: { style: 'line', label: '' } } as WebsiteModule;
+    case 'music': return { ...base, styles: { bgColor: 'rgba(123,97,255,0.05)', padding: '24px' }, content: { title: 'Background Music', trackId: 'track-1', autoplay: false, loop: true, showControls: true } } as WebsiteModule;
+    default: return base as WebsiteModule;
+  }
 }

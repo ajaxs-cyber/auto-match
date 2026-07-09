@@ -1,41 +1,39 @@
-import { useState, useRef, useCallback } from 'react';
-import LivingCanvas from './components/LivingCanvas';
-import Navbar from './sections/Navbar';
-import Hero from './sections/Hero';
-import Features from './sections/Features';
-import HowItWorks from './sections/HowItWorks';
-import Templates from './sections/Templates';
-import MusicShowcase from './sections/MusicShowcase';
-import Pricing from './sections/Pricing';
-import CTA from './sections/CTA';
-import Footer from './sections/Footer';
-import AnalysisModal from './components/AnalysisModal';
-import Editor from './components/Editor';
-import Preview from './components/Preview';
+import { useState, useCallback, useRef, useEffect } from 'react';
+import { EditorProvider, useEditor } from '@/hooks/useEditor';
+import { ToastProvider } from '@/hooks/useToast';
+import LivingCanvas from '@/components/LivingCanvas';
+import Navbar from '@/sections/Navbar';
+import Hero from '@/sections/Hero';
+import Features from '@/sections/Features';
+import HowItWorks from '@/sections/HowItWorks';
+import Templates from '@/sections/Templates';
+import MusicShowcase from '@/sections/MusicShowcase';
+import Pricing from '@/sections/Pricing';
+import CTA from '@/sections/CTA';
+import Footer from '@/sections/Footer';
+import AnalysisModal from '@/components/AnalysisModal';
+import Editor from '@/components/Editor';
+import Preview from '@/components/Preview';
+import { DEFAULT_TEMPLATES, generateWebsiteFromTemplate, generateEmptyWebsite } from '@/data/templates';
 
 type View = 'landing' | 'editor' | 'preview';
 
-export default function App() {
+function AppContent() {
   const [view, setView] = useState<View>('landing');
   const [analysisPrompt, setAnalysisPrompt] = useState<string | null>(null);
+  const { dispatch } = useEditor();
   const contentRef = useRef<HTMLDivElement>(null);
 
+  // Initialize with empty website (hidden)
+  useEffect(() => {
+    const emptySite = generateEmptyWebsite('My Website');
+    dispatch({ type: 'INIT_WEBSITE', website: emptySite });
+  }, [dispatch]);
+
   const scrollToSection = useCallback((section: string) => {
-    if (view !== 'landing') {
-      setView('landing');
-      setTimeout(() => {
-        const el = document.getElementById(section);
-        if (el) {
-          el.scrollIntoView({ behavior: 'smooth' });
-        }
-      }, 100);
-    } else {
-      const el = document.getElementById(section);
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth' });
-      }
-    }
-  }, [view]);
+    const el = document.getElementById(section);
+    if (el) el.scrollIntoView({ behavior: 'smooth' });
+  }, []);
 
   const handleGenerate = useCallback((prompt: string) => {
     setAnalysisPrompt(prompt);
@@ -44,6 +42,16 @@ export default function App() {
   const handleCloseAnalysis = useCallback(() => {
     setAnalysisPrompt(null);
   }, []);
+
+  const handleSelectTemplate = useCallback((templateId: string) => {
+    const tpl = DEFAULT_TEMPLATES.find(t => t.id === templateId);
+    if (tpl) {
+      const site = generateWebsiteFromTemplate(tpl);
+      dispatch({ type: 'INIT_WEBSITE', website: site });
+      setAnalysisPrompt(null);
+      setView('editor');
+    }
+  }, [dispatch]);
 
   const handleOpenEditor = useCallback(() => {
     setAnalysisPrompt(null);
@@ -66,58 +74,63 @@ export default function App() {
     setView('editor');
   }, []);
 
+  const handleUseTemplate = useCallback((templateId: string) => {
+    const tpl = DEFAULT_TEMPLATES.find(t => t.id === templateId);
+    if (tpl) {
+      const site = generateWebsiteFromTemplate(tpl);
+      dispatch({ type: 'INIT_WEBSITE', website: site });
+      setView('editor');
+    }
+  }, [dispatch]);
+
   return (
     <>
-      {/* Living Canvas Background - always rendered */}
       <LivingCanvas />
 
-      {/* Analysis Modal */}
       {analysisPrompt && (
         <AnalysisModal
           prompt={analysisPrompt}
           onClose={handleCloseAnalysis}
           onOpenEditor={handleOpenEditor}
+          onSelectTemplate={handleSelectTemplate}
         />
       )}
 
-      {/* Editor View */}
       {view === 'editor' && (
         <Editor onClose={handleCloseEditor} onPreview={handlePreview} />
       )}
 
-      {/* Preview View */}
       {view === 'preview' && (
         <Preview onClose={handleClosePreview} onBackToEditor={handleBackToEditor} />
       )}
 
-      {/* Landing Page Content */}
       {view === 'landing' && (
         <div ref={contentRef} className="relative" style={{ zIndex: 1 }}>
           <Navbar onNavigate={scrollToSection} />
           <Hero onGenerate={handleGenerate} />
-
-          {/* Content sections on cream background */}
           <div style={{ background: 'var(--canvas-base)' }}>
             <Features />
             <HowItWorks />
-            <Templates />
+            <Templates onUseTemplate={handleUseTemplate} />
           </div>
-
-          {/* Music showcase with shader visible at edges */}
           <MusicShowcase />
-
-          {/* Back to cream */}
           <div style={{ background: 'var(--canvas-base)' }}>
             <Pricing />
           </div>
-
-          {/* CTA with shader visible */}
-          <CTA />
-
-          {/* Footer */}
+          <CTA onStart={() => { const site = generateEmptyWebsite('My Website'); dispatch({ type: 'INIT_WEBSITE', website: site }); setView('editor'); }} />
           <Footer />
         </div>
       )}
     </>
+  );
+}
+
+export default function App() {
+  return (
+    <EditorProvider>
+      <ToastProvider>
+        <AppContent />
+      </ToastProvider>
+    </EditorProvider>
   );
 }
