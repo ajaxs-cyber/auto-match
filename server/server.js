@@ -18,19 +18,15 @@ const PORT = process.env.PORT || 3001;
 // ---- 中间件 ----
 app.use(cors());
 app.use(express.json({ limit: '5mb' }));
-// 服务前端静态文件（生产环境用 dist/，开发环境用根目录）
+
+// 服务 React 构建产物
 const distPath = path.join(__dirname, '..', 'dist');
-const rootPath = path.join(__dirname, '..');
-const fs = require('fs');
-if (fs.existsSync(distPath)) {
-  app.use(express.static(distPath));
-  // SPA fallback: 所有非 API 请求返回 index.html
-  app.get(/^\/(?!api\/).*/, (req, res) => {
-    res.sendFile(path.join(distPath, 'index.html'));
-  });
-} else {
-  app.use(express.static(rootPath));
-}
+app.use(express.static(distPath));
+
+// SPA fallback：非 API 路径统一返回 React index.html
+app.get(/^\/(?!api\/).*/, (req, res) => {
+  res.sendFile(path.join(distPath, 'index.html'));
+});
 
 // ---- 路由 ----
 app.use('/api/analyze', require('./routes/analyze'));
@@ -54,12 +50,13 @@ app.use((err, req, res, next) => {
 
 // ---- 启动 ----
 app.listen(PORT, () => {
+  const distExists = require('fs').existsSync(distPath);
   console.log(`
 ╔══════════════════════════════════════════════════╗
-║        智能建站平台 - API 服务已启动              ║
+║         AutoMatch - API 服务已启动               ║
 ╠══════════════════════════════════════════════════╣
 ║  后端地址:  http://localhost:${PORT}              ║
-║  前端地址:  http://localhost:${PORT}/index.html   ║
+║  前端构建:  ${distExists ? 'dist/ 已就绪 ✓' : '❌ dist/ 不存在！请先运行 npm run build'} ║
 ║  API Key:   ${process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== 'sk-your-key-here' ? '已配置 ✓' : '未配置 (使用本地算法)'} ║
 ╚══════════════════════════════════════════════════╝
   `);
