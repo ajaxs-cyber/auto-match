@@ -307,6 +307,7 @@ function ModuleBlock({ mod, isSelected, colors, fonts, onSelect, onUpdateContent
     padding: mod.styles?.padding || '48px 24px',
     borderRadius: mod.styles?.borderRadius || '0px',
     position: 'relative',
+    minHeight: '80px',
     outline: `2px solid ${borderColor}`,
     outlineOffset: '-2px',
     cursor: 'default',
@@ -394,8 +395,27 @@ function ModuleBlock({ mod, isSelected, colors, fonts, onSelect, onUpdateContent
             {c.title && <EditableText field="title" val={c.title} tag="h2" style={{ fontSize: 'clamp(1.5rem,3vw,2rem)', fontWeight: 700, marginBottom: 28 }} />}
             <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(c.images?.length || 3, 3)}, 1fr)`, gap: 12 }}>
               {c.images?.map((img: any, i: number) => (
-                <div key={i} style={{ aspectRatio: '4/3', borderRadius: 12, overflow: 'hidden', background: `linear-gradient(135deg, ${colors.primary}22, ${colors.accent}22)`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  {img.src ? <img src={img.src} alt={img.alt} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: '0.75rem', opacity: 0.4 }}>{__('editor.image')} {i + 1}</span>}
+                <div key={i} style={{ aspectRatio: '4/3', borderRadius: 12, overflow: 'hidden', background: `linear-gradient(135deg, ${colors.primary}22, ${colors.accent}22)`, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+                  {img.src ? (
+                    <img src={img.src} alt={img.alt} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : (
+                    <label style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                      <Upload size={18} style={{ opacity: 0.4 }} />
+                      <span style={{ fontSize: '0.7rem', opacity: 0.5 }}>{__('editor.uploadImage')}</span>
+                      <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onload = () => {
+                            const newImages = [...(c.images || [])];
+                            newImages[i] = { ...newImages[i], src: reader.result as string };
+                            onUpdateContent({ images: newImages });
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }} />
+                    </label>
+                  )}
                 </div>
               ))}
             </div>
