@@ -1,5 +1,5 @@
-import { useState, useCallback, useEffect } from 'react';
-import { EditorProvider } from '@/hooks/useEditor';
+import { useState, useCallback } from 'react';
+import { EditorProvider, useEditor } from '@/hooks/useEditor';
 import { ToastProvider } from '@/hooks/useToast';
 import LivingCanvas from '@/components/LivingCanvas';
 import Navbar from '@/sections/Navbar';
@@ -22,6 +22,7 @@ type View = 'landing' | 'editor' | 'preview';
 function AppContent() {
   const [view, setView] = useState<View>('landing');
   const [analysisPrompt, setAnalysisPrompt] = useState<string | null>(null);
+  const { dispatch } = useEditor();
 
   const scrollTo = useCallback((section: string) => {
     const el = document.getElementById(section);
@@ -29,20 +30,40 @@ function AppContent() {
   }, []);
 
   const handleGenerate = useCallback((prompt: string) => setAnalysisPrompt(prompt), []);
+
   const handleCloseAnalysis = useCallback(() => setAnalysisPrompt(null), []);
+
+  const initEditor = useCallback((templateId?: string) => {
+    if (templateId) {
+      const tpl = DEFAULT_TEMPLATES.find(t => t.id === templateId);
+      if (tpl) {
+        const site = generateWebsiteFromTemplate(tpl);
+        dispatch({ type: 'INIT_WEBSITE', website: site });
+      }
+    } else {
+      const site = generateEmptyWebsite('My Website');
+      dispatch({ type: 'INIT_WEBSITE', website: site });
+    }
+    setAnalysisPrompt(null);
+    setView('editor');
+  }, [dispatch]);
+
   const handleSelectTemplate = useCallback((templateId: string) => {
-    const tpl = DEFAULT_TEMPLATES.find(t => t.id === templateId);
-    if (tpl) { setAnalysisPrompt(null); setView('editor'); }
-  }, []);
+    initEditor(templateId);
+  }, [initEditor]);
+
+  const handleUseTemplate = useCallback((templateId: string) => {
+    initEditor(templateId);
+  }, [initEditor]);
+
+  const handleStart = useCallback(() => {
+    initEditor();
+  }, [initEditor]);
+
   const handlePreview = useCallback(() => setView('preview'), []);
   const handleCloseEditor = useCallback(() => setView('landing'), []);
   const handleClosePreview = useCallback(() => setView('editor'), []);
   const handleBackToEditor = useCallback(() => setView('editor'), []);
-  const handleUseTemplate = useCallback((templateId: string) => {
-    const tpl = DEFAULT_TEMPLATES.find(t => t.id === templateId);
-    if (tpl) setView('editor');
-  }, []);
-  const handleStart = useCallback(() => setView('editor'), []);
 
   return (
     <>
