@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: auto-match
+    env: node
+    rootDir: .
+    buildCommand: npm install && npm run build
+    startCommand: node server/server.js
+    envVars:
+      - key: NODE_VERSION
+        value: 22.12.0
