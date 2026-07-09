@@ -1,153 +1,49 @@
 import { useEffect, useRef } from 'react';
-import { Pencil, Brain, SlidersHorizontal, Globe } from 'lucide-react';
+import { MessageSquare, Brain, Palette, Sliders, Globe } from 'lucide-react';
 
 const STEPS = [
-  {
-    num: '01',
-    icon: Pencil,
-    title: 'Describe',
-    description: 'Tell us about your business, audience, and style preferences in plain language.',
-  },
-  {
-    num: '02',
-    icon: Brain,
-    title: 'AI Analyzes',
-    description: 'Our AI identifies your industry, brand tone, color palette, and optimal website structure.',
-  },
-  {
-    num: '03',
-    icon: SlidersHorizontal,
-    title: 'Edit & Match',
-    description: 'Customize your site in the visual editor and explore AI-matched background music.',
-  },
-  {
-    num: '04',
-    icon: Globe,
-    title: 'Launch',
-    description: 'Preview the complete experience, then publish or export your website code.',
-  },
+  { num: '01', icon: MessageSquare, title: 'Describe Your Brand', description: 'Tell us about your business, audience, and the vibe you want to create. Include style preferences if you have them.' },
+  { num: '02', icon: Brain, title: 'AI Analyzes Everything', description: 'Our AI identifies your industry, visual style preferences, color psychology, and — uniquely — your brand\'s emotional mood profile.' },
+  { num: '03', icon: Palette, title: 'Brand Experience Design', description: 'AI generates your website structure, visual design, color palette, typography AND a curated brand soundtrack with reasoning for each choice.' },
+  { num: '04', icon: Sliders, title: 'Edit Visually + Audibly', description: 'Fine-tune every design detail in our WYSIWYG editor while your brand music plays. See and hear your brand come together in real time.' },
+  { num: '05', icon: Globe, title: 'Launch the Experience', description: 'Export your complete website with integrated audio design guide. Deploy a brand experience that engages visitors on every level.' },
 ];
 
 export default function HowItWorks() {
-  const sectionRef = useRef<HTMLDivElement>(null);
-
+  const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            const steps = entry.target.querySelectorAll('.step-item');
-            const lines = entry.target.querySelectorAll('.step-line');
-            steps.forEach((step, i) => {
-              setTimeout(() => {
-                (step as HTMLElement).style.opacity = '1';
-                (step as HTMLElement).style.transform = 'translateY(0)';
-              }, i * 150);
-            });
-            lines.forEach((line, i) => {
-              setTimeout(() => {
-                (line as HTMLElement).style.transform = 'scaleX(1)';
-              }, 300 + i * 150);
-            });
-            observer.unobserve(entry.target);
-          }
-        });
-      },
-      { threshold: 0.2 }
-    );
-
-    if (sectionRef.current) {
-      observer.observe(sectionRef.current);
-    }
-
-    return () => observer.disconnect();
+    const o = new IntersectionObserver((entries) => { entries.forEach(e => { if (e.isIntersecting) { e.target.querySelectorAll('.step-item').forEach((s, i) => setTimeout(() => { (s as HTMLElement).style.opacity = '1'; (s as HTMLElement).style.transform = 'translateY(0)'; }, i * 150)); o.unobserve(e.target); } }); }, { threshold: 0.2 });
+    if (ref.current) o.observe(ref.current);
+    return () => o.disconnect();
   }, []);
 
   return (
-    <section
-      ref={sectionRef}
-      id="how-it-works"
-      className="relative py-24 px-4 sm:px-6 lg:px-10"
-      style={{ background: 'var(--canvas-base)', zIndex: 1 }}
-    >
+    <section ref={ref} id="how-it-works" className="relative py-24 px-4 sm:px-6 lg:px-10" style={{ background: 'var(--canvas-base)', zIndex: 1 }}>
       <div className="max-w-[1000px] mx-auto">
-        {/* Section Header */}
         <div className="text-center mb-16">
-          <span
-            className="text-xs font-semibold uppercase tracking-widest"
-            style={{ color: 'var(--text-tertiary)' }}
-          >
-            HOW IT WORKS
-          </span>
-          <h2
-            className="mt-3 text-[clamp(1.5rem,3vw,2.25rem)] font-bold"
-            style={{ color: 'var(--text-primary)' }}
-          >
-            Four steps to your perfect site
-          </h2>
+          <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--text-tertiary)' }}>HOW IT WORKS</span>
+          <h2 className="mt-3 text-[clamp(1.5rem,3vw,2.25rem)] font-bold" style={{ color: 'var(--text-primary)' }}>From idea to brand experience in 5 steps</h2>
+          <p className="mt-2 text-base max-w-lg mx-auto" style={{ color: 'var(--text-secondary)' }}>Every step includes both visual design and audio identity decisions.</p>
         </div>
 
-        {/* Steps Flow */}
-        <div className="flex flex-col md:flex-row items-start gap-8 md:gap-4">
+        <div className="flex flex-col md:flex-row items-start gap-6 md:gap-4">
           {STEPS.map((step, index) => {
-            const Icon = step.icon;
+            const I = step.icon;
             const isLast = index === STEPS.length - 1;
-
             return (
-              <div key={step.num} className="flex md:flex-col items-center gap-4 md:gap-0 flex-1">
-                {/* Step Item */}
-                <div className="flex md:flex-col items-center gap-4 md:text-center flex-1 w-full">
-                  {/* Number Circle */}
-                  <div
-                    className="step-item w-12 h-12 rounded-full flex items-center justify-center text-white text-lg font-bold flex-shrink-0 opacity-0 translate-y-8 transition-all duration-600"
-                    style={{
-                      background: 'var(--accent)',
-                      transitionTimingFunction: 'cubic-bezier(0.16, 1, 0.3, 1)',
-                    }}
-                  >
-                    {parseInt(step.num)}
+              <div key={step.num} className="flex md:flex-col items-start gap-4 md:gap-0 flex-1 w-full">
+                <div className="flex items-center gap-4 md:flex-col md:items-center md:text-center w-full">
+                  <div className="step-item flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center text-white text-lg font-bold opacity-0 translate-y-8 transition-all duration-600" style={{ background: index < 3 ? 'var(--accent)' : index === 3 ? 'var(--music-accent)' : 'var(--text-primary)', transitionTimingFunction: 'cubic-bezier(0.16, 1, 0.3, 1)' }}>
+                    <I size={18} />
                   </div>
-
-                  {/* Content */}
-                  <div className="md:mt-5">
-                    <div className="flex items-center md:justify-center gap-2 mb-1">
-                      <Icon size={16} style={{ color: 'var(--accent)' }} />
-                      <h3
-                        className="text-lg font-semibold"
-                        style={{ color: 'var(--text-primary)' }}
-                      >
-                        {step.title}
-                      </h3>
-                    </div>
-                    <p
-                      className="text-sm max-w-[200px]"
-                      style={{ color: 'var(--text-secondary)' }}
-                    >
-                      {step.description}
-                    </p>
+                  <div className="step-item md:mt-5 opacity-0 translate-y-8 transition-all duration-600 flex-1" style={{ transitionDelay: '100ms' }}>
+                    <span className="text-xs font-bold" style={{ color: 'var(--text-tertiary)' }}>{step.num}</span>
+                    <h3 className="text-base font-semibold mt-0.5" style={{ color: 'var(--text-primary)' }}>{step.title}</h3>
+                    <p className="text-xs mt-1 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{step.description}</p>
                   </div>
                 </div>
-
-                {/* Connector Line - horizontal on desktop */}
-                {!isLast && (
-                  <div
-                    className="step-line hidden md:block w-full h-px mt-6 origin-left transition-transform duration-700"
-                    style={{
-                      background: 'var(--border-color)',
-                      transform: 'scaleX(0)',
-                    }}
-                  />
-                )}
-
-                {/* Connector Line - vertical on mobile */}
-                {!isLast && (
-                  <div
-                    className="md:hidden w-px h-8 ml-6 transition-all duration-500"
-                    style={{
-                      background: 'var(--border-color)',
-                    }}
-                  />
-                )}
+                {!isLast && <div className="hidden md:block w-full h-px mt-6 origin-left" style={{ background: 'var(--border-color)' }} />}
+                {!isLast && <div className="md:hidden w-px h-8 ml-6" style={{ background: 'var(--border-color)' }} />}
               </div>
             );
           })}

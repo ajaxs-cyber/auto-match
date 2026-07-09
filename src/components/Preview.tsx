@@ -1,23 +1,16 @@
 import { useState } from 'react';
 import { useEditor } from '@/hooks/useEditor';
-import ModuleRenderer from './ModuleRenderer';
-import { X, Monitor, Tablet, Smartphone, ChevronLeft, RotateCcw } from 'lucide-react';
+import { X, Monitor, Tablet, Smartphone, ChevronLeft, Music, Play, Pause, Volume2 } from 'lucide-react';
+import { getTrackById, generateMusicRecommendation } from '@/data/music';
 
-interface PreviewProps {
-  onClose: () => void;
-  onBackToEditor: () => void;
-}
+interface Props { onClose: () => void; onBackToEditor: () => void; }
 
-export default function Preview({ onClose, onBackToEditor }: PreviewProps) {
+export default function Preview({ onClose, onBackToEditor }: Props) {
   const { state, currentPage } = useEditor();
   const [device, setDevice] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
+  const [isPlaying, setIsPlaying] = useState(false);
 
   const deviceWidths = { desktop: '100%', tablet: '768px', mobile: '375px' };
-  const deviceIcons = {
-    desktop: <Monitor size={16} />,
-    tablet: <Tablet size={16} />,
-    mobile: <Smartphone size={16} />,
-  };
 
   if (!currentPage) return null;
 
@@ -26,62 +19,54 @@ export default function Preview({ onClose, onBackToEditor }: PreviewProps) {
       {/* Toolbar */}
       <div className="h-12 flex items-center justify-between px-4 border-b flex-shrink-0" style={{ background: 'white', borderColor: 'var(--border-color)' }}>
         <div className="flex items-center gap-2">
-          <button onClick={onBackToEditor} className="p-1.5 rounded-lg hover:bg-gray-100 bg-transparent border-none cursor-pointer flex items-center gap-1 text-xs" style={{ color: 'var(--text-secondary)' }}>
-            <ChevronLeft size={16} /> Editor
-          </button>
+          <button onClick={onBackToEditor} className="p-1.5 rounded-lg hover:bg-gray-100 bg-transparent border-none cursor-pointer flex items-center gap-1 text-xs" style={{ color: 'var(--text-secondary)' }}><ChevronLeft size={16} /> Editor</button>
           <div className="w-px h-5 mx-1" style={{ background: 'var(--border-color)' }} />
-          {/* Device toggles */}
           {(['desktop', 'tablet', 'mobile'] as const).map(d => (
-            <button key={d} onClick={() => setDevice(d)} className={`p-2 rounded-lg bg-transparent border-none cursor-pointer transition-colors ${device === d ? 'text-[var(--accent)] bg-[var(--accent-light)]' : 'text-[var(--text-tertiary)] hover:bg-gray-100'}`} title={d.charAt(0).toUpperCase() + d.slice(1)}>
-              {deviceIcons[d]}
-            </button>
+            <button key={d} onClick={() => setDevice(d)} className={`p-2 rounded-lg bg-transparent border-none cursor-pointer transition-colors ${device === d ? 'text-[var(--accent)] bg-[var(--accent-light)]' : 'text-[var(--text-tertiary)] hover:bg-gray-100'}`}>{d === 'desktop' ? <Monitor size={16} /> : d === 'tablet' ? <Tablet size={16} /> : <Smartphone size={16} />}</button>
           ))}
-          <div className="ml-3 px-3 py-1 rounded-lg text-xs" style={{ background: '#F8F6F0', border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}>
-            {state.website.name.toLowerCase().replace(/\s+/g, '-')}.com
-          </div>
+          <div className="ml-3 px-3 py-1 rounded-lg text-xs" style={{ background: '#F8F6F0', border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}>{state.website.name.toLowerCase().replace(/\s+/g, '-')}.com</div>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={() => setDevice('desktop')} className="p-1.5 rounded-lg hover:bg-gray-100 bg-transparent border-none cursor-pointer" style={{ color: 'var(--text-tertiary)' }} title="Refresh">
-            <RotateCcw size={14} />
-          </button>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 bg-transparent border-none cursor-pointer" style={{ color: 'var(--text-secondary)' }}>
-            <X size={18} />
-          </button>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 bg-transparent border-none cursor-pointer" style={{ color: 'var(--text-secondary)' }}><X size={18} /></button>
         </div>
       </div>
 
-      {/* Preview Content */}
+      {/* Preview */}
       <div className="flex-1 overflow-y-auto p-6">
-        <div
-          className="mx-auto rounded-xl overflow-hidden transition-all duration-300 shadow-lg"
-          style={{ width: deviceWidths[device], maxWidth: '100%', minHeight: '80vh', background: state.website.colors.background }}
-        >
-          {currentPage.modules.filter(m => m.visible).map(mod => (
-            <ModuleRenderer
-              key={mod.id}
-              mod={mod}
-              colors={state.website.colors}
-              fonts={state.website.fonts}
-              isSelected={false}
-              onClick={() => {}}
-            />
-          ))}
-          {currentPage.modules.filter(m => m.visible).length === 0 && (
-            <div className="flex flex-col items-center justify-center h-full py-40 text-center" style={{ color: 'var(--text-tertiary)' }}>
-              <Monitor size={48} className="mb-4 opacity-30" />
-              <p className="text-lg font-medium">No content to preview</p>
-              <p className="text-sm mt-1 opacity-60">Add modules in the editor to see them here</p>
-              <button onClick={onBackToEditor} className="btn-primary mt-6">Go to Editor</button>
-            </div>
-          )}
+        <div className="mx-auto rounded-xl overflow-hidden transition-all duration-300 shadow-lg" style={{ width: deviceWidths[device], maxWidth: '100%', minHeight: '80vh', background: state.website.colors.background }}>
+          {currentPage.modules.filter(m => m.visible).map(mod => {
+            const c = mod.content as any;
+            const s = mod.styles;
+            const style = `background:${s?.bgColor || 'transparent'};color:${s?.textColor || state.website.colors.text};padding:${s?.padding || '60px 24px'};text-align:${s?.textAlign || 'center'};`;
+
+            if (mod.type === 'hero') return <section key={mod.id} style={{ ...s, minHeight: '70vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: s?.bgColor, color: s?.textColor, padding: s?.padding || '80px 24px', textAlign: (s?.textAlign || 'center') as any }}><div style={{ maxWidth: 800 }}><h1 style={{ fontSize: 'clamp(2rem,5vw,3.5rem)', fontWeight: 700, lineHeight: 1.1, marginBottom: 16 }}>{c.title}</h1><p style={{ fontSize: '1.1rem', opacity: 0.8, maxWidth: 520, margin: '0 auto 32px' }}>{c.subtitle}</p><div style={{ display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap' }}><span style={{ padding: '14px 32px', borderRadius: 9999, background: state.website.colors.primary, color: 'white', fontWeight: 600 }}>{c.buttonText}</span>{c.secondaryButtonText && <span style={{ padding: '14px 32px', borderRadius: 9999, border: `1px solid ${state.website.colors.primary}`, color: state.website.colors.primary, fontWeight: 600 }}>{c.secondaryButtonText}</span>}</div></div></section>;
+            if (mod.type === 'navbar') return <nav key={mod.id} style={{ background: s?.bgColor, color: s?.textColor, padding: '16px 24px' }}><div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap' }}><div style={{ fontWeight: 700, fontSize: '1.15rem' }}>{c.logo}</div><div style={{ display: 'flex', gap: 24, alignItems: 'center', flexWrap: 'wrap' }}>{c.links?.map((l: any, i: number) => <a key={i} href={l.href} style={{ fontSize: '0.875rem', fontWeight: 500, opacity: 0.8 }}>{l.label}</a>)}<a href={c.ctaLink} style={{ padding: '10px 24px', borderRadius: 9999, background: state.website.colors.primary, color: 'white', fontSize: '0.75rem', fontWeight: 600 }}>{c.ctaText}</a></div></div></nav>;
+            if (mod.type === 'text') return <section key={mod.id} style={{ background: s?.bgColor, color: s?.textColor, padding: s?.padding || '60px 24px', textAlign: (s?.textAlign || 'center') as any }}><div style={{ maxWidth: '720px', margin: '0 auto' }}><h2 style={{ fontSize: 'clamp(1.5rem,3vw,2rem)', fontWeight: 700, marginBottom: 16 }}>{c.title}</h2><p style={{ opacity: 0.8, lineHeight: 1.7, marginBottom: 24 }}>{c.body}</p>{c.buttonText && <a href={c.buttonLink} style={{ padding: '14px 32px', borderRadius: 9999, background: state.website.colors.primary, color: 'white', fontWeight: 600, display: 'inline-block' }}>{c.buttonText}</a>}</div></section>;
+            if (mod.type === 'features') return <section key={mod.id} style={{ background: s?.bgColor, color: s?.textColor, padding: s?.padding || '60px 24px' }}><div style={{ maxWidth: 1200, margin: '0 auto', textAlign: 'center' }}><h2 style={{ fontSize: 'clamp(1.5rem,3vw,2rem)', fontWeight: 700, marginBottom: 8 }}>{c.title}</h2>{c.subtitle && <p style={{ opacity: 0.7, marginBottom: 40 }}>{c.subtitle}</p>}<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 24, textAlign: 'left' }}>{c.items?.map((item: any, i: number) => <div key={i} style={{ padding: 24, borderRadius: 16, background: 'rgba(255,255,255,0.5)', border: '1px solid rgba(0,0,0,0.05)' }}><h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: 8 }}>{item.title}</h3><p style={{ fontSize: '0.875rem', opacity: 0.7 }}>{item.description}</p></div>)}</div></div></section>;
+            if (mod.type === 'gallery') return <section key={mod.id} style={{ background: s?.bgColor, color: s?.textColor, padding: s?.padding || '60px 24px' }}><div style={{ maxWidth: 1200, margin: '0 auto', textAlign: 'center' }}>{c.title && <h2 style={{ fontSize: 'clamp(1.5rem,3vw,2rem)', fontWeight: 700, marginBottom: 32 }}>{c.title}</h2>}<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>{c.images?.map((img: any, i: number) => <img key={i} src={img.src} alt={img.alt} style={{ width: '100%', aspectRatio: '4/3', objectFit: 'cover', borderRadius: 12 }} />)}</div></div></section>;
+            if (mod.type === 'testimonials') return <section key={mod.id} style={{ background: s?.bgColor, color: s?.textColor, padding: s?.padding || '60px 24px' }}><div style={{ maxWidth: 1200, margin: '0 auto', textAlign: 'center' }}>{c.title && <h2 style={{ fontSize: 'clamp(1.5rem,3vw,2rem)', fontWeight: 700, marginBottom: 32 }}>{c.title}</h2>}<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 20 }}>{c.items?.map((item: any, i: number) => <div key={i} style={{ padding: 24, borderRadius: 16, background: 'rgba(255,255,255,0.5)', border: '1px solid rgba(0,0,0,0.05)', textAlign: 'left' }}><p style={{ fontStyle: 'italic', marginBottom: 16, opacity: 0.9 }}>&ldquo;{item.text}&rdquo;</p><p style={{ fontWeight: 600, fontSize: '0.9rem' }}>{item.name}</p><p style={{ fontSize: '0.8rem', opacity: 0.6 }}>{item.role}</p></div>)}</div></div></section>;
+            if (mod.type === 'pricing') return <section key={mod.id} style={{ background: s?.bgColor, color: s?.textColor, padding: s?.padding || '60px 24px' }}><div style={{ maxWidth: 1200, margin: '0 auto', textAlign: 'center' }}><h2 style={{ fontSize: 'clamp(1.5rem,3vw,2rem)', fontWeight: 700, marginBottom: 8 }}>{c.title}</h2>{c.subtitle && <p style={{ opacity: 0.7, marginBottom: 40 }}>{c.subtitle}</p>}<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 20, textAlign: 'left' }}>{c.plans?.map((plan: any, i: number) => <div key={i} style={{ padding: 32, borderRadius: 16, background: 'rgba(255,255,255,0.5)', border: `2px solid ${plan.highlighted ? state.website.colors.accent : 'rgba(0,0,0,0.05)'}` }}><h3 style={{ fontWeight: 600, marginBottom: 8 }}>{plan.name}</h3><p style={{ fontSize: '2rem', fontWeight: 700, color: state.website.colors.primary, marginBottom: 16 }}>{plan.price}<span style={{ fontSize: '0.875rem', fontWeight: 400, opacity: 0.6 }}>{plan.period}</span></p><ul style={{ listStyle: 'none', padding: 0 }}>{plan.features?.map((f: string, j: number) => <li key={j} style={{ padding: '6px 0', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ color: '#2D8A4E' }}>&#10003;</span>{f}</li>)}</ul></div>)}</div></div></section>;
+            if (mod.type === 'faq') return <section key={mod.id} style={{ background: s?.bgColor, color: s?.textColor, padding: s?.padding || '60px 24px' }}><div style={{ maxWidth: 800, margin: '0 auto' }}><h2 style={{ fontSize: 'clamp(1.5rem,3vw,2rem)', fontWeight: 700, textAlign: 'center', marginBottom: 32 }}>{c.title}</h2><div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>{c.items?.map((item: any, i: number) => <details key={i} style={{ padding: 20, borderRadius: 12, background: 'rgba(255,255,255,0.5)', border: '1px solid rgba(0,0,0,0.05)', cursor: 'pointer' }}><summary style={{ fontWeight: 600, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>{item.question}<span>+</span></summary><p style={{ marginTop: 12, opacity: 0.8 }}>{item.answer}</p></details>)}</div></div></section>;
+            if (mod.type === 'contact') return <section key={mod.id} style={{ background: s?.bgColor, color: s?.textColor, padding: s?.padding || '60px 24px' }}><div style={{ maxWidth: 800, margin: '0 auto', textAlign: 'center' }}><h2 style={{ fontSize: 'clamp(1.5rem,3vw,2rem)', fontWeight: 700, marginBottom: 8 }}>{c.title}</h2>{c.subtitle && <p style={{ opacity: 0.7, marginBottom: 24 }}>{c.subtitle}</p>}<div style={{ display: 'flex', flexWrap: 'wrap', gap: 20, justifyContent: 'center', marginBottom: 28 }}>{c.email && <p style={{ fontSize: '0.82rem', opacity: 0.7 }}>&#9993; {c.email}</p>}{c.phone && <p style={{ fontSize: '0.82rem', opacity: 0.7 }}>&#9742; {c.phone}</p>}{c.address && <p style={{ fontSize: '0.82rem', opacity: 0.7 }}>&#10070; {c.address}</p>}</div>{c.showForm && <form style={{ maxWidth: 480, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 10, textAlign: 'left' }} onSubmit={e => { e.preventDefault(); alert('Thank you!'); }}><input type="text" placeholder="Your Name" required style={{ padding: '12px 16px', borderRadius: 8, border: '1px solid rgba(0,0,0,0.1)' }} /><input type="email" placeholder="Your Email" required style={{ padding: '12px 16px', borderRadius: 8, border: '1px solid rgba(0,0,0,0.1)' }} /><textarea placeholder="Your Message" rows={4} required style={{ padding: '12px 16px', borderRadius: 8, border: '1px solid rgba(0,0,0,0.1)', resize: 'vertical' }} /><button type="submit" style={{ padding: '12px 24px', borderRadius: 9999, background: state.website.colors.primary, color: 'white', fontWeight: 600, border: 'none', alignSelf: 'center' }}>Send Message</button></form>}</div></section>;
+            if (mod.type === 'footer') return <footer key={mod.id} style={{ background: s?.bgColor, color: s?.textColor, padding: '0 24px' }}><div style={{ maxWidth: 1200, margin: '0 auto' }}><div style={{ display: 'flex', flexWrap: 'wrap', gap: 32, justifyContent: 'space-between', alignItems: 'center', padding: '40px 0' }}><div><p style={{ fontWeight: 700, fontSize: '1.1rem', marginBottom: 4 }}>{c.logo}</p><p style={{ fontSize: '0.8rem', opacity: 0.6 }}>{c.tagline}</p></div><div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>{c.links?.map((l: any, i: number) => <a key={i} href={l.href} style={{ fontSize: '0.875rem', opacity: 0.7 }}>{l.label}</a>)}</div></div><div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', padding: '20px 0', textAlign: 'center' }}><p style={{ fontSize: '0.75rem', opacity: 0.5 }}>{c.copyright}</p></div></div></footer>;
+            if (mod.type === 'stats') return <section key={mod.id} style={{ background: s?.bgColor, color: s?.textColor, padding: s?.padding || '60px 24px' }}><div style={{ maxWidth: 1200, margin: '0 auto', textAlign: 'center' }}>{c.title && <h2 style={{ fontSize: 'clamp(1.5rem,3vw,2rem)', fontWeight: 700, marginBottom: 32 }}>{c.title}</h2>}<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 20 }}>{c.items?.map((item: any, i: number) => <div key={i} style={{ textAlign: 'center' }}><p style={{ fontSize: '2.5rem', fontWeight: 700, color: state.website.colors.primary }}>{item.value}</p><p style={{ fontSize: '0.85rem', opacity: 0.6, marginTop: 4 }}>{item.label}</p></div>)}</div></div></section>;
+            if (mod.type === 'cta') return <section key={mod.id} style={{ background: s?.bgColor, color: s?.textColor, padding: s?.padding || '80px 24px', textAlign: 'center' }}><div style={{ maxWidth: 800, margin: '0 auto' }}><h2 style={{ fontSize: 'clamp(1.5rem,3vw,2.5rem)', fontWeight: 700, marginBottom: 12 }}>{c.title}</h2>{c.subtitle && <p style={{ opacity: 0.8, marginBottom: 24 }}>{c.subtitle}</p>}<a href={c.buttonLink} style={{ padding: '14px 36px', borderRadius: 9999, background: state.website.colors.primary, color: 'white', fontWeight: 600, display: 'inline-block' }}>{c.buttonText}</a></div></section>;
+            if (mod.type === 'divider') return <div key={mod.id} style={{ padding: s?.padding || '16px 24px' }}><div style={{ display: 'flex', alignItems: 'center', gap: 16 }}><div style={{ flex: 1, height: 1, borderTop: `2px ${c.style === 'dashed' ? 'dashed' : c.style === 'dotted' ? 'dotted' : 'solid'} rgba(0,0,0,0.1)` }} />{c.label && <span style={{ fontSize: '0.72rem', fontWeight: 600, opacity: 0.5, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{c.label}</span>}<div style={{ flex: 1, height: 1, borderTop: `2px ${c.style === 'dashed' ? 'dashed' : c.style === 'dotted' ? 'dotted' : 'solid'} rgba(0,0,0,0.1)` }} /></div></div>;
+            return <section key={mod.id} style={{ background: s?.bgColor, color: s?.textColor, padding: s?.padding || '48px 24px', textAlign: (s?.textAlign || 'center') as any }}><div style={{ maxWidth: 1200, margin: '0 auto' }}><p style={{ opacity: 0.5 }}>{mod.name}</p></div></section>;
+          })}
+          {currentPage.modules.filter(m => m.visible).length === 0 && <div style={{ textAlign: 'center', padding: 120, color: 'var(--text-tertiary)' }}><Monitor size={48} style={{ opacity: 0.3, margin: '0 auto 16px' }} /><p style={{ fontSize: '1.1rem', fontWeight: 500 }}>No content to preview</p><p style={{ fontSize: '0.875rem', opacity: 0.6 }}>Add modules in the editor</p></div>}
         </div>
       </div>
 
-      {/* Device indicator */}
-      <div className="flex-shrink-0 h-8 flex items-center justify-center border-t" style={{ background: 'white', borderColor: 'var(--border-color)' }}>
-        <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
-          Previewing on {device.charAt(0).toUpperCase() + device.slice(1)} ({deviceWidths[device]})
-        </span>
+      {/* Music Bar */}
+      <div className="h-14 flex items-center gap-4 px-4 border-t flex-shrink-0" style={{ background: 'white', borderColor: 'var(--border-color)', boxShadow: '0 -4px 16px rgba(0,0,0,0.04)' }}>
+        <Music size={16} style={{ color: 'var(--music-accent)' }} />
+        <div className="flex-shrink-0"><p className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>Brand Soundtrack</p><p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Previewing music with website</p></div>
+        <div className="h-6 w-px mx-2" style={{ background: 'var(--border-color)' }} />
+        <button onClick={() => setIsPlaying(!isPlaying)} className="w-8 h-8 rounded-full flex items-center justify-center text-white border-none cursor-pointer" style={{ background: 'var(--music-accent)' }}>{isPlaying ? <Pause size={14} /> : <Play size={14} />}</button>
+        <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: 'rgba(26,43,60,0.08)' }}><div className="h-full rounded-full transition-all" style={{ background: 'var(--music-accent)', width: isPlaying ? `${35 + Math.sin(Date.now() / 1000) * 20}%` : '35%' }} /></div>
+        <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>1:24</span>
+        <Volume2 size={14} style={{ color: 'var(--text-secondary)' }} />
       </div>
     </div>
   );

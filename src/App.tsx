@@ -1,11 +1,12 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
-import { EditorProvider, useEditor } from '@/hooks/useEditor';
+import { useState, useCallback, useEffect } from 'react';
+import { EditorProvider } from '@/hooks/useEditor';
 import { ToastProvider } from '@/hooks/useToast';
 import LivingCanvas from '@/components/LivingCanvas';
 import Navbar from '@/sections/Navbar';
 import Hero from '@/sections/Hero';
 import Features from '@/sections/Features';
 import HowItWorks from '@/sections/HowItWorks';
+import WhyMusic from '@/sections/WhyMusic';
 import Templates from '@/sections/Templates';
 import MusicShowcase from '@/sections/MusicShowcase';
 import Pricing from '@/sections/Pricing';
@@ -21,103 +22,51 @@ type View = 'landing' | 'editor' | 'preview';
 function AppContent() {
   const [view, setView] = useState<View>('landing');
   const [analysisPrompt, setAnalysisPrompt] = useState<string | null>(null);
-  const { dispatch } = useEditor();
-  const contentRef = useRef<HTMLDivElement>(null);
 
-  // Initialize with empty website (hidden)
-  useEffect(() => {
-    const emptySite = generateEmptyWebsite('My Website');
-    dispatch({ type: 'INIT_WEBSITE', website: emptySite });
-  }, [dispatch]);
-
-  const scrollToSection = useCallback((section: string) => {
+  const scrollTo = useCallback((section: string) => {
     const el = document.getElementById(section);
     if (el) el.scrollIntoView({ behavior: 'smooth' });
   }, []);
 
-  const handleGenerate = useCallback((prompt: string) => {
-    setAnalysisPrompt(prompt);
-  }, []);
-
-  const handleCloseAnalysis = useCallback(() => {
-    setAnalysisPrompt(null);
-  }, []);
-
+  const handleGenerate = useCallback((prompt: string) => setAnalysisPrompt(prompt), []);
+  const handleCloseAnalysis = useCallback(() => setAnalysisPrompt(null), []);
   const handleSelectTemplate = useCallback((templateId: string) => {
     const tpl = DEFAULT_TEMPLATES.find(t => t.id === templateId);
-    if (tpl) {
-      const site = generateWebsiteFromTemplate(tpl);
-      dispatch({ type: 'INIT_WEBSITE', website: site });
-      setAnalysisPrompt(null);
-      setView('editor');
-    }
-  }, [dispatch]);
-
-  const handleOpenEditor = useCallback(() => {
-    setAnalysisPrompt(null);
-    setView('editor');
+    if (tpl) { setAnalysisPrompt(null); setView('editor'); }
   }, []);
-
-  const handlePreview = useCallback(() => {
-    setView('preview');
-  }, []);
-
-  const handleCloseEditor = useCallback(() => {
-    setView('landing');
-  }, []);
-
-  const handleClosePreview = useCallback(() => {
-    setView('editor');
-  }, []);
-
-  const handleBackToEditor = useCallback(() => {
-    setView('editor');
-  }, []);
-
+  const handlePreview = useCallback(() => setView('preview'), []);
+  const handleCloseEditor = useCallback(() => setView('landing'), []);
+  const handleClosePreview = useCallback(() => setView('editor'), []);
+  const handleBackToEditor = useCallback(() => setView('editor'), []);
   const handleUseTemplate = useCallback((templateId: string) => {
     const tpl = DEFAULT_TEMPLATES.find(t => t.id === templateId);
-    if (tpl) {
-      const site = generateWebsiteFromTemplate(tpl);
-      dispatch({ type: 'INIT_WEBSITE', website: site });
-      setView('editor');
-    }
-  }, [dispatch]);
+    if (tpl) setView('editor');
+  }, []);
+  const handleStart = useCallback(() => setView('editor'), []);
 
   return (
     <>
       <LivingCanvas />
-
       {analysisPrompt && (
-        <AnalysisModal
-          prompt={analysisPrompt}
-          onClose={handleCloseAnalysis}
-          onOpenEditor={handleOpenEditor}
-          onSelectTemplate={handleSelectTemplate}
-        />
+        <AnalysisModal prompt={analysisPrompt} onClose={handleCloseAnalysis} onSelectTemplate={handleSelectTemplate} />
       )}
-
-      {view === 'editor' && (
-        <Editor onClose={handleCloseEditor} onPreview={handlePreview} />
-      )}
-
-      {view === 'preview' && (
-        <Preview onClose={handleClosePreview} onBackToEditor={handleBackToEditor} />
-      )}
-
+      {view === 'editor' && <Editor onClose={handleCloseEditor} onPreview={handlePreview} />}
+      {view === 'preview' && <Preview onClose={handleClosePreview} onBackToEditor={handleBackToEditor} />}
       {view === 'landing' && (
-        <div ref={contentRef} className="relative" style={{ zIndex: 1 }}>
-          <Navbar onNavigate={scrollToSection} />
+        <div className="relative" style={{ zIndex: 1 }}>
+          <Navbar onNavigate={scrollTo} />
           <Hero onGenerate={handleGenerate} />
           <div style={{ background: 'var(--canvas-base)' }}>
             <Features />
             <HowItWorks />
+            <WhyMusic />
             <Templates onUseTemplate={handleUseTemplate} />
           </div>
           <MusicShowcase />
           <div style={{ background: 'var(--canvas-base)' }}>
             <Pricing />
           </div>
-          <CTA onStart={() => { const site = generateEmptyWebsite('My Website'); dispatch({ type: 'INIT_WEBSITE', website: site }); setView('editor'); }} />
+          <CTA onStart={handleStart} />
           <Footer />
         </div>
       )}

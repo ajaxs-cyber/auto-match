@@ -1,187 +1,188 @@
 import { useEffect, useState } from 'react';
-import { Sparkles, Briefcase, Palette, Layout, Music, ArrowRight, Loader2 } from 'lucide-react';
-import { getRecommendedTracks } from '@/data/music';
-import type { MusicTrack } from '@/types';
+import { Sparkles, Loader2, Check, Music, Palette, Layout, ArrowRight } from 'lucide-react';
+import { generateMusicRecommendation, getTrackById, getGenreLabel, getGenreColor } from '@/data/music';
+import type { MusicRecommendation, BrandMoodProfile, MusicTrack } from '@/types';
 
 interface Props {
   prompt: string;
   onClose: () => void;
-  onOpenEditor: () => void;
   onSelectTemplate: (templateId: string) => void;
 }
 
-interface AnalysisResult {
-  industry: string;
-  style: string;
-  colors: string[];
-  structure: string[];
-  music: MusicTrack[];
-  templateId: string;
-}
+const STEPS = [
+  'Analyzing industry context...',
+  'Detecting brand visual language...',
+  'Mapping emotional mood profile...',
+  'Matching soundscape to brand DNA...',
+  'Generating complete brand experience...',
+];
 
-function simulateAnalysis(prompt: string): AnalysisResult {
-  const p = prompt.toLowerCase();
-  let industry = 'Business';
-  let style = 'Modern, professional';
-  let colors = ['#1A2B3C', '#5A6B7C', '#E85D4C', '#F5F3EE'];
-  let structure = ['Hero', 'About', 'Services', 'Contact'];
-  let templateId = 'tpl-tech-1';
-
-  if (p.includes('coffee') || p.includes('cafe') || p.includes('caffè') || p.includes('espresso')) {
-    industry = 'Coffee Shop & Café';
-    style = 'Warm, cozy, artisanal';
-    colors = ['#6B3A2A', '#D4A574', '#F5E6D3', '#3D2B1F'];
-    structure = ['Hero', 'About', 'Menu', 'Gallery', 'Contact'];
-    templateId = 'tpl-cafe-1';
-  } else if (p.includes('photo') || p.includes('portfolio') || p.includes('creative') || p.includes('design') || p.includes('art')) {
-    industry = 'Creative Studio';
-    style = 'Minimal, dramatic, artistic';
-    colors = ['#1A1A1A', '#F5F5F5', '#E85D4C', '#8B8B8B'];
-    structure = ['Hero', 'Portfolio', 'About', 'Services', 'Contact'];
-    templateId = 'tpl-photo-1';
-  } else if (p.includes('tech') || p.includes('startup') || p.includes('saas') || p.includes('app') || p.includes('software')) {
-    industry = 'Tech Startup';
-    style = 'Clean, futuristic, innovative';
-    colors = ['#0E243C', '#3B82F6', '#10B981', '#F8FAFC'];
-    structure = ['Hero', 'Features', 'Pricing', 'FAQ', 'Contact'];
-    templateId = 'tpl-tech-1';
-  } else if (p.includes('fitness') || p.includes('gym') || p.includes('health') || p.includes('yoga') || p.includes('wellness')) {
-    industry = 'Fitness & Wellness';
-    style = 'Energetic, vibrant, motivating';
-    colors = ['#1A2E1A', '#4ADE80', '#FEF08A', '#FFFFFF'];
-    structure = ['Hero', 'Classes', 'Trainers', 'Membership', 'Contact'];
-    templateId = 'tpl-fitness-1';
-  } else if (p.includes('restaurant') || p.includes('food') || p.includes('dining') || p.includes('bistro')) {
-    industry = 'Fine Dining';
-    style = 'Sophisticated, luxurious, elegant';
-    colors = ['#1C0F0A', '#C8A97E', '#0D0806', '#F5E6D3'];
-    structure = ['Hero', 'Menu', 'Reservations', 'About', 'Contact'];
-    templateId = 'tpl-restaurant-1';
-  }
-
-  const tracks = getRecommendedTracks(industry);
-  return { industry, style, colors, structure, music: tracks, templateId };
-}
-
-export default function AnalysisModal({ prompt, onClose, onOpenEditor: _onOpenEditor, onSelectTemplate }: Props) {
+export default function AnalysisModal({ prompt, onClose, onSelectTemplate }: Props) {
   const [phase, setPhase] = useState<'analyzing' | 'results'>('analyzing');
-  const [result, setResult] = useState<AnalysisResult | null>(null);
+  const [currentStep, setCurrentStep] = useState(0);
+  const [result, setResult] = useState<MusicRecommendation | null>(null);
+  const [selectedTrack, setSelectedTrack] = useState<MusicTrack | null>(null);
   const [visible, setVisible] = useState(false);
 
+  useEffect(() => { setVisible(true); }, []);
+
   useEffect(() => {
-    setVisible(true);
-    const timer = setTimeout(() => {
-      setResult(simulateAnalysis(prompt));
-      setPhase('results');
-    }, 2000);
-    return () => clearTimeout(timer);
+    let stepIdx = 0;
+    const interval = setInterval(() => {
+      stepIdx++;
+      if (stepIdx < STEPS.length) setCurrentStep(stepIdx);
+      else { clearInterval(interval); setResult(generateMusicRecommendation(detectIndustry(prompt))); setSelectedTrack(generateMusicRecommendation(detectIndustry(prompt)).primary); setPhase('results'); }
+    }, 500);
+    return () => clearInterval(interval);
   }, [prompt]);
 
-  const handleUseTemplate = () => {
-    if (result) {
-      onSelectTemplate(result.templateId);
-    }
+  const handleContinue = () => {
+    const tplMap: Record<string, string> = { 'Coffee & Food': 'tpl-cafe-1', 'Creative': 'tpl-photo-1', 'Tech': 'tpl-tech-1', 'Health': 'tpl-fitness-1', 'Services': 'tpl-cafe-1' };
+    onSelectTemplate(tplMap[detectIndustry(prompt)] || 'tpl-tech-1');
   };
 
   return (
     <div className={`fixed inset-0 z-[100] flex items-center justify-center p-4 transition-opacity duration-300 ${visible ? 'opacity-100' : 'opacity-0'}`} style={{ background: 'rgba(26,43,60,0.6)', backdropFilter: 'blur(8px)' }} onClick={onClose}>
-      <div className={`w-full max-w-[560px] max-h-[85vh] overflow-y-auto bg-white rounded-2xl shadow-xl transition-all duration-400 ${visible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`} style={{ transitionTimingFunction: 'cubic-bezier(0.16, 1, 0.3, 1)' }} onClick={e => e.stopPropagation()}>
+      <div className={`w-full max-w-[680px] max-h-[90vh] overflow-y-auto bg-white rounded-2xl shadow-xl transition-all duration-400 ${visible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`} style={{ transitionTimingFunction: 'cubic-bezier(0.16, 1, 0.3, 1)' }} onClick={e => e.stopPropagation()}>
         {phase === 'analyzing' ? (
           <div className="p-12 text-center">
             <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6" style={{ background: 'var(--accent-light)' }}>
               <Loader2 size={32} style={{ color: 'var(--accent)' }} className="animate-spin" />
             </div>
-            <h2 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>Analyzing your request...</h2>
-            <p className="mt-2 text-sm" style={{ color: 'var(--text-secondary)' }}>Our AI is studying your description to build the perfect website</p>
-            <div className="mt-8 max-w-xs mx-auto h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--accent-light)' }}>
-              <div className="h-full rounded-full animate-pulse" style={{ background: 'linear-gradient(90deg, var(--accent), var(--music-accent))', width: '70%' }} />
+            <h2 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>Analyzing your brand experience...</h2>
+            <p className="mt-2 text-sm" style={{ color: 'var(--text-secondary)' }}>Our AI is studying both visual and audio dimensions of your brand</p>
+            <div className="mt-8 space-y-3 max-w-sm mx-auto">
+              {STEPS.map((s, i) => (
+                <div key={s} className="flex items-center gap-3">
+                  <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-300 ${i <= currentStep ? 'bg-[var(--accent)]' : 'bg-gray-200'}`}>
+                    {i < currentStep ? <Check size={10} className="text-white" /> : i === currentStep ? <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" /> : null}
+                  </div>
+                  <span className={`text-xs transition-colors duration-300 ${i <= currentStep ? 'text-[var(--text-primary)] font-medium' : 'text-[var(--text-tertiary)]'}`}>{s}</span>
+                </div>
+              ))}
             </div>
-            <p className="mt-3 text-xs" style={{ color: 'var(--text-tertiary)' }}>Identifying industry, style, colors, and structure...</p>
           </div>
         ) : result ? (
-          <>
+          <div>
+            {/* Header */}
             <div className="p-8 pb-4">
               <div className="text-center">
-                <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: 'var(--accent-light)' }}>
-                  <Sparkles size={28} style={{ color: 'var(--accent)' }} />
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full mb-4" style={{ background: 'var(--accent-light)' }}>
+                  <Sparkles size={14} style={{ color: 'var(--accent)' }} />
+                  <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--accent)' }}>Brand Experience Analysis</span>
                 </div>
-                <h2 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>Analysis Complete</h2>
-                <p className="mt-2 text-sm" style={{ color: 'var(--text-secondary)' }}>Our AI analyzed your description and generated a personalized plan.</p>
+                <h2 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>Your brand experience is ready</h2>
+                <p className="mt-2 text-sm" style={{ color: 'var(--text-secondary)' }}>AI analyzed your description and designed a complete visual + audio identity.</p>
               </div>
 
-              <div className="mt-6 space-y-3">
-                {/* Industry */}
-                <div className="card-surface p-4 flex items-start gap-3">
-                  <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'var(--accent-light)' }}>
-                    <Briefcase size={16} style={{ color: 'var(--accent)' }} />
-                  </div>
-                  <div>
-                    <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>Industry</span>
-                    <p className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>{result.industry}</p>
-                  </div>
+              {/* Brand Mood Profile */}
+              <div className="mt-6 p-5 rounded-2xl" style={{ background: '#FAFAF8', border: '1px solid var(--border-color)' }}>
+                <div className="flex items-center gap-2 mb-4">
+                  <Palette size={16} style={{ color: 'var(--accent)' }} />
+                  <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--text-tertiary)' }}>Brand Mood Profile</span>
+                </div>
+                <MoodRadar profile={result.moodProfile} />
+              </div>
+
+              {/* Music Recommendation */}
+              <div className="mt-4 p-5 rounded-2xl" style={{ background: 'rgba(123,97,255,0.04)', border: '1px solid rgba(123,97,255,0.15)' }}>
+                <div className="flex items-center gap-2 mb-4">
+                  <Music size={16} style={{ color: 'var(--music-accent)' }} />
+                  <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--text-tertiary)' }}>AI Music Recommendation</span>
                 </div>
 
-                {/* Style */}
-                <div className="card-surface p-4 flex items-start gap-3">
-                  <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'var(--accent-light)' }}>
-                    <Palette size={16} style={{ color: 'var(--accent)' }} />
-                  </div>
-                  <div className="flex-1">
-                    <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>Visual Style</span>
-                    <p className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>{result.style}</p>
-                    <div className="flex gap-2 mt-2">
-                      {result.colors.map(color => (
-                        <div key={color} className="w-8 h-8 rounded-full border-2" style={{ background: color, borderColor: 'rgba(0,0,0,0.1)' }} title={color} />
-                      ))}
+                {/* Primary recommendation */}
+                {selectedTrack && (
+                  <div className="flex items-start gap-4 mb-4">
+                    <img src={selectedTrack.cover} alt={selectedTrack.title} className="w-16 h-16 rounded-xl object-cover flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-base font-bold" style={{ color: 'var(--text-primary)' }}>{selectedTrack.title}</h3>
+                        <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ background: getGenreColor(selectedTrack.genre) + '22', color: getGenreColor(selectedTrack.genre) }}>{getGenreLabel(selectedTrack.genre)}</span>
+                      </div>
+                      <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>{selectedTrack.artist} &middot; {selectedTrack.duration}</p>
+                      <div className="flex flex-wrap gap-1 mt-1.5">
+                        {selectedTrack.moods.map(m => <span key={m} className="px-1.5 py-0.5 rounded text-xs" style={{ background: 'var(--music-accent-light)', color: 'var(--music-accent)' }}>{m}</span>)}
+                      </div>
                     </div>
                   </div>
+                )}
+
+                {/* AI Reasoning */}
+                <div className="p-3 rounded-xl mb-4" style={{ background: 'rgba(123,97,255,0.08)' }}>
+                  <p className="text-xs font-medium mb-1" style={{ color: 'var(--music-accent)' }}>Why AI recommends this:</p>
+                  <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{result.reasoning}</p>
                 </div>
 
-                {/* Structure */}
-                <div className="card-surface p-4 flex items-start gap-3">
-                  <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'var(--accent-light)' }}>
-                    <Layout size={16} style={{ color: 'var(--accent)' }} />
-                  </div>
-                  <div className="flex-1">
-                    <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>Website Structure</span>
-                    <div className="flex flex-wrap items-center gap-1.5 mt-2">
-                      {result.structure.map((item, i) => (
-                        <span key={item} className="flex items-center gap-1.5">
-                          <span className="px-2.5 py-1 rounded-lg text-xs font-medium" style={{ background: 'var(--accent-light)', color: 'var(--accent)' }}>{item}</span>
-                          {i < result.structure.length - 1 && <ArrowRight size={10} style={{ color: 'var(--text-tertiary)' }} />}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
+                {/* Alternatives */}
+                <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-tertiary)' }}>Alternative options</p>
+                <div className="flex gap-2">
+                  {result.alternatives.map(alt => (
+                    <button key={alt.id} onClick={() => setSelectedTrack(alt)} className={`flex-1 p-2.5 rounded-xl text-left cursor-pointer transition-all border ${selectedTrack?.id === alt.id ? 'border-2' : 'border'}`}
+                      style={{ background: selectedTrack?.id === alt.id ? 'var(--music-accent-light)' : 'white', borderColor: selectedTrack?.id === alt.id ? 'var(--music-accent)' : 'var(--border-color)' }}>
+                      <p className="text-xs font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{alt.title}</p>
+                      <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>{getGenreLabel(alt.genre)}</p>
+                    </button>
+                  ))}
                 </div>
+              </div>
 
-                {/* Music */}
-                <div className="card-surface p-4 flex items-start gap-3">
-                  <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'var(--music-accent-light)' }}>
-                    <Music size={16} style={{ color: 'var(--music-accent)' }} />
-                  </div>
-                  <div className="flex-1">
-                    <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>Recommended Music</span>
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {result.music.map(track => (
-                        <span key={track.id} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium" style={{ background: 'var(--music-accent-light)', color: 'var(--music-accent)' }}>
-                          <Music size={10} /> {track.title}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
+              {/* Visual summary */}
+              <div className="mt-4 flex flex-wrap gap-3">
+                <div className="flex-1 min-w-[140px] p-3 rounded-xl text-center" style={{ background: 'var(--accent-light)' }}>
+                  <Layout size={16} className="mx-auto mb-1" style={{ color: 'var(--accent)' }} />
+                  <p className="text-xs font-semibold" style={{ color: 'var(--accent)' }}>{detectIndustry(prompt)}</p>
+                  <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Industry</p>
+                </div>
+                <div className="flex-1 min-w-[140px] p-3 rounded-xl text-center" style={{ background: 'var(--music-accent-light)' }}>
+                  <Music size={16} className="mx-auto mb-1" style={{ color: 'var(--music-accent)' }} />
+                  <p className="text-xs font-semibold" style={{ color: 'var(--music-accent)' }}>{selectedTrack ? getGenreLabel(selectedTrack.genre) : '—'}</p>
+                  <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Soundscape</p>
                 </div>
               </div>
             </div>
 
             {/* Actions */}
             <div className="p-6 pt-2 flex gap-3">
-              <button onClick={onClose} className="btn-ghost flex-1 text-xs">Try Again</button>
-              <button onClick={handleUseTemplate} className="btn-primary flex-1 text-xs">Use This Template</button>
+              <button onClick={onClose} className="btn-ghost flex-1 text-xs">Try Different Input</button>
+              <button onClick={handleContinue} className="btn-primary flex-1 text-xs flex items-center justify-center gap-2">Continue to Editor <ArrowRight size={14} /></button>
             </div>
-          </>
+          </div>
         ) : null}
       </div>
     </div>
   );
+}
+
+function MoodRadar({ profile }: { profile: BrandMoodProfile }) {
+  const dims = [
+    { key: 'warmth', label: 'Warmth', val: profile.warmth },
+    { key: 'energy', label: 'Energy', val: profile.energy },
+    { key: 'professionalism', label: 'Professional', val: profile.professionalism },
+    { key: 'creativity', label: 'Creative', val: profile.creativity },
+    { key: 'sophistication', label: 'Sophisticated', val: profile.sophistication },
+  ];
+
+  return (
+    <div className="space-y-3">
+      {dims.map(d => (
+        <div key={d.key} className="flex items-center gap-3">
+          <span className="text-xs w-24 text-right flex-shrink-0" style={{ color: 'var(--text-secondary)' }}>{d.label}</span>
+          <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: 'rgba(26,43,60,0.06)' }}>
+            <div className="h-full rounded-full transition-all duration-1000" style={{ width: `${d.val}%`, background: d.val > 70 ? 'var(--accent)' : d.val > 50 ? 'var(--music-accent)' : 'var(--text-tertiary)' }} />
+          </div>
+          <span className="text-xs w-8 flex-shrink-0 font-medium" style={{ color: 'var(--text-primary)' }}>{d.val}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function detectIndustry(prompt: string): string {
+  const p = prompt.toLowerCase();
+  if (p.includes('coffee') || p.includes('cafe') || p.includes('restaurant') || p.includes('food') || p.includes('bistro')) return 'Coffee & Food';
+  if (p.includes('photo') || p.includes('portfolio') || p.includes('creative') || p.includes('design') || p.includes('art') || p.includes('studio')) return 'Creative';
+  if (p.includes('tech') || p.includes('startup') || p.includes('saas') || p.includes('app') || p.includes('software')) return 'Tech';
+  if (p.includes('fitness') || p.includes('gym') || p.includes('health') || p.includes('yoga') || p.includes('wellness')) return 'Health';
+  return 'Services';
 }

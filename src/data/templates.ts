@@ -11,8 +11,10 @@ export const DEFAULT_TEMPLATES: Template[] = [
     category: 'Coffee & Food',
     tags: ['Food', 'Cozy', 'Warm'],
     isFavorite: false,
+    recommendedGenre: 'Jazz',
+    musicReason: 'Warm acoustic tones complement the artisanal coffee atmosphere',
     createdAt: now,
-    colors: { primary: '#6B3A2A', accent: '#D4A574', background: '#F5E6D3', text: '#3D2B1F' },
+    colors: { primary: '#6B3A2A', accent: '#D4A574', background: '#F5E6D3', surface: '#FFFFFF', text: '#3D2B1F', textSecondary: '#6B5344', textMuted: '#A08B7D' },
     fonts: { heading: 'Playfair Display', body: 'Inter' },
     pages: [
       {
@@ -68,8 +70,10 @@ export const DEFAULT_TEMPLATES: Template[] = [
     category: 'Creative',
     tags: ['Creative', 'Portfolio', 'Dark'],
     isFavorite: false,
+    recommendedGenre: 'Ambient',
+    musicReason: 'Minimal ambient textures complement dramatic visual storytelling',
     createdAt: now,
-    colors: { primary: '#1A1A1A', accent: '#E85D4C', background: '#0A0A0A', text: '#F5F5F5' },
+    colors: { primary: '#1A1A1A', accent: '#E85D4C', background: '#0A0A0A', surface: '#1A1A1A', text: '#F5F5F5', textSecondary: '#AAAAAA', textMuted: '#666666' },
     fonts: { heading: 'Playfair Display', body: 'Inter' },
     pages: [
       {
@@ -120,8 +124,10 @@ export const DEFAULT_TEMPLATES: Template[] = [
     category: 'Tech',
     tags: ['Tech', 'SaaS', 'Modern'],
     isFavorite: false,
+    recommendedGenre: 'Electronic',
+    musicReason: 'Progressive electronic energy reinforces innovation and forward-thinking',
     createdAt: now,
-    colors: { primary: '#0E243C', accent: '#3B82F6', background: '#F8FAFC', text: '#1E293B' },
+    colors: { primary: '#0E243C', accent: '#3B82F6', background: '#F8FAFC', surface: '#FFFFFF', text: '#1E293B', textSecondary: '#475569', textMuted: '#94A3B8' },
     fonts: { heading: 'Inter', body: 'Inter' },
     pages: [
       {
@@ -172,8 +178,10 @@ export const DEFAULT_TEMPLATES: Template[] = [
     category: 'Health',
     tags: ['Health', 'Energy', 'Fitness'],
     isFavorite: false,
+    recommendedGenre: 'New Age',
+    musicReason: 'Serene new-age tones evoke balance and motivation for wellness brands',
     createdAt: now,
-    colors: { primary: '#1A2E1A', accent: '#4ADE80', background: '#F0FDF4', text: '#14532D' },
+    colors: { primary: '#1A2E1A', accent: '#4ADE80', background: '#F0FDF4', surface: '#FFFFFF', text: '#14532D', textSecondary: '#2D6A4F', textMuted: '#74C69D' },
     fonts: { heading: 'Inter', body: 'Inter' },
     pages: [
       {
@@ -197,8 +205,10 @@ export const DEFAULT_TEMPLATES: Template[] = [
     category: 'Creative',
     tags: ['Creative', 'Studio', 'Elegant'],
     isFavorite: false,
+    recommendedGenre: 'Acoustic',
+    musicReason: 'Organic acoustic warmth mirrors the refined elegance of design studios',
     createdAt: now,
-    colors: { primary: '#8B6F5E', accent: '#C9A87C', background: '#FDF8F3', text: '#4A3728' },
+    colors: { primary: '#8B6F5E', accent: '#C9A87C', background: '#FDF8F3', surface: '#FFFFFF', text: '#4A3728', textSecondary: '#7A6555', textMuted: '#B5A396' },
     fonts: { heading: 'Playfair Display', body: 'Inter' },
     pages: [
       {
@@ -222,8 +232,10 @@ export const DEFAULT_TEMPLATES: Template[] = [
     category: 'Coffee & Food',
     tags: ['Food', 'Fine Dining', 'Luxury'],
     isFavorite: false,
+    recommendedGenre: 'Jazz',
+    musicReason: 'Sophisticated jazz enhances the luxurious fine dining atmosphere',
     createdAt: now,
-    colors: { primary: '#1C0F0A', accent: '#C8A97E', background: '#0D0806', text: '#F5E6D3' },
+    colors: { primary: '#1C0F0A', accent: '#C8A97E', background: '#0D0806', surface: '#1C0F0A', text: '#F5E6D3', textSecondary: '#C4A882', textMuted: '#7A6B5A' },
     fonts: { heading: 'Playfair Display', body: 'Inter' },
     pages: [
       {
