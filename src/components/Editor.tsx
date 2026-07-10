@@ -23,6 +23,32 @@ export default function Editor({ onClose, onPreview }: EditorProps) {
   const { state, dispatch, currentPage, selectedModule, canUndo, canRedo } = useEditor();
   const { lang, __ } = useLang();
   const toast = useToast();
+
+  const MODULE_TYPES = useMemo(() => [
+    { type: 'hero', name: __('mod.hero'), icon: <Layout size={16} />, desc: __('mod.hero.desc') },
+    { type: 'navbar', name: __('mod.navbar'), icon: <CircleDot size={16} />, desc: __('mod.navbar.desc') },
+    { type: 'text', name: __('mod.text'), icon: <Type size={16} />, desc: __('mod.text.desc') },
+    { type: 'features', name: __('mod.features'), icon: <Star size={16} />, desc: __('mod.features.desc') },
+    { type: 'gallery', name: __('mod.gallery'), icon: <Image size={16} />, desc: __('mod.gallery.desc') },
+    { type: 'services', name: __('mod.services'), icon: <Briefcase size={16} />, desc: __('mod.services.desc') },
+    { type: 'testimonials', name: __('mod.testimonials'), icon: <Users size={16} />, desc: __('mod.testimonials.desc') },
+    { type: 'team', name: __('mod.team'), icon: <Users size={16} />, desc: __('mod.team.desc') },
+    { type: 'pricing', name: __('mod.pricing'), icon: <CreditCard size={16} />, desc: __('mod.pricing.desc') },
+    { type: 'faq', name: __('mod.faq'), icon: <HelpCircle size={16} />, desc: __('mod.faq.desc') },
+    { type: 'contact', name: __('mod.contact'), icon: <Phone size={16} />, desc: __('mod.contact.desc') },
+    { type: 'stats', name: __('mod.stats'), icon: <BarChart3 size={16} />, desc: __('mod.stats.desc') },
+    { type: 'cta', name: __('mod.cta'), icon: <Sparkles size={16} />, desc: __('mod.cta.desc') },
+    { type: 'footer', name: __('mod.footer'), icon: <Layout size={16} />, desc: __('mod.footer.desc') },
+    { type: 'divider', name: __('mod.divider'), icon: <SeparatorHorizontal size={16} />, desc: __('mod.divider.desc') },
+    { type: 'music', name: __('mod.music'), icon: <Music size={16} />, desc: __('mod.music.desc') },
+  ], [__]);
+
+  const PANEL_TABS = useMemo(() => [
+    { id: 'components' as EditorPanel, label: __('editor.components'), icon: <Layout size={14} /> },
+    { id: 'pages' as EditorPanel, label: __('editor.pages'), icon: <FilePlus size={14} /> },
+    { id: 'music' as EditorPanel, label: __('editor.music'), icon: <Music size={14} /> },
+    { id: 'styles' as EditorPanel, label: __('editor.styles'), icon: <Settings size={14} /> },
+  ], [__]);
   const [dragModId, setDragModId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
   const [showPageMenu, setShowPageMenu] = useState<string | null>(null);
