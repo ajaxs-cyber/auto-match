@@ -76,7 +76,6 @@ export default function MusicPage({ onBack, onEnterEditor }: MusicPageProps) {
 
   const cases = CASE_STUDIES.slice(0, 3);
   const currentCase = cases[activeCase];
-  const analysis = currentCase ? generateBrandMoodAnalysis(currentCase.industry) : null;
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--canvas-base)' }}>
