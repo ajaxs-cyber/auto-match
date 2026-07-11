@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { Sparkles, Briefcase, Palette, Layout, Music, X, Activity, Zap } from 'lucide-react';
 import { recommend, type LibraryMatch } from '@/lib/music-recommender';
 import { recommendMusic, checkApiStatus } from '@/lib/api-service';
+import { useAuth } from '@/hooks/useAuth';
+import Paywall from '@/components/Paywall';
 
 interface AnalysisResult {
   industry: string;
@@ -133,19 +135,25 @@ const tplMap: Record<string, string> = {
   'Non-Profit': 'tpl-cafe-1',
 };
 
-export default function AnalysisModal({ prompt, onClose, onSelectTemplate }: AnalysisModalProps) {
+export default function AnalysisModal({ prompt, onClose, onSelectTemplate, onSignIn }: AnalysisModalProps & { onSignIn?: () => void }) {
+  const { canUseAI } = useAuth();
   const [visible, setVisible] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [aiProvider, setAiProvider] = useState('local');
+  const [showPaywall, setShowPaywall] = useState(false);
 
   useEffect(() => {
+    if (!canUseAI) {
+      setShowPaywall(true);
+      requestAnimationFrame(() => { setVisible(true); });
+      return;
+    }
+
     const run = async () => {
-      // Check if AI backend is available
       const status = await checkApiStatus();
       setAiProvider(status.hasAI ? status.provider : 'local');
 
       if (status.hasAI) {
-        // Use real AI for music matching
         const musicRec = await recommendMusic(prompt);
         const topTracks = musicRec.libraryMatches.slice(0, 4);
         const musicGenres = [...new Set(topTracks.map(t => t.genre))];
@@ -159,7 +167,6 @@ export default function AnalysisModal({ prompt, onClose, onSelectTemplate }: Ana
           bpm: musicRec.musicParams.bpm,
         });
       } else {
-        // Fallback to local keyword matching
         await new Promise(r => setTimeout(r, 800));
         setResult(analyzePrompt(prompt));
       }
@@ -167,7 +174,7 @@ export default function AnalysisModal({ prompt, onClose, onSelectTemplate }: Ana
     run();
 
     requestAnimationFrame(() => { setVisible(true); });
-  }, [prompt]);
+  }, [prompt, canUseAI]);
 
   const handleClose = () => { setVisible(false); setTimeout(onClose, 250); };
 
@@ -183,7 +190,15 @@ export default function AnalysisModal({ prompt, onClose, onSelectTemplate }: Ana
       >
         <button onClick={handleClose} className="absolute top-4 right-4 p-2 rounded-full bg-transparent border-none cursor-pointer hover:bg-gray-100" style={{ color: 'var(--text-tertiary)' }}><X size={20} /></button>
 
-        {!result ? (
+        {showPaywall ? (
+          <div className="py-4">
+            <Paywall
+              feature="music"
+              onClose={() => { setShowPaywall(false); handleClose(); }}
+              onSignIn={() => { setShowPaywall(false); onSignIn?.(); }}
+            />
+          </div>
+        ) : !result ? (
           <div className="text-center py-12">
             <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-6" style={{ background: 'var(--accent-light)' }}>
               <Sparkles size={28} style={{ color: 'var(--accent)' }} className="animate-spin" />

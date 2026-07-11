@@ -12,6 +12,8 @@ import {
 } from '@/data/music';
 import { recommend, type MusicRecommendation } from '@/lib/music-recommender';
 import { recommendMusic, checkApiStatus } from '@/lib/api-service';
+import { useAuth } from '@/hooks/useAuth';
+import Paywall from '@/components/Paywall';
 
 interface MusicPageProps { onBack: () => void; onEnterEditor?: () => void; }
 
@@ -22,9 +24,11 @@ export default function MusicPage({ onBack, onEnterEditor }: MusicPageProps) {
   const [activeTrack, setActiveTrack] = useState(0);
   const [activeStyle, setActiveStyle] = useState<string>('coffee');
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  const { canUseAI } = useAuth();
   const [analyzing, setAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<MusicRecommendation | null>(null);
   const [aiProvider, setAiProvider] = useState('local');
+  const [showPaywall, setShowPaywall] = useState(false);
   const [activeCase, setActiveCase] = useState(0);
   const sectionRef = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
@@ -40,16 +44,15 @@ export default function MusicPage({ onBack, onEnterEditor }: MusicPageProps) {
   const handleAnalyze = async () => {
     const text = prompt.trim();
     if (!text) return;
+    if (!canUseAI) { setShowPaywall(true); return; }
     setAnalyzing(true);
     setAnalysisResult(null);
     try {
-      // Check API status and try real AI first
       const status = await checkApiStatus();
       setAiProvider(status.hasAI ? status.provider : 'local');
       const result = await recommendMusic(text);
       setAnalysisResult(result);
     } catch {
-      // Fallback to local Thayer model
       setAnalysisResult(recommend(text));
       setAiProvider('local');
     } finally {
@@ -497,7 +500,7 @@ export default function MusicPage({ onBack, onEnterEditor }: MusicPageProps) {
               {__('music.ctaDesc')}
             </p>
             <div className="flex flex-wrap justify-center gap-3">
-              <button onClick={() => navigate('/')} className="btn-primary flex items-center gap-2">
+              <button onClick={() => onBack()} className="btn-primary flex items-center gap-2">
                 <Zap size={16} /> {__('music.getStarted')}
               </button>
               <button onClick={() => onBack()} className="btn-ghost">
@@ -520,6 +523,8 @@ export default function MusicPage({ onBack, onEnterEditor }: MusicPageProps) {
           </p>
         </div>
       </footer>
+
+      {showPaywall && <Paywall feature="music" onClose={() => setShowPaywall(false)} onSignIn={() => setShowPaywall(false)} />}
     </div>
   );
 }

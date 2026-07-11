@@ -16,6 +16,7 @@ interface AuthContextValue {
   user: User | null;
   isLoggedIn: boolean;
   canExport: boolean;
+  canUseAI: boolean;
   login: (email: string, password: string) => Promise<boolean>;
   register: (name: string, email: string, password: string) => Promise<boolean>;
   logout: () => void;
@@ -26,6 +27,7 @@ const AuthContext = createContext<AuthContextValue>({
   user: null,
   isLoggedIn: false,
   canExport: false,
+  canUseAI: false,
   login: async () => false,
   register: async () => false,
   logout: () => {},
@@ -40,6 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const isLoggedIn = user !== null;
   const canExport = user !== null && user.plan !== 'free';
+  const canUseAI = user !== null && user.plan !== 'free';
 
   const login = useCallback(async (email: string, password: string): Promise<boolean> => {
     // Simulate API call
@@ -100,7 +103,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user]);
 
   return (
-    <AuthContext.Provider value={{ user, isLoggedIn, canExport, login, register, logout, upgradePlan }}>
+    <AuthContext.Provider value={{ user, isLoggedIn, canExport, canUseAI, login, register, logout, upgradePlan }}>
       {children}
     </AuthContext.Provider>
   );

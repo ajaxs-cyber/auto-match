@@ -73,7 +73,7 @@ function AppContent() {
     <>
       <LivingCanvas />
       {analysisPrompt && (
-        <AnalysisModal prompt={analysisPrompt} onClose={handleCloseAnalysis} onSelectTemplate={handleSelectTemplate} />
+        <AnalysisModal prompt={analysisPrompt} onClose={handleCloseAnalysis} onSelectTemplate={handleSelectTemplate} onSignIn={() => setView('auth')} />
       )}
       {view === 'editor' && <Editor onClose={handleCloseEditor} onPreview={handlePreview} />}
       {view === 'preview' && <Preview onClose={handleClosePreview} onBackToEditor={handleBackToEditor} />}

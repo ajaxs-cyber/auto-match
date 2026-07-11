@@ -1,12 +1,10 @@
-import { useNavigate } from 'react-router';
 import { useAuth } from '@/hooks/useAuth';
 import { useLang } from '@/i18n/LanguageContext';
 import { Lock, Sparkles, ArrowRight, Crown, Check, Star } from 'lucide-react';
 
-interface Props { onClose: () => void; feature?: 'export' | 'music' | 'custom-domain'; }
+interface Props { onClose: () => void; feature?: 'export' | 'music' | 'custom-domain'; onSignIn?: () => void; }
 
-export default function Paywall({ onClose, feature = 'export' }: Props) {
-  const navigate = useNavigate();
+export default function Paywall({ onClose, feature = 'export', onSignIn }: Props) {
   const { user } = useAuth();
   const { __ } = useLang();
 
@@ -63,7 +61,7 @@ export default function Paywall({ onClose, feature = 'export' }: Props) {
                 {__('paywall.pleaseSignIn')}
               </p>
               <button
-                onClick={() => navigate('/auth')}
+                onClick={() => onSignIn?.()}
                 className="btn-primary text-xs py-2 px-4 inline-flex items-center gap-1.5"
               >
                 {__('paywall.signIn')} <ArrowRight size={12} />
