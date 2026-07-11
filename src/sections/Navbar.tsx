@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
-import { Menu, X, Globe, Music } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Menu, X, Globe, Music, User, LogOut, Crown } from 'lucide-react';
 import { useLang } from '@/i18n/LanguageContext';
+import { useAuth } from '@/hooks/useAuth';
 
 interface NavbarProps {
   onNavigate: (section: string) => void;
@@ -11,13 +12,24 @@ interface NavbarProps {
 export default function Navbar({ onNavigate, onSignIn, onMusic }: NavbarProps) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
   const { lang, toggleLang, __ } = useLang();
+  const { user, isLoggedIn, logout } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 100);
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setShowUserMenu(false);
+    };
+    if (showUserMenu) document.addEventListener('click', handleClick);
+    return () => document.removeEventListener('click', handleClick);
+  }, [showUserMenu]);
 
   const navLinks = [
     { label: __('nav.templates'), section: 'templates' },
@@ -58,7 +70,35 @@ export default function Navbar({ onNavigate, onSignIn, onMusic }: NavbarProps) {
             <Globe size={16} />
             <span className="text-xs font-medium">{lang === 'en' ? '中文' : 'EN'}</span>
           </button>
-          <button className={`text-sm font-medium bg-transparent border-none cursor-pointer transition-colors duration-200 ${linkClass}`} onClick={onSignIn}>{__('nav.signIn')}</button>
+          {isLoggedIn && user ? (
+            <div className="relative" ref={menuRef}>
+              <button onClick={() => setShowUserMenu(!showUserMenu)} className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium cursor-pointer border-none transition-all"
+                style={{ background: scrolled ? 'var(--music-accent-light)' : 'rgba(255,255,255,0.1)', color: scrolled ? 'var(--text-primary)' : '#f1f5f9' }}>
+                <div className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px] font-bold" style={{ background: 'var(--music-accent)' }}>
+                  {user.name.charAt(0).toUpperCase()}
+                </div>
+                <span className="max-w-[80px] truncate">{user.name}</span>
+              </button>
+              {showUserMenu && (
+                <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg border overflow-hidden z-50" style={{ borderColor: 'var(--border-color)' }}>
+                  <div className="px-4 py-3 border-b" style={{ borderColor: 'var(--border-color)' }}>
+                    <p className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>{user.name}</p>
+                    <p className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>{user.email}</p>
+                    <span className="inline-flex items-center gap-1 mt-1.5 px-2 py-0.5 rounded-full text-[9px] font-bold"
+                      style={{ background: user.plan === 'pro' ? '#d1fae5' : '#fef3c7', color: user.plan === 'pro' ? '#16a34a' : '#b45309' }}>
+                      {user.plan === 'pro' && <Crown size={9} />}
+                      {user.plan.toUpperCase()}
+                    </span>
+                  </div>
+                  <button onClick={() => { logout(); setShowUserMenu(false); }} className="w-full flex items-center gap-2 px-4 py-2.5 text-xs cursor-pointer bg-transparent border-none hover:bg-gray-50" style={{ color: 'var(--text-secondary)' }}>
+                    <LogOut size={12} /> {lang === 'zh' ? '退出登录' : 'Sign Out'}
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <button className={`text-sm font-medium bg-transparent border-none cursor-pointer transition-colors duration-200 ${linkClass}`} onClick={onSignIn}>{__('nav.signIn')}</button>
+          )}
           <button onClick={() => handleNav('hero')} className="btn-primary py-2.5 px-6">{__('nav.getStarted')}</button>
         </div>
 
@@ -77,8 +117,21 @@ export default function Navbar({ onNavigate, onSignIn, onMusic }: NavbarProps) {
               <Globe size={18} /> {lang === 'en' ? '切换到中文' : 'Switch to English'}
             </button>
             <div className="flex flex-col items-center gap-4 mt-8">
-              <button onClick={onSignIn} className="text-lg text-[var(--text-secondary)] bg-transparent border-none cursor-pointer">{__('nav.signIn')}</button>
-              <button onClick={() => handleNav('hero')} className="btn-primary">{__('nav.getStarted')}</button>
+              {isLoggedIn && user ? (
+                <>
+                  <div className="w-12 h-12 rounded-full flex items-center justify-center text-white text-lg font-bold" style={{ background: 'var(--music-accent)' }}>{user.name.charAt(0).toUpperCase()}</div>
+                  <span className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>{user.name}</span>
+                  <span className="px-2.5 py-1 rounded-full text-xs font-bold" style={{ background: user.plan === 'pro' ? '#d1fae5' : '#fef3c7', color: user.plan === 'pro' ? '#16a34a' : '#b45309' }}>{user.plan.toUpperCase()}</span>
+                  <button onClick={() => { logout(); setMobileOpen(false); }} className="flex items-center gap-2 text-base cursor-pointer bg-transparent border-none" style={{ color: 'var(--accent)' }}>
+                    <LogOut size={16} /> {lang === 'zh' ? '退出登录' : 'Sign Out'}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button onClick={onSignIn} className="text-lg text-[var(--text-secondary)] bg-transparent border-none cursor-pointer">{__('nav.signIn')}</button>
+                  <button onClick={() => handleNav('hero')} className="btn-primary">{__('nav.getStarted')}</button>
+                </>
+              )}
             </div>
           </div>
         </div>
