@@ -34,9 +34,11 @@ app.use('/api/music', require('./routes/music'));
 app.use('/api/config', require('./routes/config'));
 
 app.get('/api/status', (req, res) => {
+  const hasAI = !!(process.env.DEEPSEEK_API_KEY || (process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== 'sk-your-key-here'));
   res.json({
     status: 'running',
-    hasOpenAI: !!(process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== 'sk-your-key-here'),
+    hasOpenAI: hasAI,  // 兼容前端字段名
+    aiProvider: process.env.DEEPSEEK_API_KEY ? 'DeepSeek' : (process.env.OPENAI_API_KEY ? 'OpenAI' : 'local'),
     timestamp: new Date().toISOString()
   });
 });
@@ -47,5 +49,6 @@ app.use((err, req, res, next) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`AutoMatch 已启动 :${PORT} | dist/ 已就绪 | AI: ${process.env.OPENAI_API_KEY ? '✓' : '本地算法'}`);
+  const hasAI = !!(process.env.DEEPSEEK_API_KEY || process.env.OPENAI_API_KEY);
+  console.log(`AutoMatch 已启动 :${PORT} | dist/ 已就绪 | AI: ${hasAI ? '✓ DeepSeek' : '本地算法'}`);
 });

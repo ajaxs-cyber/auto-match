@@ -136,20 +136,19 @@ const tplMap: Record<string, string> = {
 export default function AnalysisModal({ prompt, onClose, onSelectTemplate }: AnalysisModalProps) {
   const [visible, setVisible] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
-  const [isAI, setIsAI] = useState(false);
+  const [aiProvider, setAiProvider] = useState('local');
 
   useEffect(() => {
     const run = async () => {
-      // Check if OpenAI backend is available
+      // Check if AI backend is available
       const status = await checkApiStatus();
-      setIsAI(status.hasOpenAI);
+      setAiProvider(status.hasAI ? status.provider : 'local');
 
-      if (status.hasOpenAI) {
-        // Use real AI (OpenAI GPT-4o for industry + music matching)
+      if (status.hasAI) {
+        // Use real AI for music matching
         const musicRec = await recommendMusic(prompt);
         const topTracks = musicRec.libraryMatches.slice(0, 4);
         const musicGenres = [...new Set(topTracks.map(t => t.genre))];
-        // Still use local for industry (API returns structure too but mapping is separate)
         const local = analyzePrompt(prompt);
         setResult({
           ...local,
@@ -204,7 +203,7 @@ export default function AnalysisModal({ prompt, onClose, onSelectTemplate }: Ana
               <h2 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>Analysis Complete</h2>
               <div className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-[10px] font-medium"
                 style={{ background: isAI ? '#d1fae5' : '#fef3c7', color: isAI ? '#16a34a' : '#b45309' }}>
-                <Zap size={10} /> {isAI ? 'Powered by GPT-4o' : 'Local Smart Engine'}
+                <Zap size={10} /> {aiProvider !== 'local' ? `Powered by ${aiProvider}` : 'Local Smart Engine'}
               </div>
               <p className="mt-1 text-sm" style={{ color: 'var(--text-secondary)' }}>AI detected your industry, visual style, and emotional profile.</p>
             </div>

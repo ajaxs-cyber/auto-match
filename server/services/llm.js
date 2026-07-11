@@ -1,15 +1,21 @@
 /**
- * LLM 服务 — 封装 OpenAI API 调用
- * 用于网站结构分析、文字情绪分析
+ * LLM 服务 — 封装 DeepSeek/OpenAI API 调用
+ * 优先使用 DeepSeek API，兼容 OpenAI
+ * DeepSeek: https://api.deepseek.com  (模型: deepseek-chat)
+ * OpenAI:   https://api.openai.com     (模型: gpt-4o)
  */
 require('dotenv').config();
 const OpenAI = require('openai');
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || 'dummy-key'
-});
+// 判断使用哪个 API 服务
+const useDeepSeek = !!(process.env.DEEPSEEK_API_KEY);
+const apiKey = useDeepSeek ? process.env.DEEPSEEK_API_KEY : (process.env.OPENAI_API_KEY || 'dummy-key');
+const baseURL = useDeepSeek ? 'https://api.deepseek.com' : 'https://api.openai.com/v1';
+const MODEL = useDeepSeek ? 'deepseek-chat' : (process.env.OPENAI_MODEL || 'gpt-4o');
 
-const MODEL = process.env.OPENAI_MODEL || 'gpt-4o';
+const openai = new OpenAI({ apiKey, baseURL });
+
+console.log(`LLM 服务: ${useDeepSeek ? 'DeepSeek (deepseek-chat)' : 'OpenAI (' + MODEL + ')'}`);
 
 /**
  * AI 分析建站关键词 → 网站结构建议

@@ -24,7 +24,7 @@ export default function MusicPage({ onBack, onEnterEditor }: MusicPageProps) {
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const [analyzing, setAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<MusicRecommendation | null>(null);
-  const [isAI, setIsAI] = useState(false);
+  const [aiProvider, setAiProvider] = useState('local');
   const [activeCase, setActiveCase] = useState(0);
   const sectionRef = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
@@ -45,13 +45,13 @@ export default function MusicPage({ onBack, onEnterEditor }: MusicPageProps) {
     try {
       // Check API status and try real AI first
       const status = await checkApiStatus();
-      setIsAI(status.hasOpenAI);
+      setAiProvider(status.hasAI ? status.provider : 'local');
       const result = await recommendMusic(text);
       setAnalysisResult(result);
     } catch {
       // Fallback to local Thayer model
       setAnalysisResult(recommend(text));
-      setIsAI(false);
+      setAiProvider('local');
     } finally {
       setAnalyzing(false);
     }
@@ -181,8 +181,8 @@ export default function MusicPage({ onBack, onEnterEditor }: MusicPageProps) {
                         <p className="text-xs font-semibold" style={{ color: '#16a34a' }}>{__('music.analysisComplete')}</p>
                         <p className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>{analysisResult.musicParams.moodLabelZh} · {analysisResult.musicParams.bpm} BPM</p>
                         <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-[9px] font-medium"
-                          style={{ background: isAI ? '#d1fae5' : '#fef3c7', color: isAI ? '#16a34a' : '#b45309' }}>
-                          <Zap size={8} /> {isAI ? 'GPT-4o' : 'Local'}
+                          style={{ background: aiProvider !== 'local' ? '#d1fae5' : '#fef3c7', color: aiProvider !== 'local' ? '#16a34a' : '#b45309' }}>
+                          <Zap size={8} /> {aiProvider !== 'local' ? aiProvider : 'Local'}
                         </span>
                       </div>
                       <button onClick={() => { setAnalysisResult(null); setPrompt(''); }} className="ml-auto p-1 rounded bg-transparent border-none cursor-pointer opacity-50 hover:opacity-100" style={{ color: 'var(--text-tertiary)' }}>

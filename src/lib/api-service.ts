@@ -29,18 +29,21 @@ async function apiCall<T>(path: string, body?: unknown): Promise<T | null> {
   }
 }
 
-// Check if server is reachable
-export async function checkApiStatus(): Promise<{ hasOpenAI: boolean }> {
-  const result = await apiCall<{ status: string; hasOpenAI: boolean }>('/status');
-  return { hasOpenAI: result?.hasOpenAI ?? false };
+// Check if server is reachable and which AI provider is active
+export async function checkApiStatus(): Promise<{ hasAI: boolean; provider: string }> {
+  const result = await apiCall<{ status: string; hasOpenAI: boolean; aiProvider?: string }>('/status');
+  return {
+    hasAI: result?.hasOpenAI ?? false,
+    provider: result?.aiProvider ?? 'local',
+  };
 }
 
-// Analyze industry + structure (calls OpenAI GPT-4o if available)
+// Analyze industry + structure (calls DeepSeek/OpenAI if available)
 export async function analyzeSite(prompt: string): Promise<AnalysisResult | null> {
   return apiCall<AnalysisResult>('/analyze', { text: prompt });
 }
 
-// Recommend music (calls OpenAI + library matching if available)
+// Recommend music (calls DeepSeek/OpenAI + library matching if available)
 export async function recommendMusic(prompt: string): Promise<MusicRecommendation> {
   const result = await apiCall<MusicRecommendation>('/music/recommend', { text: prompt });
   // Fall back to local Thayer model if API unavailable
