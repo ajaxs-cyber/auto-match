@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { EditorProvider, useEditor } from '@/hooks/useEditor';
 import { ToastProvider } from '@/hooks/useToast';
 import { LanguageProvider } from '@/i18n/LanguageContext';
+import { AuthProvider } from '@/hooks/useAuth';
 import LivingCanvas from '@/components/LivingCanvas';
 import Navbar from '@/sections/Navbar';
 import Hero from '@/sections/Hero';
@@ -99,11 +100,13 @@ function AppContent() {
 export default function App() {
   return (
     <LanguageProvider>
-      <EditorProvider>
-        <ToastProvider>
-          <AppContent />
-        </ToastProvider>
-      </EditorProvider>
+      <AuthProvider>
+        <EditorProvider>
+          <ToastProvider>
+            <AppContent />
+          </ToastProvider>
+        </EditorProvider>
+      </AuthProvider>
     </LanguageProvider>
   );
 }

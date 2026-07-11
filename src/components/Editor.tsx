@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { useEditor } from '@/hooks/useEditor';
 import { useToast } from '@/hooks/useToast';
 import { useLang } from '@/i18n/LanguageContext';
+import ExportDialog from '@/components/ExportDialog';
 import {
   getTrackById, generateMusicRecommendation, getGenreLabel, getGenreColor,
   getGenreLabelZh, MUSIC_STYLE_PRESETS, detectIndustry
@@ -60,6 +61,7 @@ export default function Editor({ onClose, onPreview }: EditorProps) {
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const [volume, setVolume] = useState(70);
   const [musicProgress, setMusicProgress] = useState(0);
+  const [showExport, setShowExport] = useState(false);
   const inlineRef = useRef<HTMLDivElement>(null);
 
   const rec = currentPage ? generateMusicRecommendation(detectIndustryFromPage(currentPage), selectedStyle) : null;
@@ -147,7 +149,7 @@ export default function Editor({ onClose, onPreview }: EditorProps) {
             ))}
           </div>
           <button onClick={onPreview} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-transparent border cursor-pointer hover:bg-gray-50" style={{ borderColor: 'rgba(26,43,60,0.15)', color: 'var(--text-primary)' }}><Eye size={14} /> Preview</button>
-          <button onClick={handleSave} className="btn-primary py-2 px-4 text-xs">Export</button>
+          <button onClick={() => setShowExport(true)} className="btn-primary py-2 px-4 text-xs">{__('editor.export')}</button>
         </div>
       </div>
 
@@ -446,7 +448,8 @@ export default function Editor({ onClose, onPreview }: EditorProps) {
   );
 }
 
-// Module Block with inline editing
+// Module Block with inline editing      {showExport && <ExportDialog onClose={() => setShowExport(false)} />}
+
 function ModuleBlock({ mod, isSelected, colors, fonts, onSelect, onUpdateContent, onDelete, onDuplicate, onToggleVisibility }: any) {
   const c = mod.content as any;
   const [editingField, setEditingField] = useState<string | null>(null);
