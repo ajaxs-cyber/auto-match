@@ -4,9 +4,10 @@ import { useLang } from '@/i18n/LanguageContext';
 
 interface NavbarProps {
   onNavigate: (section: string) => void;
+  onSignIn?: () => void;
 }
 
-export default function Navbar({ onNavigate }: NavbarProps) {
+export default function Navbar({ onNavigate, onSignIn }: NavbarProps) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const { lang, toggleLang, __ } = useLang();
@@ -50,7 +51,7 @@ export default function Navbar({ onNavigate }: NavbarProps) {
             <Globe size={16} />
             <span className="text-xs font-medium">{lang === 'en' ? '中文' : 'EN'}</span>
           </button>
-          <button className={`text-sm font-medium bg-transparent border-none cursor-pointer transition-colors duration-200 ${linkClass}`}>{__('nav.signIn')}</button>
+          <button className={`text-sm font-medium bg-transparent border-none cursor-pointer transition-colors duration-200 ${linkClass}`} onClick={onSignIn}>{__('nav.signIn')}</button>
           <button onClick={() => handleNav('hero')} className="btn-primary py-2.5 px-6">{__('nav.getStarted')}</button>
         </div>
 
@@ -69,7 +70,7 @@ export default function Navbar({ onNavigate }: NavbarProps) {
               <Globe size={18} /> {lang === 'en' ? '切换到中文' : 'Switch to English'}
             </button>
             <div className="flex flex-col items-center gap-4 mt-8">
-              <button className="text-lg text-[var(--text-secondary)] bg-transparent border-none cursor-pointer">{__('nav.signIn')}</button>
+              <button onClick={onSignIn} className="text-lg text-[var(--text-secondary)] bg-transparent border-none cursor-pointer">{__('nav.signIn')}</button>
               <button onClick={() => handleNav('hero')} className="btn-primary">{__('nav.getStarted')}</button>
             </div>
           </div>

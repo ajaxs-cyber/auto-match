@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router';
 import { useAuth } from '@/hooks/useAuth';
 import { useLang } from '@/i18n/LanguageContext';
 import { Music, Mail, Lock, User, ArrowRight, Eye, EyeOff, Sparkles, Check } from 'lucide-react';
 
-export default function AuthPage() {
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+interface AuthPageProps { onBack?: () => void; }
+
+export default function AuthPage({ onBack }: AuthPageProps) {
+  const [searchParams] = useState(() => new URLSearchParams(window.location.search));
   const { login, register } = useAuth();
   const { __ } = useLang();
   const defaultMode = searchParams.get('mode') === 'register' ? 'register' : 'login';
@@ -33,7 +33,7 @@ export default function AuthPage() {
       }
 
       if (success) {
-        navigate('/');
+        onBack?.();
       } else {
         setError(__('auth.invalidCredentials'));
       }
@@ -71,7 +71,7 @@ export default function AuthPage() {
         </div>
 
         <div className="relative z-10">
-          <button onClick={() => navigate('/')} className="flex items-center gap-3 cursor-pointer bg-transparent border-none">
+          <button onClick={() => onBack?.()} className="flex items-center gap-3 cursor-pointer bg-transparent border-none">
             <div className="w-10 h-10 rounded-full flex items-center justify-center text-white text-lg font-bold" style={{ background: 'var(--accent)' }}>A</div>
             <span className="text-xl font-semibold text-white">AutoMatch</span>
           </button>

@@ -17,9 +17,10 @@ import Footer from '@/sections/Footer';
 import AnalysisModal from '@/components/AnalysisModal';
 import Editor from '@/components/Editor';
 import Preview from '@/components/Preview';
+import AuthPage from '@/pages/AuthPage';
 import { DEFAULT_TEMPLATES, generateWebsiteFromTemplate, generateEmptyWebsite } from '@/data/templates';
 
-type View = 'landing' | 'editor' | 'preview';
+type View = 'landing' | 'editor' | 'preview' | 'auth';
 
 function AppContent() {
   const [view, setView] = useState<View>('landing');
@@ -75,9 +76,10 @@ function AppContent() {
       )}
       {view === 'editor' && <Editor onClose={handleCloseEditor} onPreview={handlePreview} />}
       {view === 'preview' && <Preview onClose={handleClosePreview} onBackToEditor={handleBackToEditor} />}
+      {view === 'auth' && <AuthPage onBack={() => setView('landing')} />}
       {view === 'landing' && (
         <div className="relative" style={{ zIndex: 1 }}>
-          <Navbar onNavigate={scrollTo} />
+          <Navbar onNavigate={scrollTo} onSignIn={() => setView('auth')} />
           <Hero onGenerate={handleGenerate} />
           <div style={{ background: 'var(--canvas-base)' }}>
             <Features />

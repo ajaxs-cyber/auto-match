@@ -444,11 +444,10 @@ export default function Editor({ onClose, onPreview }: EditorProps) {
         {/* Right Panel - Properties */}
         <RightPanel />
       </div>
+      {showExport && <ExportDialog onClose={() => setShowExport(false)} />}
     </div>
   );
 }
-
-// Module Block with inline editing      {showExport && <ExportDialog onClose={() => setShowExport(false)} />}
 
 function ModuleBlock({ mod, isSelected, colors, fonts, onSelect, onUpdateContent, onDelete, onDuplicate, onToggleVisibility }: any) {
   const c = mod.content as any;
