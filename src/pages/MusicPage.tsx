@@ -11,18 +11,19 @@ import {
   generateBrandMoodProfile, generateBrandMoodAnalysis,
   getGenreLabel, getGenreLabelZh, getGenreColor
 } from '@/data/music';
+import { recommend, type MusicRecommendation } from '@/lib/music-recommender';
 
 interface MusicPageProps { onBack: () => void; onEnterEditor?: () => void; }
 
 export default function MusicPage({ onBack, onEnterEditor }: MusicPageProps) {
   const { lang, __ } = useLang();
+  const [prompt, setPrompt] = useState('');
   const [isPlaying, setIsPlaying] = useState(false);
   const [activeTrack, setActiveTrack] = useState(0);
   const [activeStyle, setActiveStyle] = useState<string>('coffee');
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const [analyzing, setAnalyzing] = useState(false);
-  const [analysisProgress, setAnalysisProgress] = useState(0);
-  const [showAnalysisResult, setShowAnalysisResult] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState<MusicRecommendation | null>(null);
   const [activeCase, setActiveCase] = useState(0);
   const sectionRef = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
@@ -36,19 +37,16 @@ export default function MusicPage({ onBack, onEnterEditor }: MusicPageProps) {
   }, []);
 
   const handleAnalyze = () => {
+    const text = prompt.trim();
+    if (!text) return;
     setAnalyzing(true);
-    setAnalysisProgress(0);
-    setShowAnalysisResult(false);
-    let progress = 0;
-    const interval = setInterval(() => {
-      progress += 10;
-      setAnalysisProgress(progress);
-      if (progress >= 100) {
-        clearInterval(interval);
-        setAnalyzing(false);
-        setShowAnalysisResult(true);
-      }
-    }, 400);
+    setAnalysisResult(null);
+    // Small delay to show loading state
+    setTimeout(() => {
+      const result = recommend(text);
+      setAnalysisResult(result);
+      setAnalyzing(false);
+    }, 1200);
   };
 
   const toggleFavorite = (id: string) => {
@@ -115,113 +113,107 @@ export default function MusicPage({ onBack, onEnterEditor }: MusicPageProps) {
             {/* Interactive Analysis Card */}
             <div className="flex-1 max-w-md w-full">
               <div className="liquid-glass rounded-2xl p-6">
-                {!analyzing && !showAnalysisResult && (
-                  <div className="text-center py-8">
-                    <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: 'var(--music-accent-light)' }}>
-                      <Sparkles size={28} style={{ color: 'var(--music-accent)' }} />
+                {!analyzing && !analysisResult && (
+                  <div className="py-4">
+                    <div className="flex items-center gap-2 mb-4">
+                      <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'var(--music-accent-light)' }}>
+                        <Brain size={16} color="var(--music-accent)" />
+                      </div>
+                      <h3 className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>{__('music.analysisCardTitle')}</h3>
                     </div>
-                    <h3 className="text-lg font-bold mb-2" style={{ color: 'var(--text-primary)' }}>
-                      {__('music.analysisCardTitle')}
-                    </h3>
-                    <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
-                      {__('music.analysisCardDesc')}
-                    </p>
-                    <div className="flex flex-wrap justify-center gap-2">
-                      {['Coffee', 'Tech', 'Wedding', 'Fitness', 'Luxury'].map(tag => (
-                        <span key={tag} className="px-2.5 py-1 rounded-full text-xs font-medium" style={{ background: 'rgba(26,43,60,0.06)', color: 'var(--text-secondary)' }}>{tag}</span>
+                    <textarea
+                      value={prompt}
+                      onChange={e => setPrompt(e.target.value)}
+                      placeholder={lang === 'zh' ? '描述你的品牌，AI 将分析情绪并匹配合适的背景音乐...' : 'Describe your brand, AI will analyze the mood and match background music...'}
+                      rows={3}
+                      className="w-full p-3 rounded-xl text-sm border resize-none outline-none transition-all focus:ring-2"
+                      style={{ background: '#F8F6F0', borderColor: 'var(--border-color)', color: 'var(--text-primary)', placeholder: 'var(--text-tertiary)' }}
+                      onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleAnalyze(); } }}
+                    />
+                    <div className="flex gap-2 mt-3">
+                      <button onClick={handleAnalyze} disabled={!prompt.trim()} className="btn-primary flex items-center gap-1.5 text-xs py-2 px-4 disabled:opacity-50">
+                        <Brain size={14} /> {__('music.tryAnalysis')}
+                      </button>
+                      <span className="text-[10px] self-center" style={{ color: 'var(--text-tertiary)' }}>{lang === 'zh' ? '按 Enter 快速分析' : 'Press Enter to analyze'}</span>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5 mt-3">
+                      {[
+                        { key: 'coffee', label: lang === 'zh' ? '☕ 咖啡' : '☕ Coffee' },
+                        { key: 'tech', label: lang === 'zh' ? '💻 科技' : '💻 Tech' },
+                        { key: 'wedding', label: lang === 'zh' ? '💒 婚礼' : '💒 Wedding' },
+                        { key: 'fitness', label: lang === 'zh' ? '🏋️ 健身' : '🏋️ Fitness' },
+                      ].map(t => (
+                        <button key={t.key} onClick={() => setPrompt(t.label.replace(/[^\u4e00-\u9fa5a-zA-Z]/g, ' '))}
+                          className="px-2.5 py-1 rounded-full text-[11px] font-medium bg-transparent border cursor-pointer hover:bg-white transition-colors"
+                          style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}>
+                          {t.label}
+                        </button>
                       ))}
                     </div>
                   </div>
                 )}
 
                 {analyzing && (
-                  <div className="py-6">
-                    <div className="flex items-center justify-between mb-4">
-                      {[
-                        { icon: Target, label: __('music.stepIndustry') },
-                        { icon: Palette, label: __('music.stepTone') },
-                        { icon: Activity, label: __('music.stepMood') },
-                        { icon: SlidersHorizontal, label: __('music.stepMatch') },
-                      ].map((step, i) => (
-                        <div key={step.label} className="flex flex-col items-center gap-1.5">
-                          <div className={`w-9 h-9 rounded-full flex items-center justify-center transition-all duration-500 ${analysisProgress >= (i + 1) * 25 ? 'text-white' : ''}`}
-                            style={{
-                              background: analysisProgress >= (i + 1) * 25 ? 'var(--music-accent)' : 'rgba(26,43,60,0.06)',
-                              color: analysisProgress >= (i + 1) * 25 ? 'white' : 'var(--text-tertiary)',
-                            }}
-                          >
-                            <step.icon size={14} />
-                          </div>
-                          <span className="text-[10px] font-medium" style={{ color: analysisProgress >= (i + 1) * 25 ? 'var(--music-accent)' : 'var(--text-tertiary)' }}>{step.label}</span>
-                        </div>
-                      ))}
+                  <div className="py-10 text-center">
+                    <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: 'var(--music-accent-light)' }}>
+                      <Sparkles size={24} style={{ color: 'var(--music-accent)' }} className="animate-spin" />
                     </div>
-                    <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(26,43,60,0.06)' }}>
-                      <div className="h-full rounded-full transition-all duration-300" style={{ width: `${analysisProgress}%`, background: 'linear-gradient(90deg, var(--accent), var(--music-accent))' }} />
-                    </div>
-                    <p className="text-center text-xs mt-3" style={{ color: 'var(--text-tertiary)' }}>
-                      {__('music.analyzing')} {analysisProgress}%
-                    </p>
+                    <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{__('music.analyzing')}</p>
+                    <p className="text-xs mt-1" style={{ color: 'var(--text-tertiary)' }}>{lang === 'zh' ? 'AI 正在分析文本情绪...' : 'AI is analyzing text sentiment...'}</p>
                   </div>
                 )}
 
-                {showAnalysisResult && currentCase && analysis && (
+                {analysisResult && (
                   <div>
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: 'var(--accent-light)' }}>
-                        <CheckIcon />
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-7 h-7 rounded-full flex items-center justify-center" style={{ background: '#d1fae5' }}>
+                        <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M3 8L6.5 11.5L13 4.5" stroke="#16a34a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                       </div>
                       <div>
-                        <p className="text-xs font-semibold" style={{ color: 'var(--accent)' }}>{__('music.analysisComplete')}</p>
-                        <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{currentCase.industry}</p>
+                        <p className="text-xs font-semibold" style={{ color: '#16a34a' }}>{__('music.analysisComplete')}</p>
+                        <p className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>{analysisResult.musicParams.moodLabelZh} · {analysisResult.musicParams.bpm} BPM</p>
                       </div>
+                      <button onClick={() => { setAnalysisResult(null); setPrompt(''); }} className="ml-auto p-1 rounded bg-transparent border-none cursor-pointer opacity-50 hover:opacity-100" style={{ color: 'var(--text-tertiary)' }}>
+                        <RefreshCw size={12} />
+                      </button>
                     </div>
 
-                    {/* Mood Profile */}
-                    <div className="mb-4">
-                      <p className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-tertiary)' }}>
-                        {__('music.moodProfile')}
-                      </p>
-                      <div className="grid grid-cols-5 gap-1">
-                        {[
-                          { label: __('music.moodWarm'), val: analysis.moodProfile.warmth },
-                          { label: __('music.moodEnergy'), val: analysis.moodProfile.energy },
-                          { label: __('music.moodProfessional'), val: analysis.moodProfile.professionalism },
-                          { label: __('music.moodCreative'), val: analysis.moodProfile.creativity },
-                          { label: __('music.moodSophisticated'), val: analysis.moodProfile.sophistication },
-                        ].map(d => (
-                          <div key={d.label} className="text-center">
-                            <div className="relative w-10 h-10 mx-auto">
-                              <svg className="w-10 h-10 -rotate-90" viewBox="0 0 40 40">
-                                <circle cx="20" cy="20" r="16" fill="none" stroke="rgba(26,43,60,0.08)" strokeWidth="3" />
-                                <circle cx="20" cy="20" r="16" fill="none" stroke={d.val > 70 ? 'var(--accent)' : d.val > 50 ? 'var(--music-accent)' : 'var(--text-tertiary)'} strokeWidth="3" strokeDasharray={`${(d.val / 100) * 100.5} 100.5`} strokeLinecap="round" />
-                              </svg>
-                              <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold" style={{ color: 'var(--text-primary)' }}>{d.val}</span>
-                            </div>
-                            <span className="text-[8px]" style={{ color: 'var(--text-tertiary)' }}>{d.label}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Recommended Track */}
-                    <div className="p-3 rounded-xl" style={{ background: 'rgba(123,97,255,0.06)', border: '1px solid rgba(123,97,255,0.12)' }}>
-                      <div className="flex items-center gap-3">
-                        <img src={currentCase.coverImage} alt="" className="w-12 h-12 rounded-lg object-cover" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{currentCase.musicTitle}</p>
-                          <p className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>{currentCase.musicArtist}</p>
-                          <span className="inline-block mt-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium" style={{ background: 'var(--music-accent-light)', color: 'var(--music-accent)' }}>{currentCase.musicGenre}</span>
+                    {/* VA Bars */}
+                    <div className="flex gap-3 mb-3">
+                      <div className="flex-1">
+                        <div className="flex justify-between text-[10px] mb-0.5"><span style={{ color: 'var(--text-tertiary)' }}>Valence</span><span style={{ color: 'var(--text-primary)' }}>{Math.round((analysisResult.textAnalysis.valence + 1) / 2 * 100)}%</span></div>
+                        <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(26,43,60,0.06)' }}>
+                          <div className="h-full rounded-full" style={{ width: `${Math.round((analysisResult.textAnalysis.valence + 1) / 2 * 100)}%`, background: '#10b981' }} />
                         </div>
-                        <button onClick={() => setIsPlaying(!isPlaying)} className="w-8 h-8 rounded-full flex items-center justify-center text-white border-none cursor-pointer" style={{ background: 'var(--music-accent)' }}>
-                          {isPlaying ? <Pause size={12} /> : <Play size={12} />}
-                        </button>
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex justify-between text-[10px] mb-0.5"><span style={{ color: 'var(--text-tertiary)' }}>Arousal</span><span style={{ color: 'var(--text-primary)' }}>{Math.round((analysisResult.textAnalysis.arousal + 1) / 2 * 100)}%</span></div>
+                        <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(26,43,60,0.06)' }}>
+                          <div className="h-full rounded-full" style={{ width: `${Math.round((analysisResult.textAnalysis.arousal + 1) / 2 * 100)}%`, background: '#f59e0b' }} />
+                        </div>
                       </div>
                     </div>
 
-                    <p className="text-xs mt-3 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-                      {lang === 'zh' ? currentCase.reasoningZh : currentCase.reasoning}
-                    </p>
+                    {/* Top Tracks */}
+                    <div className="space-y-1.5">
+                      {analysisResult.libraryMatches.slice(0, 3).map((t, i) => (
+                        <div key={t.id} className="flex items-center gap-2 p-2 rounded-lg" style={{ background: i === 0 ? 'rgba(123,97,255,0.08)' : 'transparent' }}>
+                          <span className="text-[10px] font-bold w-4" style={{ color: i === 0 ? 'var(--music-accent)' : 'var(--text-tertiary)' }}>{i + 1}</span>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{t.title}</p>
+                            <p className="text-[9px]" style={{ color: 'var(--text-tertiary)' }}>{t.artist} · {t.genre} · {t.bpm}BPM</p>
+                          </div>
+                          <span className="text-[10px] font-bold" style={{ color: i === 0 ? 'var(--music-accent)' : 'var(--text-tertiary)' }}>{Math.round(t.score * 100)}%</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {analysisResult.aiPrompt && (
+                      <div className="mt-3 p-2 rounded-lg" style={{ background: 'rgba(0,0,0,0.03)' }}>
+                        <p className="text-[9px] font-semibold mb-1" style={{ color: 'var(--text-tertiary)' }}>AI Prompt:</p>
+                        <p className="text-[9px]" style={{ color: 'var(--text-secondary)' }}>{analysisResult.aiPrompt.prompt.slice(0, 150)}...</p>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
