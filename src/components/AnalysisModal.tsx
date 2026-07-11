@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Sparkles, Briefcase, Palette, Layout, Music, X, Activity, Heart } from 'lucide-react';
+import { Sparkles, Briefcase, Palette, Layout, Music, X, Activity, Zap } from 'lucide-react';
 import { recommend, type LibraryMatch } from '@/lib/music-recommender';
+import { recommendMusic, checkApiStatus } from '@/lib/api-service';
 
 interface AnalysisResult {
   industry: string;
@@ -135,14 +136,38 @@ const tplMap: Record<string, string> = {
 export default function AnalysisModal({ prompt, onClose, onSelectTemplate }: AnalysisModalProps) {
   const [visible, setVisible] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
+  const [isAI, setIsAI] = useState(false);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setResult(analyzePrompt(prompt));
-    }, 1500);
+    const run = async () => {
+      // Check if OpenAI backend is available
+      const status = await checkApiStatus();
+      setIsAI(status.hasOpenAI);
+
+      if (status.hasOpenAI) {
+        // Use real AI (OpenAI GPT-4o for industry + music matching)
+        const musicRec = await recommendMusic(prompt);
+        const topTracks = musicRec.libraryMatches.slice(0, 4);
+        const musicGenres = [...new Set(topTracks.map(t => t.genre))];
+        // Still use local for industry (API returns structure too but mapping is separate)
+        const local = analyzePrompt(prompt);
+        setResult({
+          ...local,
+          tracks: topTracks,
+          musicGenres,
+          moodLabel: musicRec.textAnalysis.moodLabel,
+          moodLabelZh: musicRec.musicParams.moodLabelZh,
+          bpm: musicRec.musicParams.bpm,
+        });
+      } else {
+        // Fallback to local keyword matching
+        await new Promise(r => setTimeout(r, 800));
+        setResult(analyzePrompt(prompt));
+      }
+    };
+    run();
 
     requestAnimationFrame(() => { setVisible(true); });
-    return () => clearTimeout(timer);
   }, [prompt]);
 
   const handleClose = () => { setVisible(false); setTimeout(onClose, 250); };
@@ -177,6 +202,10 @@ export default function AnalysisModal({ prompt, onClose, onSelectTemplate }: Ana
                 <Sparkles size={28} style={{ color: 'var(--accent)' }} />
               </div>
               <h2 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>Analysis Complete</h2>
+              <div className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-[10px] font-medium"
+                style={{ background: isAI ? '#d1fae5' : '#fef3c7', color: isAI ? '#16a34a' : '#b45309' }}>
+                <Zap size={10} /> {isAI ? 'Powered by GPT-4o' : 'Local Smart Engine'}
+              </div>
               <p className="mt-1 text-sm" style={{ color: 'var(--text-secondary)' }}>AI detected your industry, visual style, and emotional profile.</p>
             </div>
 

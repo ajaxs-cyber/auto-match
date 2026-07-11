@@ -8,10 +8,10 @@ import {
 import { useLang } from '@/i18n/LanguageContext';
 import {
   MUSIC_TRACKS, MUSIC_STYLE_PRESETS, CASE_STUDIES,
-  generateBrandMoodProfile, generateBrandMoodAnalysis,
   getGenreLabel, getGenreLabelZh, getGenreColor
 } from '@/data/music';
 import { recommend, type MusicRecommendation } from '@/lib/music-recommender';
+import { recommendMusic, checkApiStatus } from '@/lib/api-service';
 
 interface MusicPageProps { onBack: () => void; onEnterEditor?: () => void; }
 
@@ -24,6 +24,7 @@ export default function MusicPage({ onBack, onEnterEditor }: MusicPageProps) {
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const [analyzing, setAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<MusicRecommendation | null>(null);
+  const [isAI, setIsAI] = useState(false);
   const [activeCase, setActiveCase] = useState(0);
   const sectionRef = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
@@ -36,17 +37,24 @@ export default function MusicPage({ onBack, onEnterEditor }: MusicPageProps) {
     return () => o.disconnect();
   }, []);
 
-  const handleAnalyze = () => {
+  const handleAnalyze = async () => {
     const text = prompt.trim();
     if (!text) return;
     setAnalyzing(true);
     setAnalysisResult(null);
-    // Small delay to show loading state
-    setTimeout(() => {
-      const result = recommend(text);
+    try {
+      // Check API status and try real AI first
+      const status = await checkApiStatus();
+      setIsAI(status.hasOpenAI);
+      const result = await recommendMusic(text);
       setAnalysisResult(result);
+    } catch {
+      // Fallback to local Thayer model
+      setAnalysisResult(recommend(text));
+      setIsAI(false);
+    } finally {
       setAnalyzing(false);
-    }, 1200);
+    }
   };
 
   const toggleFavorite = (id: string) => {
@@ -172,6 +180,10 @@ export default function MusicPage({ onBack, onEnterEditor }: MusicPageProps) {
                       <div>
                         <p className="text-xs font-semibold" style={{ color: '#16a34a' }}>{__('music.analysisComplete')}</p>
                         <p className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>{analysisResult.musicParams.moodLabelZh} · {analysisResult.musicParams.bpm} BPM</p>
+                        <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-[9px] font-medium"
+                          style={{ background: isAI ? '#d1fae5' : '#fef3c7', color: isAI ? '#16a34a' : '#b45309' }}>
+                          <Zap size={8} /> {isAI ? 'GPT-4o' : 'Local'}
+                        </span>
                       </div>
                       <button onClick={() => { setAnalysisResult(null); setPrompt(''); }} className="ml-auto p-1 rounded bg-transparent border-none cursor-pointer opacity-50 hover:opacity-100" style={{ color: 'var(--text-tertiary)' }}>
                         <RefreshCw size={12} />
