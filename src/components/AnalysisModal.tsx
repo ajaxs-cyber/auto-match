@@ -12,7 +12,7 @@ interface AnalysisResult {
 interface AnalysisModalProps {
   prompt: string;
   onClose: () => void;
-  onOpenEditor: () => void;
+  onSelectTemplate: (templateId: string) => void;
 }
 
 function simulateAnalysis(prompt: string): AnalysisResult {
@@ -52,7 +52,7 @@ function simulateAnalysis(prompt: string): AnalysisResult {
   return { industry, style, colors, structure, music };
 }
 
-export default function AnalysisModal({ prompt, onClose, onOpenEditor }: AnalysisModalProps) {
+export default function AnalysisModal({ prompt, onClose, onSelectTemplate }: AnalysisModalProps) {
   const [visible, setVisible] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
 
@@ -294,7 +294,11 @@ export default function AnalysisModal({ prompt, onClose, onOpenEditor }: Analysi
               <button
                 onClick={() => {
                   setVisible(false);
-                  setTimeout(onOpenEditor, 250);
+                  const tplMap: Record<string, string> = {
+                    'Coffee Shop & Café': 'tpl-cafe-1', 'Creative Studio': 'tpl-photo-1',
+                    'Tech Startup': 'tpl-tech-1', 'Fitness & Wellness': 'tpl-fitness-1',
+                  };
+                  setTimeout(() => onSelectTemplate(tplMap[result?.industry] || 'tpl-cafe-1'), 250);
                 }}
                 className="btn-primary flex-1"
               >
