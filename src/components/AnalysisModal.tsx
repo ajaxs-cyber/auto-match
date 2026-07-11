@@ -17,36 +17,66 @@ interface AnalysisModalProps {
 
 function simulateAnalysis(prompt: string): AnalysisResult {
   const p = prompt.toLowerCase();
-  let industry = 'Business';
+  let industry = 'Creative Studio';
   let style = 'Modern, professional';
-  let colors = ['#1A2B3C', '#5A6B7C', '#E85D4C', '#F5F3EE'];
-  let structure = ['Hero', 'About', 'Services', 'Contact'];
-  let music = ['Ambient', 'Corporate'];
+  let colors = ['#1A1A1A', '#F5F5F5', '#E85D4C', '#8B8B8B'];
+  let structure = ['Hero', 'Portfolio', 'About', 'Services', 'Contact'];
+  let music = ['Ambient Electronic', 'Cinematic'];
 
-  if (p.includes('coffee') || p.includes('cafe') || p.includes('restaurant') || p.includes('food')) {
+  if (p.includes('coffee') || p.includes('cafe') || p.includes('restaurant') || p.includes('food') || p.includes('bistro') || p.includes('bake')) {
     industry = 'Coffee Shop & Café';
     style = 'Warm, cozy, artisanal';
     colors = ['#6B3A2A', '#D4A574', '#F5E6D3', '#3D2B1F'];
     structure = ['Hero', 'About', 'Menu', 'Gallery', 'Contact'];
     music = ['Lo-Fi Acoustic', 'Warm Jazz'];
-  } else if (p.includes('photo') || p.includes('portfolio') || p.includes('creative') || p.includes('design')) {
+  } else if (p.includes('photo') || p.includes('portfoli') || p.includes('design') || p.includes('art') || p.includes('creative') || p.includes('studio')) {
     industry = 'Creative Studio';
     style = 'Minimal, dramatic, artistic';
     colors = ['#1A1A1A', '#F5F5F5', '#E85D4C', '#8B8B8B'];
     structure = ['Hero', 'Portfolio', 'About', 'Services', 'Contact'];
     music = ['Ambient Electronic', 'Cinematic'];
-  } else if (p.includes('tech') || p.includes('startup') || p.includes('saas') || p.includes('app')) {
+  } else if (p.includes('tech') || p.includes('startup') || p.includes('saas') || p.includes('app') || p.includes('software') || p.includes('digital') || p.includes('cloud') || p.includes('ai')) {
     industry = 'Tech Startup';
     style = 'Clean, futuristic, innovative';
     colors = ['#0E243C', '#3B82F6', '#10B981', '#F8FAFC'];
     structure = ['Hero', 'Features', 'Pricing', 'Testimonials', 'Contact'];
     music = ['Ambient', 'Electronic'];
-  } else if (p.includes('fitness') || p.includes('gym') || p.includes('health') || p.includes('yoga')) {
+  } else if (p.includes('fitness') || p.includes('gym') || p.includes('yoga') || p.includes('health') || p.includes('wellness') || p.includes('sport') || p.includes('workout')) {
     industry = 'Fitness & Wellness';
     style = 'Energetic, vibrant, motivating';
     colors = ['#1A2E1A', '#4ADE80', '#FEF08A', '#FFFFFF'];
     structure = ['Hero', 'Classes', 'Trainers', 'Membership', 'Contact'];
     music = ['Upbeat Electronic', 'Energetic Pop'];
+  } else if (p.includes('wedding') || p.includes('marriage') || p.includes('bride') || p.includes('event') || p.includes('party')) {
+    industry = 'Wedding & Events';
+    style = 'Elegant, romantic, soft';
+    colors = ['#831843', '#FBCFE8', '#FFF1F2', '#FFFFFF'];
+    structure = ['Hero', 'Gallery', 'Services', 'Testimonials', 'Contact'];
+    music = ['Romantic Piano', 'Soft Strings'];
+  } else if (p.includes('law') || p.includes('legal') || p.includes('attorney') || p.includes('firm')) {
+    industry = 'Legal Services';
+    style = 'Professional, trustworthy, authoritative';
+    colors = ['#1E3A5F', '#475569', '#F8FAFC', '#FFFFFF'];
+    structure = ['Hero', 'About', 'Team', 'Services', 'Contact'];
+    music = ['Classical Orchestra', 'Ambient'];
+  } else if (p.includes('fashion') || p.includes('clothing') || p.includes('brand') || p.includes('luxury') || p.includes('style') || p.includes('shop')) {
+    industry = 'Fashion & Retail';
+    style = 'Bold, elegant, trendy';
+    colors = ['#171717', '#E11D48', '#FAFAFA', '#FFFFFF'];
+    structure = ['Hero', 'Gallery', 'Products', 'About', 'Contact'];
+    music = ['Electronic Pop', 'Minimal Beats'];
+  } else if (p.includes('education') || p.includes('school') || p.includes('course') || p.includes('learn') || p.includes('teach') || p.includes('train')) {
+    industry = 'Education';
+    style = 'Warm, trustworthy, structured';
+    colors = ['#1E40AF', '#3B82F6', '#F8FAFC', '#FFFFFF'];
+    structure = ['Hero', 'Features', 'Courses', 'Team', 'Pricing', 'Contact'];
+    music = ['Ambient Piano', 'Gentle Tones'];
+  } else if (p.includes('music') || p.includes('band') || p.includes('artist') || p.includes('concert')) {
+    industry = 'Music & Entertainment';
+    style = 'Energetic, bold, expressive';
+    colors = ['#0C0C0C', '#A855F7', '#F59E0B', '#FFFFFF'];
+    structure = ['Hero', 'Gallery', 'Text', 'Events', 'Contact'];
+    music = ['Upbeat Pop', 'Indie Rock'];
   }
 
   return { industry, style, colors, structure, music };
@@ -297,6 +327,9 @@ export default function AnalysisModal({ prompt, onClose, onSelectTemplate }: Ana
                   const tplMap: Record<string, string> = {
                     'Coffee Shop & Café': 'tpl-cafe-1', 'Creative Studio': 'tpl-photo-1',
                     'Tech Startup': 'tpl-tech-1', 'Fitness & Wellness': 'tpl-fitness-1',
+                    'Wedding & Events': 'tpl-photo-1', 'Legal Services': 'tpl-tech-1',
+                    'Fashion & Retail': 'tpl-studio-1', 'Education': 'tpl-tech-1',
+                    'Music & Entertainment': 'tpl-photo-1',
                   };
                   setTimeout(() => onSelectTemplate(tplMap[result?.industry] || 'tpl-cafe-1'), 250);
                 }}
