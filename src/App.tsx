@@ -10,7 +10,6 @@ import HowItWorks from '@/sections/HowItWorks';
 import WhyMusic from '@/sections/WhyMusic';
 import Templates from '@/sections/Templates';
 import MusicShowcase from '@/sections/MusicShowcase';
-import CaseStudies from '@/sections/CaseStudies';
 import Pricing from '@/sections/Pricing';
 import CTA from '@/sections/CTA';
 import Footer from '@/sections/Footer';
@@ -86,7 +85,6 @@ function AppContent() {
             <Templates onUseTemplate={handleUseTemplate} />
           </div>
           <MusicShowcase />
-          <CaseStudies />
           <div style={{ background: 'var(--canvas-base)' }}>
             <Pricing />
           </div>
