@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
-import { Menu, X, Globe } from 'lucide-react';
+import { Menu, X, Globe, Music } from 'lucide-react';
 import { useLang } from '@/i18n/LanguageContext';
 
 interface NavbarProps {
   onNavigate: (section: string) => void;
   onSignIn?: () => void;
+  onMusic?: () => void;
 }
 
-export default function Navbar({ onNavigate, onSignIn }: NavbarProps) {
+export default function Navbar({ onNavigate, onSignIn, onMusic }: NavbarProps) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const { lang, toggleLang, __ } = useLang();
@@ -47,6 +48,12 @@ export default function Navbar({ onNavigate, onSignIn }: NavbarProps) {
         </div>
 
         <div className="hidden md:flex items-center gap-3">
+          <button onClick={onMusic} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all cursor-pointer border-none ${scrolled ? 'text-[var(--text-primary)] hover:shadow-md' : 'text-[#f1f5f9] hover:bg-white/10'}`}
+            style={{ background: scrolled ? 'var(--music-accent-light)' : 'transparent', border: scrolled ? '1px solid rgba(123,97,255,0.2)' : 'none' }}
+          >
+            <Music size={14} style={{ color: 'var(--music-accent)' }} />
+            {__('nav.exploreMusic')}
+          </button>
           <button onClick={toggleLang} className={`p-2 rounded-lg bg-transparent border-none cursor-pointer transition-colors flex items-center gap-1 ${scrolled ? 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]' : 'text-[#94a3b8] hover:text-[#f1f5f9]'}`} title={lang === 'en' ? 'Switch to Chinese' : '切换到英文'}>
             <Globe size={16} />
             <span className="text-xs font-medium">{lang === 'en' ? '中文' : 'EN'}</span>

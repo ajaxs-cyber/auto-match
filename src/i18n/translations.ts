@@ -9,6 +9,7 @@ export const t: Record<Lang, Record<string, string>> = {
     'nav.pricing': 'Pricing',
     'nav.signIn': 'Sign In',
     'nav.getStarted': 'Get Started',
+    'nav.exploreMusic': 'Explore Music',
 
     // Hero
     'hero.badge': 'AI-Powered Website Builder',
@@ -461,6 +462,7 @@ export const t: Record<Lang, Record<string, string>> = {
     'nav.pricing': '价格',
     'nav.signIn': '登录',
     'nav.getStarted': '开始使用',
+    'nav.exploreMusic': '探索音乐',
 
     'hero.badge': 'AI 智能建站平台',
     'hero.title': '描述你的业务，我们帮你建站 — 并匹配完美背景音乐',

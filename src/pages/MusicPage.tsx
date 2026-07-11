@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router';
 import {
   Music, Brain, Sparkles, ArrowRight, Play, Pause, Heart,
   Star, Zap, Palette, Volume2, Bookmark, BookmarkCheck,
@@ -13,8 +12,9 @@ import {
   getGenreLabel, getGenreLabelZh, getGenreColor
 } from '@/data/music';
 
-export default function MusicPage() {
-  const navigate = useNavigate();
+interface MusicPageProps { onBack: () => void; onEnterEditor?: () => void; }
+
+export default function MusicPage({ onBack, onEnterEditor }: MusicPageProps) {
   const { lang, __ } = useLang();
   const [isPlaying, setIsPlaying] = useState(false);
   const [activeTrack, setActiveTrack] = useState(0);
@@ -82,7 +82,7 @@ export default function MusicPage() {
 
         <div className="relative max-w-[1100px] mx-auto">
           {/* Back button */}
-          <button onClick={() => navigate('/')} className="flex items-center gap-2 mb-8 text-sm bg-transparent border-none cursor-pointer hover:opacity-70 transition-opacity" style={{ color: 'var(--text-secondary)' }}>
+          <button onClick={onBack} className="flex items-center gap-2 mb-8 text-sm bg-transparent border-none cursor-pointer hover:opacity-70 transition-opacity" style={{ color: 'var(--text-secondary)' }}>
             <SkipBack size={16} /> {__('music.backToHome')}
           </button>
 
@@ -105,7 +105,7 @@ export default function MusicPage() {
                   <Brain size={16} />
                   {__('music.tryAnalysis')}
                 </button>
-                <button onClick={() => navigate('/editor')} className="btn-ghost flex items-center gap-2">
+                <button onClick={onEnterEditor} className="btn-ghost flex items-center gap-2">
                   {__('music.startBuilding')}
                   <ArrowRight size={16} />
                 </button>
@@ -496,7 +496,7 @@ export default function MusicPage() {
               <button onClick={() => navigate('/')} className="btn-primary flex items-center gap-2">
                 <Zap size={16} /> {__('music.getStarted')}
               </button>
-              <button onClick={() => navigate('/auth?mode=register')} className="btn-ghost">
+              <button onClick={() => onBack()} className="btn-ghost">
                 {__('music.createAccount')}
               </button>
             </div>

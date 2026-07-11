@@ -18,9 +18,10 @@ import AnalysisModal from '@/components/AnalysisModal';
 import Editor from '@/components/Editor';
 import Preview from '@/components/Preview';
 import AuthPage from '@/pages/AuthPage';
+import MusicPage from '@/pages/MusicPage';
 import { DEFAULT_TEMPLATES, generateWebsiteFromTemplate, generateEmptyWebsite } from '@/data/templates';
 
-type View = 'landing' | 'editor' | 'preview' | 'auth';
+type View = 'landing' | 'editor' | 'preview' | 'auth' | 'music';
 
 function AppContent() {
   const [view, setView] = useState<View>('landing');
@@ -77,9 +78,10 @@ function AppContent() {
       {view === 'editor' && <Editor onClose={handleCloseEditor} onPreview={handlePreview} />}
       {view === 'preview' && <Preview onClose={handleClosePreview} onBackToEditor={handleBackToEditor} />}
       {view === 'auth' && <AuthPage onBack={() => setView('landing')} />}
+      {view === 'music' && <MusicPage onBack={() => setView('landing')} onEnterEditor={() => { initEditor(); }} />}
       {view === 'landing' && (
         <div className="relative" style={{ zIndex: 1 }}>
-          <Navbar onNavigate={scrollTo} onSignIn={() => setView('auth')} />
+          <Navbar onNavigate={scrollTo} onSignIn={() => setView('auth')} onMusic={() => setView('music')} />
           <Hero onGenerate={handleGenerate} />
           <div style={{ background: 'var(--canvas-base)' }}>
             <Features />
