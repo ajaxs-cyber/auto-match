@@ -2,9 +2,9 @@ import { useAuth } from '@/hooks/useAuth';
 import { useLang } from '@/i18n/LanguageContext';
 import { Lock, Sparkles, ArrowRight, Crown, Check, Star } from 'lucide-react';
 
-interface Props { onClose: () => void; feature?: 'export' | 'music' | 'custom-domain'; onSignIn?: () => void; }
+interface Props { onClose: () => void; feature?: 'export' | 'music' | 'custom-domain'; onSignIn?: () => void; onMaybeLater?: () => void; }
 
-export default function Paywall({ onClose, feature = 'export', onSignIn }: Props) {
+export default function Paywall({ onClose, feature = 'export', onSignIn, onMaybeLater }: Props) {
   const { user } = useAuth();
   const { __ } = useLang();
 
@@ -40,7 +40,7 @@ export default function Paywall({ onClose, feature = 'export', onSignIn }: Props
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-4" style={{ background: 'rgba(26,43,60,0.6)', backdropFilter: 'blur(8px)' }} onClick={onClose}>
-      <div className="w-full max-w-[460px] bg-white rounded-2xl shadow-xl overflow-hidden" onClick={e => e.stopPropagation()}>
+      <div className="w-full max-w-[720px] bg-white rounded-2xl shadow-xl overflow-hidden" onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div className="relative p-8 pb-6 text-center" style={{ background: 'linear-gradient(135deg, #1A2B3C 0%, #2D4A5E 100%)' }}>
           <div className="absolute top-3 right-3">
@@ -102,7 +102,7 @@ export default function Paywall({ onClose, feature = 'export', onSignIn }: Props
             </>
           )}
 
-          <button onClick={onClose} className="w-full mt-3 py-2.5 rounded-xl text-xs font-medium bg-transparent border-none cursor-pointer" style={{ color: 'var(--text-tertiary)' }}>
+          <button onClick={() => onMaybeLater ? onMaybeLater() : onClose()} className="w-full mt-3 py-2.5 rounded-xl text-xs font-medium bg-transparent border-none cursor-pointer" style={{ color: 'var(--text-tertiary)' }}>
             {__('paywall.maybeLater')}
           </button>
         </div>

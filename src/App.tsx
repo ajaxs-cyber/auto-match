@@ -77,7 +77,7 @@ function AppContent() {
       )}
       {view === 'editor' && <Editor onClose={handleCloseEditor} onPreview={handlePreview} />}
       {view === 'preview' && <Preview onClose={handleClosePreview} onBackToEditor={handleBackToEditor} />}
-      {view === 'auth' && <AuthPage onBack={() => setView('landing')} />}
+      {view === 'auth' && <AuthPage onBack={() => setView('landing')} onEnterEditor={() => { initEditor(); }} />}
       {view === 'music' && <MusicPage onBack={() => setView('landing')} onEnterEditor={() => { initEditor(); }} />}
       {view === 'landing' && (
         <div className="relative" style={{ zIndex: 1 }}>

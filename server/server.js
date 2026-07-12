@@ -32,6 +32,7 @@ app.get(/^\/(?!api\/).*/, (req, res) => {
 app.use('/api/analyze', require('./routes/analyze'));
 app.use('/api/music', require('./routes/music'));
 app.use('/api/config', require('./routes/config'));
+app.use('/api/auth', require('./routes/auth'));
 
 app.get('/api/status', (req, res) => {
   const hasAI = !!(process.env.DEEPSEEK_API_KEY || (process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== 'sk-your-key-here'));

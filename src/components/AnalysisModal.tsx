@@ -1,9 +1,8 @@
-import { useEffect, useState } from 'react';
-import { Sparkles, Briefcase, Palette, Layout, Music, X, Activity, Zap } from 'lucide-react';
+import { useEffect, useState, useRef } from 'react';
+import { Sparkles, Briefcase, Palette, Layout, Music, X, Activity, Zap, Crown, ArrowRight } from 'lucide-react';
 import { recommend, type LibraryMatch } from '@/lib/music-recommender';
 import { recommendMusic, checkApiStatus } from '@/lib/api-service';
 import { useAuth } from '@/hooks/useAuth';
-import Paywall from '@/components/Paywall';
 
 interface AnalysisResult {
   industry: string;
@@ -140,41 +139,47 @@ export default function AnalysisModal({ prompt, onClose, onSelectTemplate, onSig
   const [visible, setVisible] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [aiProvider, setAiProvider] = useState('local');
-  const [showPaywall, setShowPaywall] = useState(false);
+  const promptRef = useRef(prompt);
 
   useEffect(() => {
-    if (!canUseAI) {
-      setShowPaywall(true);
-      requestAnimationFrame(() => { setVisible(true); });
-      return;
-    }
-
+    promptRef.current = prompt;
     const run = async () => {
-      const status = await checkApiStatus();
-      setAiProvider(status.hasAI ? status.provider : 'local');
+      try {
+        const status = await checkApiStatus();
+        setAiProvider(status.hasAI ? status.provider : 'local');
 
-      if (status.hasAI) {
-        const musicRec = await recommendMusic(prompt);
-        const topTracks = musicRec.libraryMatches.slice(0, 4);
-        const musicGenres = [...new Set(topTracks.map(t => t.genre))];
-        const local = analyzePrompt(prompt);
-        setResult({
-          ...local,
-          tracks: topTracks,
-          musicGenres,
-          moodLabel: musicRec.textAnalysis.moodLabel,
-          moodLabelZh: musicRec.musicParams.moodLabelZh,
-          bpm: musicRec.musicParams.bpm,
-        });
-      } else {
-        await new Promise(r => setTimeout(r, 800));
+        if (status.hasAI) {
+          const musicRec = await recommendMusic(prompt);
+          const topTracks = musicRec.libraryMatches.slice(0, 4);
+          const musicGenres = [...new Set(topTracks.map(t => t.genre))];
+          const local = analyzePrompt(prompt);
+          setResult({
+            ...local,
+            tracks: topTracks,
+            musicGenres,
+            moodLabel: musicRec.textAnalysis.moodLabel,
+            moodLabelZh: musicRec.musicParams.moodLabelZh,
+            bpm: musicRec.musicParams.bpm,
+          });
+        } else {
+          await new Promise(r => setTimeout(r, 800));
+          setResult(analyzePrompt(prompt));
+        }
+      } catch {
+        await new Promise(r => setTimeout(r, 500));
         setResult(analyzePrompt(prompt));
+        setAiProvider('local');
       }
     };
     run();
-
     requestAnimationFrame(() => { setVisible(true); });
   }, [prompt, canUseAI]);
+
+  const handleContinueFree = () => {
+    const local = result || analyzePrompt(promptRef.current);
+    const templateId = tplMap[local.industry] || 'tpl-cafe-1';
+    onSelectTemplate(templateId);
+  };
 
   const handleClose = () => { setVisible(false); setTimeout(onClose, 250); };
 
@@ -190,15 +195,7 @@ export default function AnalysisModal({ prompt, onClose, onSelectTemplate, onSig
       >
         <button onClick={handleClose} className="absolute top-4 right-4 p-2 rounded-full bg-transparent border-none cursor-pointer hover:bg-gray-100" style={{ color: 'var(--text-tertiary)' }}><X size={20} /></button>
 
-        {showPaywall ? (
-          <div className="py-4">
-            <Paywall
-              feature="music"
-              onClose={() => { setShowPaywall(false); handleClose(); }}
-              onSignIn={() => { setShowPaywall(false); onSignIn?.(); }}
-            />
-          </div>
-        ) : !result ? (
+        {!result ? (
           <div className="text-center py-12">
             <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-6" style={{ background: 'var(--accent-light)' }}>
               <Sparkles size={28} style={{ color: 'var(--accent)' }} className="animate-spin" />
@@ -217,7 +214,7 @@ export default function AnalysisModal({ prompt, onClose, onSelectTemplate, onSig
               </div>
               <h2 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>Analysis Complete</h2>
               <div className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-[10px] font-medium"
-                style={{ background: isAI ? '#d1fae5' : '#fef3c7', color: isAI ? '#16a34a' : '#b45309' }}>
+                style={{ background: aiProvider !== 'local' ? '#d1fae5' : '#fef3c7', color: aiProvider !== 'local' ? '#16a34a' : '#b45309' }}>
                 <Zap size={10} /> {aiProvider !== 'local' ? `Powered by ${aiProvider}` : 'Local Smart Engine'}
               </div>
               <p className="mt-1 text-sm" style={{ color: 'var(--text-secondary)' }}>AI detected your industry, visual style, and emotional profile.</p>
@@ -345,6 +342,37 @@ export default function AnalysisModal({ prompt, onClose, onSelectTemplate, onSig
           </>
         )}
       </div>
+
+      {/* Inline Pro banner — only for free users after analysis completes */}
+      {!canUseAI && result && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4" style={{ background: 'rgba(26,43,60,0.6)', backdropFilter: 'blur(8px)' }}>
+          <div className="w-full max-w-[600px] bg-white rounded-2xl shadow-xl p-8 text-center" onClick={e => e.stopPropagation()}>
+            <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: 'rgba(232,93,76,0.1)' }}>
+              <Crown size={28} style={{ color: 'var(--accent)' }} />
+            </div>
+            <h3 className="text-xl font-bold mb-2" style={{ color: 'var(--text-primary)' }}>解锁 Pro 功能</h3>
+            <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>
+              升级至 Pro 解锁 AI 音乐智能匹配、导出网站等高级功能。当前使用本地引擎分析完成。
+            </p>
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={() => { onSignIn?.(); }}
+                className="w-full py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 border-none cursor-pointer"
+                style={{ background: 'linear-gradient(135deg, var(--accent), var(--music-accent))', color: 'white' }}
+              >
+                <Sparkles size={16} /> 登录 / 升级 Pro
+              </button>
+              <button
+                onClick={handleContinueFree}
+                className="w-full py-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2 border-none cursor-pointer"
+                style={{ background: 'var(--accent-light)', color: 'var(--accent)' }}
+              >
+                继续使用免费版 <ArrowRight size={16} />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
