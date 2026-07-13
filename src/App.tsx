@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { Routes, Route, useNavigate, useLocation } from 'react-router';
-import { EditorProvider } from '@/hooks/useEditor';
+import { EditorProvider, useEditor } from '@/hooks/useEditor';
 import { ToastProvider } from '@/hooks/useToast';
 import { I18nProvider } from '@/hooks/useI18n';
 import { AuthProvider, useAuth } from '@/hooks/useAuth';
@@ -30,6 +30,7 @@ type View = 'landing' | 'editor' | 'preview';
 function LandingPage() {
   const [view, setView] = useState<View>('landing');
   const [analysisPrompt, setAnalysisPrompt] = useState<string | null>(null);
+  const { dispatch } = useEditor();
   const navigate = useNavigate();
 
   const scrollTo = useCallback((section: string) => {
