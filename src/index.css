@@ -5,34 +5,6 @@
 @tailwind utilities;
 
 :root {
-  /* shadcn/ui CSS Variables */
-  --background: 36 33% 95%;
-  --foreground: 210 31% 17%;
-  --card: 0 0% 100%;
-  --card-foreground: 210 31% 17%;
-  --popover: 0 0% 100%;
-  --popover-foreground: 210 31% 17%;
-  --primary: 7 78% 61%;
-  --primary-foreground: 0 0% 100%;
-  --secondary: 210 18% 47%;
-  --secondary-foreground: 0 0% 100%;
-  --muted: 36 20% 94%;
-  --muted-foreground: 215 16% 47%;
-  --destructive: 0 72% 51%;
-  --destructive-foreground: 0 0% 100%;
-  --border: 210 18% 87%;
-  --input: 210 18% 87%;
-  --ring: 7 78% 61%;
-  --radius: 0.75rem;
-  --sidebar-background: 0 0% 98%;
-  --sidebar-foreground: 240 5% 26%;
-  --sidebar-primary: 240 6% 10%;
-  --sidebar-primary-foreground: 0 0% 98%;
-  --sidebar-accent: 240 5% 96%;
-  --sidebar-accent-foreground: 240 6% 10%;
-  --sidebar-border: 220 13% 91%;
-  --sidebar-ring: 217 91% 60%;
-
   --canvas-base: #F5F3EE;
   --surface: #FFFFFF;
   --surface-glass: rgba(255, 255, 255, 0.55);

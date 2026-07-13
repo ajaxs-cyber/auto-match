@@ -1,12 +1,11 @@
-import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useEditor } from '@/hooks/useEditor';
 import { useToast } from '@/hooks/useToast';
-import { useLang } from '@/i18n/LanguageContext';
-import ExportDialog from '@/components/ExportDialog';
 import {
   getTrackById, generateMusicRecommendation, getGenreLabel, getGenreColor,
   getGenreLabelZh, MUSIC_STYLE_PRESETS, detectIndustry
 } from '@/data/music';
+import { useI18n } from '@/hooks/useI18n';
 import {
   Undo2, Redo2, Save, Eye, ChevronLeft, GripVertical, Plus, Trash2, Copy,
   Home, FilePlus, Play, Pause, Music, X, Settings, Type, Layout, Image,
@@ -17,39 +16,38 @@ import {
 } from 'lucide-react';
 import type { WebsiteModule, Page, EditorPanel } from '@/types';
 
+const MODULE_TYPES = [
+  { type: 'hero', name: 'Hero Section', icon: <Layout size={16} />, desc: 'Full-width banner with title, subtitle, buttons' },
+  { type: 'navbar', name: 'Navigation', icon: <CircleDot size={16} />, desc: 'Top nav with logo, links, CTA' },
+  { type: 'text', name: 'Text Block', icon: <Type size={16} />, desc: 'Rich text with heading and body' },
+  { type: 'features', name: 'Features', icon: <Star size={16} />, desc: 'Grid of feature cards with icons' },
+  { type: 'gallery', name: 'Gallery', icon: <Image size={16} />, desc: 'Image grid with configurable columns' },
+  { type: 'services', name: 'Services', icon: <Briefcase size={16} />, desc: 'Service cards with descriptions' },
+  { type: 'testimonials', name: 'Testimonials', icon: <Users size={16} />, desc: 'Customer review cards' },
+  { type: 'team', name: 'Team', icon: <Users size={16} />, desc: 'Team member profiles' },
+  { type: 'pricing', name: 'Pricing', icon: <CreditCard size={16} />, desc: 'Pricing plan comparison cards' },
+  { type: 'faq', name: 'FAQ', icon: <HelpCircle size={16} />, desc: 'Collapsible Q&A accordion' },
+  { type: 'contact', name: 'Contact', icon: <Phone size={16} />, desc: 'Contact form with info' },
+  { type: 'stats', name: 'Stats', icon: <BarChart3 size={16} />, desc: 'Number/statistic counters' },
+  { type: 'cta', name: 'CTA Section', icon: <Sparkles size={16} />, desc: 'Call-to-action banner' },
+  { type: 'footer', name: 'Footer', icon: <Layout size={16} />, desc: 'Site footer with links' },
+  { type: 'divider', name: 'Divider', icon: <SeparatorHorizontal size={16} />, desc: 'Section separator line' },
+  { type: 'music', name: 'Music Player', icon: <Music size={16} />, desc: 'Background music display' },
+];
+
+const PANEL_TABS: { id: EditorPanel; label: string; icon: React.ReactNode }[] = [
+  { id: 'components', label: 'Components', icon: <Layout size={14} /> },
+  { id: 'pages', label: 'Pages', icon: <FilePlus size={14} /> },
+  { id: 'music', label: 'Music', icon: <Music size={14} /> },
+  { id: 'styles', label: 'Styles', icon: <Settings size={14} /> },
+];
 
 interface EditorProps { onClose: () => void; onPreview: () => void; }
 
 export default function Editor({ onClose, onPreview }: EditorProps) {
   const { state, dispatch, currentPage, selectedModule, canUndo, canRedo } = useEditor();
-  const { lang, __ } = useLang();
+  const { lang } = useI18n();
   const toast = useToast();
-
-  const MODULE_TYPES = useMemo(() => [
-    { type: 'hero', name: __('mod.hero'), icon: <Layout size={16} />, desc: __('mod.hero.desc') },
-    { type: 'navbar', name: __('mod.navbar'), icon: <CircleDot size={16} />, desc: __('mod.navbar.desc') },
-    { type: 'text', name: __('mod.text'), icon: <Type size={16} />, desc: __('mod.text.desc') },
-    { type: 'features', name: __('mod.features'), icon: <Star size={16} />, desc: __('mod.features.desc') },
-    { type: 'gallery', name: __('mod.gallery'), icon: <Image size={16} />, desc: __('mod.gallery.desc') },
-    { type: 'services', name: __('mod.services'), icon: <Briefcase size={16} />, desc: __('mod.services.desc') },
-    { type: 'testimonials', name: __('mod.testimonials'), icon: <Users size={16} />, desc: __('mod.testimonials.desc') },
-    { type: 'team', name: __('mod.team'), icon: <Users size={16} />, desc: __('mod.team.desc') },
-    { type: 'pricing', name: __('mod.pricing'), icon: <CreditCard size={16} />, desc: __('mod.pricing.desc') },
-    { type: 'faq', name: __('mod.faq'), icon: <HelpCircle size={16} />, desc: __('mod.faq.desc') },
-    { type: 'contact', name: __('mod.contact'), icon: <Phone size={16} />, desc: __('mod.contact.desc') },
-    { type: 'stats', name: __('mod.stats'), icon: <BarChart3 size={16} />, desc: __('mod.stats.desc') },
-    { type: 'cta', name: __('mod.cta'), icon: <Sparkles size={16} />, desc: __('mod.cta.desc') },
-    { type: 'footer', name: __('mod.footer'), icon: <Layout size={16} />, desc: __('mod.footer.desc') },
-    { type: 'divider', name: __('mod.divider'), icon: <SeparatorHorizontal size={16} />, desc: __('mod.divider.desc') },
-    { type: 'music', name: __('mod.music'), icon: <Music size={16} />, desc: __('mod.music.desc') },
-  ], [__]);
-
-  const PANEL_TABS = useMemo(() => [
-    { id: 'components' as EditorPanel, label: __('editor.components'), icon: <Layout size={14} /> },
-    { id: 'pages' as EditorPanel, label: __('editor.pages'), icon: <FilePlus size={14} /> },
-    { id: 'music' as EditorPanel, label: __('editor.music'), icon: <Music size={14} /> },
-    { id: 'styles' as EditorPanel, label: __('editor.styles'), icon: <Settings size={14} /> },
-  ], [__]);
   const [dragModId, setDragModId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
   const [showPageMenu, setShowPageMenu] = useState<string | null>(null);
@@ -61,7 +59,6 @@ export default function Editor({ onClose, onPreview }: EditorProps) {
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const [volume, setVolume] = useState(70);
   const [musicProgress, setMusicProgress] = useState(0);
-  const [showExport, setShowExport] = useState(false);
   const inlineRef = useRef<HTMLDivElement>(null);
 
   const rec = currentPage ? generateMusicRecommendation(detectIndustryFromPage(currentPage), selectedStyle) : null;
@@ -149,7 +146,7 @@ export default function Editor({ onClose, onPreview }: EditorProps) {
             ))}
           </div>
           <button onClick={onPreview} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-transparent border cursor-pointer hover:bg-gray-50" style={{ borderColor: 'rgba(26,43,60,0.15)', color: 'var(--text-primary)' }}><Eye size={14} /> Preview</button>
-          <button onClick={() => setShowExport(true)} className="btn-primary py-2 px-4 text-xs">{__('editor.export')}</button>
+          <button onClick={handleSave} className="btn-primary py-2 px-4 text-xs">Export</button>
         </div>
       </div>
 
@@ -444,11 +441,11 @@ export default function Editor({ onClose, onPreview }: EditorProps) {
         {/* Right Panel - Properties */}
         <RightPanel />
       </div>
-      {showExport && <ExportDialog onClose={() => setShowExport(false)} />}
     </div>
   );
 }
 
+// Module Block with inline editing
 function ModuleBlock({ mod, isSelected, colors, fonts, onSelect, onUpdateContent, onDelete, onDuplicate, onToggleVisibility }: any) {
   const c = mod.content as any;
   const [editingField, setEditingField] = useState<string | null>(null);

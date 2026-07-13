@@ -1,378 +1,540 @@
-import { useEffect, useState, useRef } from 'react';
-import { Sparkles, Briefcase, Palette, Layout, Music, X, Activity, Zap, Crown, ArrowRight } from 'lucide-react';
-import { recommend, type LibraryMatch } from '@/lib/music-recommender';
-import { recommendMusic, checkApiStatus } from '@/lib/api-service';
-import { useAuth } from '@/hooks/useAuth';
+import { useEffect, useState, useCallback } from 'react';
+import {
+  Sparkles, Loader2, Check, Music, Palette, Layout, ArrowRight,
+  Building2, Users, Zap, Activity, Brain, Heart, Eye, SkipForward,
+  SkipBack, Play, Pause, Volume2, RefreshCw, Bookmark, BookmarkCheck,
+  ChevronDown, ChevronUp, Gauge, Target, Sparkle
+} from 'lucide-react';
+import {
+  generateMusicRecommendation, getTrackById, getGenreLabel,
+  getGenreLabelZh, getGenreColor, generateBrandMoodProfile,
+  generateBrandMoodAnalysis, createAnalysisSteps, MUSIC_STYLE_PRESETS,
+  detectIndustry, MUSIC_TRACKS
+} from '@/data/music';
+import { useI18n } from '@/hooks/useI18n';
+import type { MusicRecommendation, BrandMoodProfile, MusicTrack, AnalysisStep, MusicStylePreset } from '@/types';
 
-interface AnalysisResult {
-  industry: string;
-  style: string;
-  colors: string[];
-  structure: string[];
-  musicGenres: string[];
-  tracks: LibraryMatch[];
-  moodLabel: string;
-  moodLabelZh: string;
-  bpm: number;
-}
-
-interface AnalysisModalProps {
+interface Props {
   prompt: string;
   onClose: () => void;
   onSelectTemplate: (templateId: string) => void;
 }
 
-function analyzePrompt(prompt: string): AnalysisResult {
-  const p = prompt.toLowerCase();
-
-  // Run music recommendation
-  const rec = recommend(prompt);
-  const topTracks = rec.libraryMatches.slice(0, 4);
-  const musicGenres = [...new Set(topTracks.map(t => t.genre))];
-
-  // Industry matching (10 categories with Chinese+English keywords)
-  let industry = 'Creative Studio';
-  let style = 'Minimal, dramatic, artistic';
-  let colors = ['#1A1A1A', '#F5F5F5', '#E85D4C', '#8B8B8B'];
-  let structure = ['Hero', 'Portfolio', 'About', 'Services', 'Contact'];
-
-  if (p.includes('coffee') || p.includes('cafe') || p.includes('restaurant') || p.includes('food') || p.includes('bistro') || p.includes('bake') || p.includes('dining') || p.includes('cookie') || p.includes('咖啡') || p.includes('餐厅') || p.includes('美食') || p.includes('饮品') || p.includes('烘焙') || p.includes('料理') || p.includes('蛋糕') || p.includes('甜品') || p.includes('小吃')) {
-    industry = 'Coffee Shop & Café';
-    style = 'Warm, cozy, artisanal';
-    colors = ['#6B3A2A', '#D4A574', '#F5E6D3', '#3D2B1F'];
-    structure = ['Hero', 'About', 'Menu', 'Gallery', 'Contact'];
-  } else if (p.includes('photo') || p.includes('portfoli') || p.includes('design') || p.includes('art') || p.includes('creative') || p.includes('studio') || p.includes('摄影') || p.includes('设计') || p.includes('作品') || p.includes('艺术') || p.includes('画廊') || p.includes('插画') || p.includes('手绘')) {
-    industry = 'Creative Studio';
-    style = 'Minimal, dramatic, artistic';
-    colors = ['#1A1A1A', '#F5F5F5', '#E85D4C', '#8B8B8B'];
-    structure = ['Hero', 'Portfolio', 'About', 'Services', 'Contact'];
-  } else if (p.includes('tech') || p.includes('startup') || p.includes('saas') || p.includes('app') || p.includes('software') || p.includes('digital') || p.includes('cloud') || p.includes('ai') || p.includes('data') || p.includes('科技') || p.includes('创业') || p.includes('软件') || p.includes('智能') || p.includes('互联网') || p.includes('电商') || p.includes('编程')) {
-    industry = 'Tech Startup';
-    style = 'Clean, futuristic, innovative';
-    colors = ['#0E243C', '#3B82F6', '#10B981', '#F8FAFC'];
-    structure = ['Hero', 'Features', 'Pricing', 'Testimonials', 'Contact'];
-  } else if (p.includes('fitness') || p.includes('gym') || p.includes('yoga') || p.includes('health') || p.includes('wellness') || p.includes('sport') || p.includes('workout') || p.includes('健身') || p.includes('运动') || p.includes('瑜伽') || p.includes('健康') || p.includes('减肥') || p.includes('pliates')) {
-    industry = 'Fitness & Wellness';
-    style = 'Energetic, vibrant, motivating';
-    colors = ['#1A2E1A', '#4ADE80', '#FEF08A', '#FFFFFF'];
-    structure = ['Hero', 'Classes', 'Trainers', 'Membership', 'Contact'];
-  } else if (p.includes('wedding') || p.includes('marriage') || p.includes('bride') || p.includes('event') || p.includes('party') || p.includes('ceremony') || p.includes('婚礼') || p.includes('婚庆') || p.includes('活动') || p.includes('策划') || p.includes('庆典')) {
-    industry = 'Wedding & Events';
-    style = 'Elegant, romantic, soft';
-    colors = ['#831843', '#FBCFE8', '#FFF1F2', '#FFFFFF'];
-    structure = ['Hero', 'Gallery', 'Services', 'Testimonials', 'Contact'];
-  } else if (p.includes('law') || p.includes('legal') || p.includes('attorney') || p.includes('firm') || p.includes('court') || p.includes('律师') || p.includes('法律') || p.includes('事务') || p.includes('法务') || p.includes('咨询')) {
-    industry = 'Legal Services';
-    style = 'Professional, trustworthy, authoritative';
-    colors = ['#1E3A5F', '#475569', '#F8FAFC', '#FFFFFF'];
-    structure = ['Hero', 'About', 'Team', 'Services', 'Contact'];
-  } else if (p.includes('fashion') || p.includes('clothing') || p.includes('brand') || p.includes('luxury') || p.includes('style') || p.includes('shop') || p.includes('retail') || p.includes('stylist') || p.includes('时尚') || p.includes('服装') || p.includes('品牌') || p.includes('零售') || p.includes('潮牌') || p.includes('买手')) {
-    industry = 'Fashion & Retail';
-    style = 'Bold, elegant, trendy';
-    colors = ['#171717', '#E11D48', '#FAFAFA', '#FFFFFF'];
-    structure = ['Hero', 'Gallery', 'Products', 'About', 'Contact'];
-  } else if (p.includes('education') || p.includes('school') || p.includes('course') || p.includes('learn') || p.includes('teach') || p.includes('train') || p.includes('college') || p.includes('university') || p.includes('教育') || p.includes('学校') || p.includes('课程') || p.includes('培训') || p.includes('学习') || p.includes('大学') || p.includes('辅导')) {
-    industry = 'Education';
-    style = 'Warm, trustworthy, structured';
-    colors = ['#1E40AF', '#3B82F6', '#F8FAFC', '#FFFFFF'];
-    structure = ['Hero', 'Features', 'Courses', 'Team', 'Pricing', 'Contact'];
-  } else if (p.includes('music') || p.includes('band') || p.includes('artist') || p.includes('concert') || p.includes('singer') || p.includes('album') || p.includes('音乐') || p.includes('乐队') || p.includes('演出') || p.includes('歌手') || p.includes('演唱会')) {
-    industry = 'Music & Entertainment';
-    style = 'Energetic, bold, expressive';
-    colors = ['#0C0C0C', '#A855F7', '#F59E0B', '#FFFFFF'];
-    structure = ['Hero', 'Gallery', 'Text', 'Events', 'Contact'];
-  } else if (p.includes('hotel') || p.includes('travel') || p.includes('tour') || p.includes('resort') || p.includes('trip') || p.includes('酒店') || p.includes('旅游') || p.includes('旅行') || p.includes('民宿') || p.includes('度假')) {
-    industry = 'Hospitality & Travel';
-    style = 'Elegant, refreshing, inviting';
-    colors = ['#0C4A6E', '#38BDF8', '#F0F9FF', '#FFFFFF'];
-    structure = ['Hero', 'Rooms', 'Gallery', 'Amenities', 'Contact'];
-  } else if (p.includes('car') || p.includes('auto') || p.includes('vehicle') || p.includes('automotive') || p.includes('汽车') || p.includes('车行') || p.includes('修车')) {
-    industry = 'Automotive';
-    style = 'Bold, sleek, dynamic';
-    colors = ['#1E293B', '#EF4444', '#F8FAFC', '#FFFFFF'];
-    structure = ['Hero', 'Showroom', 'Services', 'About', 'Contact'];
-  } else if (p.includes('spa') || p.includes('beauty') || p.includes('salon') || p.includes('hair') || p.includes('nail') || p.includes('美业') || p.includes('美容') || p.includes('美发') || p.includes('护肤')) {
-    industry = 'Beauty & Wellness';
-    style = 'Soft, elegant, luxurious';
-    colors = ['#831843', '#EC4899', '#FCE7F3', '#FFFFFF'];
-    structure = ['Hero', 'Services', 'Gallery', 'Pricing', 'Contact'];
-  } else if (p.includes('realestate') || p.includes('property') || p.includes('house') || p.includes('apartment') || p.includes('房地产') || p.includes('房产') || p.includes('楼盘') || p.includes('中介')) {
-    industry = 'Real Estate';
-    style = 'Professional, spacious, trustworthy';
-    colors = ['#1E3A5F', '#D97706', '#FFFBEB', '#FFFFFF'];
-    structure = ['Hero', 'Properties', 'About', 'Team', 'Contact'];
-  } else if (p.includes('charity') || p.includes('ngo') || p.includes('volunteer') || p.includes('donation') || p.includes('nonprofit') || p.includes('公益') || p.includes('慈善') || p.includes('志愿者') || p.includes('捐款')) {
-    industry = 'Non-Profit';
-    style = 'Warm, hopeful, trustworthy';
-    colors = ['#065F46', '#22C55E', '#F0FDF4', '#FFFFFF'];
-    structure = ['Hero', 'Mission', 'Projects', 'Impact', 'Contact'];
-  }
-
-  return {
-    industry, style, colors, structure, musicGenres,
-    tracks: topTracks,
-    moodLabel: rec.textAnalysis.moodLabel,
-    moodLabelZh: rec.musicParams.moodLabelZh,
-    bpm: rec.musicParams.bpm,
-  };
-}
-
-const tplMap: Record<string, string> = {
-  'Coffee Shop & Café': 'tpl-cafe-1',
-  'Creative Studio': 'tpl-photo-1',
-  'Tech Startup': 'tpl-tech-1',
-  'Fitness & Wellness': 'tpl-fitness-1',
-  'Wedding & Events': 'tpl-photo-1',
-  'Legal Services': 'tpl-tech-1',
-  'Fashion & Retail': 'tpl-studio-1',
-  'Education': 'tpl-tech-1',
-  'Music & Entertainment': 'tpl-photo-1',
-  'Hospitality & Travel': 'tpl-cafe-1',
-  'Automotive': 'tpl-tech-1',
-  'Beauty & Wellness': 'tpl-studio-1',
-  'Real Estate': 'tpl-tech-1',
-  'Non-Profit': 'tpl-cafe-1',
-};
-
-export default function AnalysisModal({ prompt, onClose, onSelectTemplate, onSignIn }: AnalysisModalProps & { onSignIn?: () => void }) {
-  const { canUseAI } = useAuth();
+export default function AnalysisModal({ prompt, onClose, onSelectTemplate }: Props) {
+  const { lang, t } = useI18n();
+  const [phase, setPhase] = useState<'analyzing' | 'results'>('analyzing');
+  const [currentStep, setCurrentStep] = useState(0);
+  const [result, setResult] = useState<MusicRecommendation | null>(null);
+  const [selectedTrack, setSelectedTrack] = useState<MusicTrack | null>(null);
   const [visible, setVisible] = useState(false);
-  const [result, setResult] = useState<AnalysisResult | null>(null);
-  const [aiProvider, setAiProvider] = useState('local');
-  const promptRef = useRef(prompt);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [selectedStyle, setSelectedStyle] = useState<string>('auto');
+  const [expandedStep, setExpandedStep] = useState<string | null>(null);
+  const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  const [activeTab, setActiveTab] = useState<'recommend' | 'style'>('recommend');
+
+  const industry = detectIndustry(prompt);
+  const steps = createAnalysisSteps(industry);
+
+  useEffect(() => { setVisible(true); }, []);
 
   useEffect(() => {
-    promptRef.current = prompt;
-    const run = async () => {
-      try {
-        const status = await checkApiStatus();
-        setAiProvider(status.hasAI ? status.provider : 'local');
-
-        if (status.hasAI) {
-          const musicRec = await recommendMusic(prompt);
-          const topTracks = musicRec.libraryMatches.slice(0, 4);
-          const musicGenres = [...new Set(topTracks.map(t => t.genre))];
-          const local = analyzePrompt(prompt);
-          setResult({
-            ...local,
-            tracks: topTracks,
-            musicGenres,
-            moodLabel: musicRec.textAnalysis.moodLabel,
-            moodLabelZh: musicRec.musicParams.moodLabelZh,
-            bpm: musicRec.musicParams.bpm,
-          });
-        } else {
-          await new Promise(r => setTimeout(r, 800));
-          setResult(analyzePrompt(prompt));
-        }
-      } catch {
-        await new Promise(r => setTimeout(r, 500));
-        setResult(analyzePrompt(prompt));
-        setAiProvider('local');
+    let stepIdx = 0;
+    const interval = setInterval(() => {
+      stepIdx++;
+      if (stepIdx < steps.length) {
+        setCurrentStep(stepIdx);
+      } else {
+        clearInterval(interval);
+        const rec = generateMusicRecommendation(industry);
+        setResult(rec);
+        setSelectedTrack(rec.primary);
+        setPhase('results');
       }
-    };
-    run();
-    requestAnimationFrame(() => { setVisible(true); });
-  }, [prompt, canUseAI]);
+    }, 900);
+    return () => clearInterval(interval);
+  }, [prompt, industry, steps.length]);
 
-  const handleContinueFree = () => {
-    const local = result || analyzePrompt(promptRef.current);
-    const templateId = tplMap[local.industry] || 'tpl-cafe-1';
-    onSelectTemplate(templateId);
+  // Simulate progress bar when playing
+  useEffect(() => {
+    if (!isPlaying) return;
+    const interval = setInterval(() => {
+      setProgress(p => (p >= 100 ? 0 : p + 0.5));
+    }, 100);
+    return () => clearInterval(interval);
+  }, [isPlaying]);
+
+  const handleStyleSwitch = useCallback((styleId: string) => {
+    setSelectedStyle(styleId);
+    if (styleId === 'auto') {
+      const rec = generateMusicRecommendation(industry);
+      setResult(rec);
+      setSelectedTrack(rec.primary);
+    } else {
+      const preset = MUSIC_STYLE_PRESETS.find(p => p.id === styleId);
+      if (preset) {
+        const matchingTracks = MUSIC_TRACKS.filter(t =>
+          preset.genres.some(g => t.genre === g || t.genre.includes(g))
+        );
+        if (matchingTracks.length > 0) {
+          const shuffled = [...matchingTracks].sort(() => Math.random() - 0.5);
+          setResult({
+            primary: shuffled[0],
+            alternatives: shuffled.slice(1, 4),
+            reasoning: lang === 'zh'
+              ? `${preset.nameZh} 风格强调${preset.descriptionZh}。这些曲目与您选择的品牌氛围匹配，精致度对齐 ${preset.moodProfile.sophistication}%。`
+              : `The ${preset.name} style emphasizes ${preset.description.toLowerCase()}. These tracks match your selected brand atmosphere with ${preset.moodProfile.sophistication}% sophistication alignment.`,
+            moodProfile: preset.moodProfile,
+            analysis: {
+              industry: preset.name,
+              moodProfile: preset.moodProfile,
+              keywords: preset.genres,
+              colorStyle: preset.description,
+              visualRhythm: 'Style-driven',
+              targetAudience: 'Style-aligned',
+              brandPersonality: preset.name,
+            },
+            style: styleId,
+          });
+          setSelectedTrack(shuffled[0]);
+        }
+      }
+    }
+  }, [industry, lang]);
+
+  const handleContinue = () => {
+    const tplMap: Record<string, string> = {
+      'Coffee & Food': 'tpl-cafe-1', 'Creative': 'tpl-photo-1', 'Tech': 'tpl-tech-1',
+      'Health': 'tpl-fitness-1', 'Fitness': 'tpl-fitness-1', 'Services': 'tpl-cafe-1',
+      'Wedding': 'tpl-photo-1', 'Luxury': 'tpl-restaurant-1', 'Legal': 'tpl-tech-1',
+      'Fashion': 'tpl-studio-1', 'Retail': 'tpl-cafe-1', 'Education': 'tpl-tech-1',
+    };
+    onSelectTemplate(tplMap[industry] || 'tpl-tech-1');
   };
 
-  const handleClose = () => { setVisible(false); setTimeout(onClose, 250); };
+  const toggleFavorite = (trackId: string) => {
+    setFavorites(prev => {
+      const next = new Set(prev);
+      if (next.has(trackId)) next.delete(trackId);
+      else next.add(trackId);
+      return next;
+    });
+  };
+
+  const getStepIcon = (stepId: string) => {
+    switch (stepId) {
+      case 'industry': return <Building2 size={16} />;
+      case 'brand-tone': return <Users size={16} />;
+      case 'mood': return <Heart size={16} />;
+      case 'visual': return <Palette size={16} />;
+      case 'matching': return <Music size={16} />;
+      default: return <Sparkles size={16} />;
+    }
+  };
 
   return (
     <div
       className={`fixed inset-0 z-[100] flex items-center justify-center p-4 transition-opacity duration-300 ${visible ? 'opacity-100' : 'opacity-0'}`}
-      style={{ background: 'rgba(26, 43, 60, 0.6)', backdropFilter: 'blur(8px)' }}
-      onClick={handleClose}
+      style={{ background: 'rgba(26,43,60,0.6)', backdropFilter: 'blur(8px)' }}
+      onClick={onClose}
     >
-      <div className={`relative w-full max-w-[620px] max-h-[85vh] overflow-y-auto bg-white rounded-2xl shadow-xl p-8 sm:p-10 transition-all duration-400 ${visible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}
+      <div
+        className={`w-full max-w-[780px] max-h-[92vh] overflow-y-auto bg-white rounded-2xl shadow-xl transition-all duration-400 ${visible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}
         style={{ transitionTimingFunction: 'cubic-bezier(0.16, 1, 0.3, 1)' }}
         onClick={e => e.stopPropagation()}
       >
-        <button onClick={handleClose} className="absolute top-4 right-4 p-2 rounded-full bg-transparent border-none cursor-pointer hover:bg-gray-100" style={{ color: 'var(--text-tertiary)' }}><X size={20} /></button>
-
-        {!result ? (
-          <div className="text-center py-12">
-            <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-6" style={{ background: 'var(--accent-light)' }}>
-              <Sparkles size={28} style={{ color: 'var(--accent)' }} className="animate-spin" />
+        {phase === 'analyzing' ? (
+          <div className="p-12 text-center">
+            <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6" style={{ background: 'var(--accent-light)' }}>
+              <Loader2 size={32} style={{ color: 'var(--accent)' }} className="animate-spin" />
             </div>
-            <h3 className="text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>Analyzing your request...</h3>
-            <p className="mt-2 text-sm" style={{ color: 'var(--text-secondary)' }}>Our AI analyzes industry, visual style, and emotional tone to match the perfect music.</p>
-            <div className="mt-6 max-w-xs mx-auto h-1 rounded-full overflow-hidden" style={{ background: 'var(--accent-light)' }}>
-              <div className="h-full rounded-full transition-all duration-1000 ease-out" style={{ background: 'var(--accent)', width: '60%' }} />
+            <h2 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>
+              {t('analysis.title', 'Analyzing your brand experience...')}
+            </h2>
+            <p className="mt-2 text-sm" style={{ color: 'var(--text-secondary)' }}>
+              {t('analysis.subtitle', 'Our AI is studying both visual and audio dimensions of your brand')}
+            </p>
+
+            {/* Analysis Cards */}
+            <div className="mt-8 grid grid-cols-2 gap-3 max-w-lg mx-auto">
+              {steps.map((step, i) => (
+                <div
+                  key={step.id}
+                  className={`p-3 rounded-xl border transition-all duration-500 ${i <= currentStep ? 'opacity-100 border-[var(--accent)]' : 'opacity-40 border-gray-200'}`}
+                  style={{ background: i <= currentStep ? 'var(--accent-light)' : '#f9f9f9' }}
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    <span style={{ color: i <= currentStep ? 'var(--accent)' : 'var(--text-tertiary)' }}>
+                      {i < currentStep ? <Check size={14} /> : i === currentStep ? <Loader2 size={14} className="animate-spin" /> : getStepIcon(step.id)}
+                    </span>
+                    <span className={`text-xs font-semibold ${i <= currentStep ? 'text-[var(--accent)]' : 'text-[var(--text-tertiary)]'}`}>
+                      {lang === 'zh' ? step.labelZh : step.label}
+                    </span>
+                  </div>
+                  <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                    {lang === 'zh' ? step.descriptionZh : step.description}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            {/* Progress */}
+            <div className="mt-6 max-w-sm mx-auto">
+              <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(26,43,60,0.06)' }}>
+                <div
+                  className="h-full rounded-full transition-all duration-700"
+                  style={{
+                    width: `${((currentStep + 1) / steps.length) * 100}%`,
+                    background: 'linear-gradient(90deg, var(--accent), var(--music-accent))'
+                  }}
+                />
+              </div>
+              <p className="text-xs mt-2" style={{ color: 'var(--text-tertiary)' }}>
+                {Math.round(((currentStep + 1) / steps.length) * 100)}%
+              </p>
             </div>
           </div>
-        ) : (
-          <>
-            <div className="text-center mb-6">
-              <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: 'var(--accent-light)' }}>
-                <Sparkles size={28} style={{ color: 'var(--accent)' }} />
-              </div>
-              <h2 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>Analysis Complete</h2>
-              <div className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-[10px] font-medium"
-                style={{ background: aiProvider !== 'local' ? '#d1fae5' : '#fef3c7', color: aiProvider !== 'local' ? '#16a34a' : '#b45309' }}>
-                <Zap size={10} /> {aiProvider !== 'local' ? `Powered by ${aiProvider}` : 'Local Smart Engine'}
-              </div>
-              <p className="mt-1 text-sm" style={{ color: 'var(--text-secondary)' }}>AI detected your industry, visual style, and emotional profile.</p>
-            </div>
-
-            <div className="space-y-4">
-              {/* Industry + Style */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="card-surface p-4 flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'var(--accent-light)' }}>
-                    <Briefcase size={18} color="var(--accent)" />
-                  </div>
-                  <div>
-                    <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>Industry</span>
-                    <p className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>{result.industry}</p>
-                  </div>
+        ) : result ? (
+          <div>
+            {/* Header */}
+            <div className="p-8 pb-4">
+              <div className="text-center">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full mb-4" style={{ background: 'var(--accent-light)' }}>
+                  <Sparkles size={14} style={{ color: 'var(--accent)' }} />
+                  <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--accent)' }}>
+                    Brand Experience Analysis
+                  </span>
                 </div>
-                <div className="card-surface p-4 flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'var(--accent-light)' }}>
-                    <Palette size={18} color="var(--accent)" />
-                  </div>
-                  <div>
-                    <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>Visual Style</span>
-                    <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{result.style}</p>
-                    <div className="flex gap-1.5 mt-2">
-                      {result.colors.map(c => <div key={c} className="w-6 h-6 rounded-full border-2" style={{ background: c, borderColor: 'rgba(26,43,60,0.1)' }} title={c} />)}
+                <h2 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>
+                  {t('analysis.resultTitle', 'Your brand experience is ready')}
+                </h2>
+                <p className="mt-2 text-sm" style={{ color: 'var(--text-secondary)' }}>
+                  {t('analysis.resultSubtitle', 'AI analyzed your description and designed a complete visual + audio identity.')}
+                </p>
+              </div>
+
+              {/* Tab Switcher: Recommend vs Style */}
+              <div className="mt-6 flex justify-center">
+                <div className="inline-flex p-0.5 rounded-lg" style={{ background: '#f5f5f3' }}>
+                  <button
+                    onClick={() => setActiveTab('recommend')}
+                    className={`px-4 py-2 rounded-md text-xs font-medium transition-all border-none cursor-pointer ${activeTab === 'recommend' ? 'bg-white shadow-sm text-[var(--accent)]' : 'text-[var(--text-tertiary)] hover:text-[var(--text-primary)]'}`}
+                  >
+                    {lang === 'zh' ? 'AI 推荐' : 'AI Recommendation'}
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('style')}
+                    className={`px-4 py-2 rounded-md text-xs font-medium transition-all border-none cursor-pointer ${activeTab === 'style' ? 'bg-white shadow-sm text-[var(--accent)]' : 'text-[var(--text-tertiary)] hover:text-[var(--text-primary)]'}`}
+                  >
+                    {lang === 'zh' ? '切换风格' : 'Switch Style'}
+                  </button>
+                </div>
+              </div>
+
+              {activeTab === 'recommend' ? (
+                <>
+                  {/* Brand Mood Profile */}
+                  <div className="mt-6 p-5 rounded-2xl" style={{ background: '#FAFAF8', border: '1px solid var(--border-color)' }}>
+                    <div className="flex items-center gap-2 mb-4">
+                      <Palette size={16} style={{ color: 'var(--accent)' }} />
+                      <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--text-tertiary)' }}>
+                        {t('analysis.moodProfile', 'Brand Mood Profile')}
+                      </span>
                     </div>
-                  </div>
-                </div>
-              </div>
+                    <MoodRadar profile={result.moodProfile} lang={lang} t={t} />
 
-              {/* Structure */}
-              <div className="card-surface p-4 flex items-start gap-3">
-                <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'var(--accent-light)' }}>
-                  <Layout size={18} color="var(--accent)" />
-                </div>
-                <div className="flex-1">
-                  <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>Website Structure</span>
-                  <div className="flex flex-wrap items-center gap-1.5 mt-2">
-                    {result.structure.map((item, i) => (
-                      <div key={item} className="flex items-center gap-1.5">
-                        <span className="px-2.5 py-1 rounded-lg text-xs font-medium" style={{ background: 'var(--accent-light)', color: 'var(--accent)' }}>{item}</span>
-                        {i < result.structure.length - 1 && <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>→</span>}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Music Recommendation */}
-              <div className="card-surface p-4" style={{ background: 'rgba(123,97,255,0.04)', border: '1px solid rgba(123,97,255,0.15)' }}>
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'var(--music-accent-light)' }}>
-                    <Music size={18} color="var(--music-accent)" />
-                  </div>
-                  <div>
-                    <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>AI Music Match</span>
-                    <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-                      {result.moodLabelZh} · {result.bpm} BPM · {result.musicGenres.join(', ')}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Track list */}
-                {result.tracks.length > 0 && (
-                  <div className="space-y-2 mt-3 pt-3 border-t" style={{ borderColor: 'rgba(123,97,255,0.12)' }}>
-                    {result.tracks.map((track, i) => (
-                      <div key={track.id} className="flex items-center gap-3 p-2 rounded-lg" style={{ background: i === 0 ? 'rgba(123,97,255,0.08)' : 'transparent' }}>
-                        <div className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold" style={{ background: 'var(--music-accent-light)', color: 'var(--music-accent)' }}>
-                          {i + 1}
+                    {/* Brand Keywords & Details */}
+                    {result.analysis && (
+                      <div className="mt-4 pt-4 border-t" style={{ borderColor: 'var(--border-color)' }}>
+                        <div className="flex flex-wrap gap-2 mb-3">
+                          {result.analysis.keywords.map(kw => (
+                            <span key={kw} className="px-2.5 py-1 rounded-full text-xs font-medium" style={{ background: 'var(--accent-light)', color: 'var(--accent)' }}>
+                              {kw}
+                            </span>
+                          ))}
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{track.title} — {track.artist}</p>
-                          <div className="flex items-center gap-2 mt-0.5">
-                            <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: '#F0EBFF', color: 'var(--music-accent)' }}>{track.genre}</span>
-                            <span className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>{track.bpm} BPM</span>
-                            <span className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>{track.energy > 0.6 ? '高能量' : track.energy > 0.3 ? '中能量' : '低能量'}</span>
-                            <span className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>{track.mode === 'major' ? '大调' : '小调'}</span>
+                        <div className="grid grid-cols-2 gap-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
+                          <div className="flex items-center gap-1.5">
+                            <Target size={12} style={{ color: 'var(--text-tertiary)' }} />
+                            <span>{t('analysis.targetAudience', 'Target')}: {result.analysis.targetAudience}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <Sparkle size={12} style={{ color: 'var(--text-tertiary)' }} />
+                            <span>{t('analysis.personality', 'Personality')}: {result.analysis.brandPersonality}</span>
                           </div>
                         </div>
-                        <div>
-                          <span className="text-xs font-bold" style={{ color: i === 0 ? 'var(--music-accent)' : 'var(--text-tertiary)' }}>
-                            {Math.round(track.score * 100)}%
-                          </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Music Recommendation Cards */}
+                  <div className="mt-4">
+                    <div className="flex items-center gap-2 mb-4">
+                      <Music size={16} style={{ color: 'var(--music-accent)' }} />
+                      <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--text-tertiary)' }}>
+                        {t('analysis.musicRec', 'AI Music Recommendation')}
+                      </span>
+                    </div>
+
+                    {/* Primary Recommendation - Full Card */}
+                    {selectedTrack && (
+                      <div className="p-4 rounded-2xl mb-4" style={{ background: 'rgba(123,97,255,0.04)', border: '1px solid rgba(123,97,255,0.15)' }}>
+                        <div className="flex items-start gap-4">
+                          <div className="relative flex-shrink-0">
+                            <img src={selectedTrack.cover} alt={selectedTrack.title} className="w-20 h-20 rounded-xl object-cover" />
+                            <button
+                              onClick={() => setIsPlaying(!isPlaying)}
+                              className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-xl transition-opacity hover:bg-black/50"
+                            >
+                              {isPlaying ? <Pause size={24} className="text-white" /> : <Play size={24} className="text-white ml-1" />}
+                            </button>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <h3 className="text-base font-bold" style={{ color: 'var(--text-primary)' }}>{selectedTrack.title}</h3>
+                              <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ background: getGenreColor(selectedTrack.genre) + '22', color: getGenreColor(selectedTrack.genre) }}>
+                                {lang === 'zh' ? getGenreLabelZh(selectedTrack.genre) : getGenreLabel(selectedTrack.genre)}
+                              </span>
+                              <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ background: 'var(--accent-light)', color: 'var(--accent)' }}>
+                                {selectedTrack.bpm} BPM
+                              </span>
+                            </div>
+                            <p className="text-xs mt-1" style={{ color: 'var(--text-tertiary)' }}>{selectedTrack.artist} &middot; {selectedTrack.duration}</p>
+                            <div className="flex flex-wrap gap-1 mt-2">
+                              {selectedTrack.moods.map(m => (
+                                <span key={m} className="px-1.5 py-0.5 rounded text-xs" style={{ background: 'var(--music-accent-light)', color: 'var(--music-accent)' }}>{m}</span>
+                              ))}
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => toggleFavorite(selectedTrack.id)}
+                            className="p-2 rounded-lg hover:bg-white/50 transition-colors border-none bg-transparent cursor-pointer flex-shrink-0"
+                          >
+                            {favorites.has(selectedTrack.id) ? <BookmarkCheck size={18} style={{ color: 'var(--accent)' }} /> : <Bookmark size={18} style={{ color: 'var(--text-tertiary)' }} />}
+                          </button>
                         </div>
+
+                        {/* Mini Player */}
+                        <div className="mt-3 flex items-center gap-3">
+                          <button onClick={() => setIsPlaying(!isPlaying)} className="w-7 h-7 rounded-full flex items-center justify-center text-white border-none cursor-pointer" style={{ background: 'var(--music-accent)' }}>
+                            {isPlaying ? <Pause size={12} /> : <Play size={12} />}
+                          </button>
+                          <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: 'rgba(26,43,60,0.08)' }}>
+                            <div className="h-full rounded-full transition-all" style={{ width: `${progress}%`, background: 'var(--music-accent)' }} />
+                          </div>
+                          <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>{selectedTrack.duration}</span>
+                          <Volume2 size={14} style={{ color: 'var(--text-tertiary)' }} />
+                        </div>
+
+                        {/* AI Reasoning */}
+                        <div className="mt-3 p-3 rounded-xl" style={{ background: 'rgba(123,97,255,0.08)' }}>
+                          <p className="text-xs font-medium mb-1" style={{ color: 'var(--music-accent)' }}>
+                            {t('analysis.whyRecommend', 'Why AI recommends this:')}
+                          </p>
+                          <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{result.reasoning}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Alternative Tracks */}
+                    <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-tertiary)' }}>
+                      {t('analysis.alternatives', 'Alternative options')}
+                    </p>
+                    <div className="grid grid-cols-1 gap-2">
+                      {result.alternatives.map(alt => (
+                        <button
+                          key={alt.id}
+                          onClick={() => setSelectedTrack(alt)}
+                          className={`flex items-center gap-3 p-3 rounded-xl text-left cursor-pointer transition-all border ${selectedTrack?.id === alt.id ? 'border-2' : 'border'}`}
+                          style={{
+                            background: selectedTrack?.id === alt.id ? 'var(--music-accent-light)' : 'white',
+                            borderColor: selectedTrack?.id === alt.id ? 'var(--music-accent)' : 'var(--border-color)'
+                          }}
+                        >
+                          <img src={alt.cover} alt={alt.title} className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{alt.title}</p>
+                            <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>{alt.artist} &middot; {lang === 'zh' ? getGenreLabelZh(alt.genre) : getGenreLabel(alt.genre)}</p>
+                          </div>
+                          <div className="flex items-center gap-1 flex-shrink-0">
+                            <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: 'rgba(26,43,60,0.06)', color: 'var(--text-tertiary)' }}>{alt.bpm} BPM</span>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); toggleFavorite(alt.id); }}
+                              className="p-1 rounded hover:bg-gray-50 border-none bg-transparent cursor-pointer"
+                            >
+                              {favorites.has(alt.id) ? <BookmarkCheck size={14} style={{ color: 'var(--accent)' }} /> : <Bookmark size={14} style={{ color: 'var(--text-tertiary)' }} />}
+                            </button>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Analysis Steps Accordion */}
+                  <div className="mt-4 p-4 rounded-2xl" style={{ background: '#FAFAF8', border: '1px solid var(--border-color)' }}>
+                    <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: 'var(--text-tertiary)' }}>
+                      {lang === 'zh' ? '分析详情' : 'Analysis Details'}
+                    </p>
+                    {steps.map((step, i) => (
+                      <div key={step.id} className="mb-1">
+                        <button
+                          onClick={() => setExpandedStep(expandedStep === step.id ? null : step.id)}
+                          className="w-full flex items-center justify-between p-2.5 rounded-lg hover:bg-white transition-colors border-none bg-transparent cursor-pointer text-left"
+                        >
+                          <div className="flex items-center gap-2">
+                            <div className="w-5 h-5 rounded-full flex items-center justify-center" style={{ background: 'var(--accent-light)' }}>
+                              <Check size={10} style={{ color: 'var(--accent)' }} />
+                            </div>
+                            <span className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>
+                              {lang === 'zh' ? step.labelZh : step.label}
+                            </span>
+                          </div>
+                          {expandedStep === step.id ? <ChevronUp size={14} style={{ color: 'var(--text-tertiary)' }} /> : <ChevronDown size={14} style={{ color: 'var(--text-tertiary)' }} />}
+                        </button>
+                        {expandedStep === step.id && step.dimensions && (
+                          <div className="pl-9 pr-2 pb-2 space-y-1.5">
+                            {step.dimensions.map(dim => (
+                              <div key={dim.id} className="flex items-center justify-between py-1">
+                                <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{lang === 'zh' ? dim.labelZh : dim.label}</span>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>{lang === 'zh' ? dim.valueZh : dim.value}</span>
+                                  <div className="w-12 h-1 rounded-full overflow-hidden" style={{ background: 'rgba(26,43,60,0.06)' }}>
+                                    <div className="h-full rounded-full" style={{ width: `${dim.confidence}%`, background: 'var(--accent)' }} />
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
-                )}
-              </div>
 
-              {/* Mood bars */}
-              <div className="card-surface p-4 flex items-start gap-3">
-                <Activity size={18} style={{ color: 'var(--accent)', marginTop: 2 }} />
-                <div className="flex-1">
-                  <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>Emotional Profile</span>
-                  <div className="flex gap-4 mt-2">
-                    <div className="flex-1">
-                      <div className="flex justify-between text-xs mb-1"><span style={{ color: 'var(--text-secondary)' }}>Valence</span><span style={{ color: 'var(--text-primary)' }}>{Math.round(result.tracks[0]?.valence * 100 || 0)}%</span></div>
-                      <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(26,43,60,0.06)' }}>
-                        <div className="h-full rounded-full" style={{ width: `${Math.round((result.tracks[0]?.valence || 0) * 100)}%`, background: '#10b981' }} />
-                      </div>
+                  {/* Visual summary */}
+                  <div className="mt-4 flex flex-wrap gap-3">
+                    <div className="flex-1 min-w-[120px] p-3 rounded-xl text-center" style={{ background: 'var(--accent-light)' }}>
+                      <Layout size={16} className="mx-auto mb-1" style={{ color: 'var(--accent)' }} />
+                      <p className="text-xs font-semibold" style={{ color: 'var(--accent)' }}>{industry}</p>
+                      <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>{t('analysis.industry', 'Industry')}</p>
                     </div>
-                    <div className="flex-1">
-                      <div className="flex justify-between text-xs mb-1"><span style={{ color: 'var(--text-secondary)' }}>Arousal</span><span style={{ color: 'var(--text-primary)' }}>{Math.round(result.tracks[0]?.arousal * 100 || 0)}%</span></div>
-                      <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(26,43,60,0.06)' }}>
-                        <div className="h-full rounded-full" style={{ width: `${Math.round((result.tracks[0]?.arousal || 0) * 100)}%`, background: '#f59e0b' }} />
-                      </div>
+                    <div className="flex-1 min-w-[120px] p-3 rounded-xl text-center" style={{ background: 'var(--music-accent-light)' }}>
+                      <Music size={16} className="mx-auto mb-1" style={{ color: 'var(--music-accent)' }} />
+                      <p className="text-xs font-semibold" style={{ color: 'var(--music-accent)' }}>
+                        {selectedTrack ? (lang === 'zh' ? getGenreLabelZh(selectedTrack.genre) : getGenreLabel(selectedTrack.genre)) : '—'}
+                      </p>
+                      <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>{t('analysis.soundscape', 'Soundscape')}</p>
+                    </div>
+                    <div className="flex-1 min-w-[120px] p-3 rounded-xl text-center" style={{ background: 'rgba(45,138,78,0.08)' }}>
+                      <Gauge size={16} className="mx-auto mb-1" style={{ color: 'var(--success)' }} />
+                      <p className="text-xs font-semibold" style={{ color: 'var(--success)' }}>{selectedTrack?.bpm || '—'}</p>
+                      <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>BPM</p>
                     </div>
                   </div>
+                </>
+              ) : (
+                /* Style Switcher Tab */
+                <div className="mt-6">
+                  <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
+                    {lang === 'zh' ? '选择不同的音乐风格，AI 将重新推荐匹配的音乐。' : 'Choose a different music style and AI will re-recommend matching tracks.'}
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => handleStyleSwitch('auto')}
+                      className={`p-3 rounded-xl text-left cursor-pointer transition-all border ${selectedStyle === 'auto' ? 'border-2' : 'border'}`}
+                      style={{
+                        background: selectedStyle === 'auto' ? 'var(--accent-light)' : 'white',
+                        borderColor: selectedStyle === 'auto' ? 'var(--accent)' : 'var(--border-color)'
+                      }}
+                    >
+                      <div className="flex items-center gap-2 mb-1">
+                        <Brain size={16} style={{ color: 'var(--accent)' }} />
+                        <span className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>
+                          {lang === 'zh' ? 'AI 自动' : 'AI Auto'}
+                        </span>
+                      </div>
+                      <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                        {lang === 'zh' ? '基于品牌分析自动匹配' : 'Auto-match based on brand analysis'}
+                      </p>
+                    </button>
+                    {MUSIC_STYLE_PRESETS.map(preset => (
+                      <button
+                        key={preset.id}
+                        onClick={() => handleStyleSwitch(preset.id)}
+                        className={`p-3 rounded-xl text-left cursor-pointer transition-all border ${selectedStyle === preset.id ? 'border-2' : 'border'}`}
+                        style={{
+                          background: selectedStyle === preset.id ? 'var(--music-accent-light)' : 'white',
+                          borderColor: selectedStyle === preset.id ? 'var(--music-accent)' : 'var(--border-color)'
+                        }}
+                      >
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-xs font-semibold" style={{ color: selectedStyle === preset.id ? 'var(--music-accent)' : 'var(--text-primary)' }}>
+                            {lang === 'zh' ? preset.nameZh : preset.name}
+                          </span>
+                        </div>
+                        <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                          {lang === 'zh' ? preset.descriptionZh : preset.description}
+                        </p>
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Rematch Button */}
+                  <button
+                    onClick={() => handleStyleSwitch(selectedStyle)}
+                    className="w-full mt-4 py-3 rounded-xl text-xs font-medium flex items-center justify-center gap-2 border-none cursor-pointer transition-all hover:opacity-90"
+                    style={{ background: 'linear-gradient(135deg, var(--accent), var(--music-accent))', color: 'white' }}
+                  >
+                    <RefreshCw size={14} /> {t('music.rematch', 'Rematch Music')}
+                  </button>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Actions */}
-            <div className="mt-6 flex gap-3">
-              <button onClick={handleClose} className="btn-ghost flex-1 text-xs">Refine Input</button>
-              <button
-                onClick={() => { setVisible(false); setTimeout(() => onSelectTemplate(tplMap[result?.industry] || 'tpl-cafe-1'), 250); }}
-                className="btn-primary flex-1 text-xs flex items-center justify-center gap-2"
-              >
-                Open in Editor <Sparkles size={14} />
+            <div className="p-6 pt-2 flex gap-3">
+              <button onClick={onClose} className="btn-ghost flex-1 text-xs">
+                {t('analysis.tryAgain', 'Try Different Input')}
               </button>
-            </div>
-          </>
-        )}
-      </div>
-
-      {/* Inline Pro banner — only for free users after analysis completes */}
-      {!canUseAI && result && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4" style={{ background: 'rgba(26,43,60,0.6)', backdropFilter: 'blur(8px)' }}>
-          <div className="w-full max-w-[600px] bg-white rounded-2xl shadow-xl p-8 text-center" onClick={e => e.stopPropagation()}>
-            <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: 'rgba(232,93,76,0.1)' }}>
-              <Crown size={28} style={{ color: 'var(--accent)' }} />
-            </div>
-            <h3 className="text-xl font-bold mb-2" style={{ color: 'var(--text-primary)' }}>解锁 Pro 功能</h3>
-            <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>
-              升级至 Pro 解锁 AI 音乐智能匹配、导出网站等高级功能。当前使用本地引擎分析完成。
-            </p>
-            <div className="flex flex-col gap-3">
-              <button
-                onClick={() => { onSignIn?.(); }}
-                className="w-full py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 border-none cursor-pointer"
-                style={{ background: 'linear-gradient(135deg, var(--accent), var(--music-accent))', color: 'white' }}
-              >
-                <Sparkles size={16} /> 登录 / 升级 Pro
-              </button>
-              <button
-                onClick={handleContinueFree}
-                className="w-full py-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2 border-none cursor-pointer"
-                style={{ background: 'var(--accent-light)', color: 'var(--accent)' }}
-              >
-                继续使用免费版 <ArrowRight size={16} />
+              <button onClick={handleContinue} className="btn-primary flex-1 text-xs flex items-center justify-center gap-2">
+                {t('analysis.continue', 'Continue to Editor')} <ArrowRight size={14} />
               </button>
             </div>
           </div>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function MoodRadar({ profile, lang, t }: { profile: BrandMoodProfile; lang: string; t: (key: string, fallback?: string) => string }) {
+  const dims = [
+    { key: 'warmth', label: t('analysis.warmth', 'Warmth'), labelZh: '温暖度', val: profile.warmth },
+    { key: 'energy', label: t('analysis.energy', 'Energy'), labelZh: '活力值', val: profile.energy },
+    { key: 'professionalism', label: t('analysis.professionalism', 'Professional'), labelZh: '专业度', val: profile.professionalism },
+    { key: 'creativity', label: t('analysis.creativity', 'Creative'), labelZh: '创意值', val: profile.creativity },
+    { key: 'sophistication', label: t('analysis.sophistication', 'Sophisticated'), labelZh: '精致度', val: profile.sophistication },
+  ];
+
+  return (
+    <div className="space-y-3">
+      {dims.map(d => (
+        <div key={d.key} className="flex items-center gap-3">
+          <span className="text-xs w-28 text-right flex-shrink-0" style={{ color: 'var(--text-secondary)' }}>
+            {lang === 'zh' ? d.labelZh : d.label}
+          </span>
+          <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: 'rgba(26,43,60,0.06)' }}>
+            <div
+              className="h-full rounded-full transition-all duration-1000"
+              style={{
+                width: `${d.val}%`,
+                background: d.val > 70 ? 'var(--accent)' : d.val > 50 ? 'var(--music-accent)' : 'var(--text-tertiary)'
+              }}
+            />
+          </div>
+          <span className="text-xs w-8 flex-shrink-0 font-medium" style={{ color: 'var(--text-primary)' }}>{d.val}</span>
         </div>
-      )}
+      ))}
     </div>
   );
 }

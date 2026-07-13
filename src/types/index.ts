@@ -296,6 +296,7 @@ export interface MusicTrack {
   genre: string;
   bpm: number;
   reason?: string;
+  reasonZh?: string;
   license: 'royalty-free' | 'cc' | 'premium' | 'custom';
   tags: string[];
 }

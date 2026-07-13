@@ -1,9 +1,8 @@
 import { useState, useMemo } from 'react';
+import { useNavigate, useSearchParams } from 'react-router';
 import { useAuth } from '@/hooks/useAuth';
-import { useLang } from '@/i18n/LanguageContext';
+import { useI18n } from '@/hooks/useI18n';
 import { Music, Mail, Lock, User, ArrowRight, Eye, EyeOff, Sparkles, Check, Shield } from 'lucide-react';
-
-interface AuthPageProps { onBack?: () => void; onEnterEditor?: () => void; }
 
 function getStrength(pw: string): { score: number; label: string; color: string } {
   let score = 0;
@@ -12,16 +11,17 @@ function getStrength(pw: string): { score: number; label: string; color: string 
   if (/[a-z]/.test(pw) && /[A-Z]/.test(pw)) score++;
   if (/\d/.test(pw)) score++;
   if (/[^a-zA-Z0-9]/.test(pw)) score++;
-  if (score <= 1) return { score, label: 'auth.passwordWeak', color: '#EF4444' };
-  if (score === 2) return { score, label: 'auth.passwordFair', color: '#F59E0B' };
-  if (score === 3) return { score, label: 'auth.passwordGood', color: '#10B981' };
-  return { score, label: 'auth.passwordStrong', color: '#10B981' };
+  if (score <= 1) return { score, label: 'weak', color: '#EF4444' };
+  if (score === 2) return { score, label: 'fair', color: '#F59E0B' };
+  if (score === 3) return { score, label: 'good', color: '#10B981' };
+  return { score, label: 'strong', color: '#10B981' };
 }
 
-export default function AuthPage({ onBack, onEnterEditor }: AuthPageProps) {
-  const [searchParams] = useState(() => new URLSearchParams(window.location.search));
+export default function AuthPage() {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { login, register } = useAuth();
-  const { __ } = useLang();
+  const { lang } = useI18n();
   const defaultMode = searchParams.get('mode') === 'register' ? 'register' : 'login';
   const [mode, setMode] = useState<'login' | 'register'>(defaultMode);
   const [name, setName] = useState('');
@@ -38,20 +38,22 @@ export default function AuthPage({ onBack, onEnterEditor }: AuthPageProps) {
 
   const strength = useMemo(() => getStrength(password), [password]);
 
+  const t = (zh: string, en: string) => lang === 'zh' ? zh : en;
+
   const validate = (): boolean => {
     const errs: Record<string, string> = {};
     if (mode === 'register') {
-      if (!name.trim()) errs.name = __('auth.enterName');
-      else if (name.trim().length < 2) errs.name = '姓名至少2个字符';
+      if (!name.trim()) errs.name = t('请输入姓名', 'Please enter your name');
+      else if (name.trim().length < 2) errs.name = t('姓名至少2个字符', 'Name must be at least 2 characters');
     }
-    if (!email.trim()) errs.email = '请输入邮箱';
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errs.email = '邮箱格式不正确';
-    if (!password) errs.password = '请输入密码';
-    else if (password.length < 6) errs.password = '密码至少6位';
+    if (!email.trim()) errs.email = t('请输入邮箱', 'Please enter your email');
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errs.email = t('邮箱格式不正确', 'Invalid email format');
+    if (!password) errs.password = t('请输入密码', 'Please enter a password');
+    else if (password.length < 6) errs.password = t('密码至少6位', 'Password must be at least 6 characters');
     if (mode === 'register') {
-      if (!confirmPassword) errs.confirmPassword = '请确认密码';
-      else if (password !== confirmPassword) errs.confirmPassword = __('auth.passwordMismatch');
-      if (!agreedTerms) errs.terms = '请同意服务条款';
+      if (!confirmPassword) errs.confirmPassword = t('请确认密码', 'Please confirm your password');
+      else if (password !== confirmPassword) errs.confirmPassword = t('两次密码不一致', 'Passwords do not match');
+      if (!agreedTerms) errs.terms = t('请同意服务条款', 'Please agree to the terms');
     }
     setFieldErrors(errs);
     return Object.keys(errs).length === 0;
@@ -64,25 +66,25 @@ export default function AuthPage({ onBack, onEnterEditor }: AuthPageProps) {
     setLoading(true);
 
     try {
-      let result: { success: boolean; error?: string };
+      let success_: boolean;
       if (mode === 'login') {
-        result = await login(email, password);
+        success_ = await login(email, password);
       } else {
-        result = await register(name, email, password);
+        success_ = await register(name, email, password);
       }
 
-      if (result.success) {
+      if (success_) {
         if (mode === 'register') {
           setSuccess(true);
-          setTimeout(() => onEnterEditor?.(), 1200);
+          setTimeout(() => navigate('/'), 1200);
         } else {
-          onEnterEditor?.();
+          navigate('/');
         }
       } else {
-        setError(result.error || __('auth.invalidCredentials'));
+        setError(t('邮箱或密码错误', 'Invalid email or password'));
       }
     } catch {
-      setError(__('auth.error'));
+      setError(t('发生错误，请重试', 'An error occurred. Please try again.'));
     } finally {
       setLoading(false);
     }
@@ -93,10 +95,10 @@ export default function AuthPage({ onBack, onEnterEditor }: AuthPageProps) {
   };
 
   const features = [
-    __('auth.feature1'),
-    __('auth.feature2'),
-    __('auth.feature3'),
-    __('auth.feature4'),
+    t('AI 智能建站 + 音乐匹配', 'AI Website + Music Matching'),
+    t('18+ 网站模块组件', '18+ Website Modules'),
+    t('可视化编辑器', 'Visual Editor'),
+    t('免版税音乐库', 'Royalty-Free Music Library'),
   ];
 
   const renderInput = (
@@ -121,6 +123,13 @@ export default function AuthPage({ onBack, onEnterEditor }: AuthPageProps) {
     </div>
   );
 
+  const strengthLabels: Record<string, [string, string]> = {
+    weak: [t('弱', 'Weak'), t('密码强度', 'Password strength')],
+    fair: [t('一般', 'Fair'), t('密码强度', 'Password strength')],
+    good: [t('良好', 'Good'), t('密码强度', 'Password strength')],
+    strong: [t('强', 'Strong'), t('密码强度', 'Password strength')],
+  };
+
   if (success) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--canvas-base)' }}>
@@ -128,7 +137,9 @@ export default function AuthPage({ onBack, onEnterEditor }: AuthPageProps) {
           <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6" style={{ background: '#D1FAE5' }}>
             <Check size={36} color="#10B981" />
           </div>
-          <h2 className="text-2xl font-bold mb-2" style={{ color: 'var(--text-primary)' }}>{__('auth.registerSuccess')}</h2>
+          <h2 className="text-2xl font-bold mb-2" style={{ color: 'var(--text-primary)' }}>
+            {t('注册成功！正在进入编辑器...', 'Account created! Entering editor...')}
+          </h2>
         </div>
       </div>
     );
@@ -150,14 +161,18 @@ export default function AuthPage({ onBack, onEnterEditor }: AuthPageProps) {
           ))}
         </div>
         <div className="relative z-10">
-          <button onClick={() => onBack?.()} className="flex items-center gap-3 cursor-pointer bg-transparent border-none">
+          <button onClick={() => navigate('/')} className="flex items-center gap-3 cursor-pointer bg-transparent border-none">
             <div className="w-10 h-10 rounded-full flex items-center justify-center text-white text-lg font-bold" style={{ background: 'var(--accent)' }}>A</div>
             <span className="text-xl font-semibold text-white">AutoMatch</span>
           </button>
         </div>
         <div className="relative z-10">
-          <h2 className="text-3xl font-bold text-white leading-tight mb-4">{__('auth.brandingTitle')}</h2>
-          <p className="text-base leading-relaxed mb-8" style={{ color: 'rgba(255,255,255,0.7)' }}>{__('auth.brandingDesc')}</p>
+          <h2 className="text-3xl font-bold text-white leading-tight mb-4">
+            {t('打造视听一体\n的品牌体验', 'Build complete\nbrand experiences')}
+          </h2>
+          <p className="text-base leading-relaxed mb-8" style={{ color: 'rgba(255,255,255,0.7)' }}>
+            {t('AutoMatch 是唯一一个将 AI 网站设计与智能音乐匹配相结合的平台。', 'AutoMatch is the only platform that combines AI website design with intelligent music matching.')}
+          </p>
           <div className="space-y-3">
             {features.map((f, i) => (
               <div key={i} className="flex items-center gap-3">
@@ -172,7 +187,9 @@ export default function AuthPage({ onBack, onEnterEditor }: AuthPageProps) {
         <div className="relative z-10">
           <div className="flex items-center gap-3">
             <Music size={16} className="text-white/50" />
-            <span className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>{__('auth.footerTag')}</span>
+            <span className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
+              {t('AI 驱动的音乐智能匹配技术', 'AI-Powered Music Matching Technology')}
+            </span>
           </div>
         </div>
       </div>
@@ -186,10 +203,10 @@ export default function AuthPage({ onBack, onEnterEditor }: AuthPageProps) {
           </div>
 
           <h1 className="text-2xl font-bold mb-2" style={{ color: 'var(--text-primary)' }}>
-            {mode === 'login' ? __('auth.welcomeBack') : __('auth.createAccount')}
+            {mode === 'login' ? t('欢迎回来', 'Welcome back') : t('创建账户', 'Create account')}
           </h1>
           <p className="text-sm mb-8" style={{ color: 'var(--text-secondary)' }}>
-            {mode === 'login' ? __('auth.signInToAccount') : __('auth.startJourney')}
+            {mode === 'login' ? t('登录您的 AutoMatch 账户', 'Sign in to your AutoMatch account') : t('开始您的品牌体验之旅', 'Start your brand experience journey')}
           </p>
 
           {/* Tab Switcher */}
@@ -199,14 +216,14 @@ export default function AuthPage({ onBack, onEnterEditor }: AuthPageProps) {
               className={`flex-1 py-2.5 rounded-md text-xs font-semibold cursor-pointer border-none transition-all ${mode === 'login' ? 'bg-white shadow-sm' : ''}`}
               style={{ color: mode === 'login' ? 'var(--accent)' : 'var(--text-tertiary)' }}
             >
-              {__('auth.signInTab')}
+              {t('登录', 'Sign In')}
             </button>
             <button
               onClick={() => { setMode('register'); setError(''); setFieldErrors({}); }}
               className={`flex-1 py-2.5 rounded-md text-xs font-semibold cursor-pointer border-none transition-all ${mode === 'register' ? 'bg-white shadow-sm' : ''}`}
               style={{ color: mode === 'register' ? 'var(--accent)' : 'var(--text-tertiary)' }}
             >
-              {__('auth.signUpTab')}
+              {t('注册', 'Sign Up')}
             </button>
           </div>
 
@@ -219,26 +236,31 @@ export default function AuthPage({ onBack, onEnterEditor }: AuthPageProps) {
           <form onSubmit={handleSubmit} className="space-y-4">
             {mode === 'register' && (
               <div>
-                <label className="text-xs font-semibold mb-1.5 block" style={{ color: 'var(--text-secondary)' }}>{__('auth.nameLabel')}</label>
-                {renderInput(<User size={16} />, 'name', 'text', name, setName, __('auth.namePlaceholder'))}
+                <label className="text-xs font-semibold mb-1.5 block" style={{ color: 'var(--text-secondary)' }}>
+                  {t('姓名', 'Name')}
+                </label>
+                {renderInput(<User size={16} />, 'name', 'text', name, setName, t('您的姓名', 'Your name'))}
               </div>
             )}
 
             <div>
-              <label className="text-xs font-semibold mb-1.5 block" style={{ color: 'var(--text-secondary)' }}>{__('auth.emailLabel')}</label>
+              <label className="text-xs font-semibold mb-1.5 block" style={{ color: 'var(--text-secondary)' }}>
+                {t('邮箱', 'Email')}
+              </label>
               {renderInput(<Mail size={16} />, 'email', 'email', email, setEmail, 'your@email.com')}
             </div>
 
             <div>
-              <label className="text-xs font-semibold mb-1.5 block" style={{ color: 'var(--text-secondary)' }}>{__('auth.passwordLabel')}</label>
+              <label className="text-xs font-semibold mb-1.5 block" style={{ color: 'var(--text-secondary)' }}>
+                {t('密码', 'Password')}
+              </label>
               {renderInput(
                 <Lock size={16} />, 'password', showPassword ? 'text' : 'password',
-                password, setPassword, __('auth.passwordPlaceholder'),
+                password, setPassword, t('至少 6 位字符', 'At least 6 characters'),
                 <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 bg-transparent border-none cursor-pointer" style={{ color: 'var(--text-tertiary)' }}>
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               )}
-
               {/* Password strength bar */}
               {mode === 'register' && password.length > 0 && (
                 <div className="mt-2">
@@ -252,7 +274,7 @@ export default function AuthPage({ onBack, onEnterEditor }: AuthPageProps) {
                   <div className="flex items-center gap-1.5">
                     <Shield size={11} style={{ color: strength.color }} />
                     <span className="text-[10px] font-medium" style={{ color: strength.color }}>
-                      {__('auth.passwordStrength')}: {__(strength.label)}
+                      {strengthLabels[strength.label][1]}: {strengthLabels[strength.label][0]}
                     </span>
                   </div>
                 </div>
@@ -262,10 +284,12 @@ export default function AuthPage({ onBack, onEnterEditor }: AuthPageProps) {
             {mode === 'register' && (
               <>
                 <div>
-                  <label className="text-xs font-semibold mb-1.5 block" style={{ color: 'var(--text-secondary)' }}>{__('auth.confirmPasswordLabel')}</label>
+                  <label className="text-xs font-semibold mb-1.5 block" style={{ color: 'var(--text-secondary)' }}>
+                    {t('确认密码', 'Confirm Password')}
+                  </label>
                   {renderInput(
                     <Lock size={16} />, 'confirmPassword', showConfirm ? 'text' : 'password',
-                    confirmPassword, setConfirmPassword, __('auth.confirmPasswordPlaceholder'),
+                    confirmPassword, setConfirmPassword, t('再次输入密码', 'Re-enter your password'),
                     <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute right-3 top-1/2 -translate-y-1/2 bg-transparent border-none cursor-pointer" style={{ color: 'var(--text-tertiary)' }}>
                       {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
@@ -280,10 +304,10 @@ export default function AuthPage({ onBack, onEnterEditor }: AuthPageProps) {
                     className="mt-0.5"
                   />
                   <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                    {__('auth.agreeTerms')}{' '}
-                    <a href="#" className="underline" style={{ color: 'var(--accent)' }}>{__('auth.termsOfService')}</a>
-                    {' '}&{' '}
-                    <a href="#" className="underline" style={{ color: 'var(--accent)' }}>{__('auth.privacyPolicy')}</a>
+                    {t('我已阅读并同意', 'I agree to the')}{' '}
+                    <a href="#" className="underline" style={{ color: 'var(--accent)' }}>{t('服务条款', 'Terms of Service')}</a>
+                    {' & '}
+                    <a href="#" className="underline" style={{ color: 'var(--accent)' }}>{t('隐私政策', 'Privacy Policy')}</a>
                   </span>
                 </div>
                 {fieldErrors.terms && (
@@ -302,7 +326,7 @@ export default function AuthPage({ onBack, onEnterEditor }: AuthPageProps) {
               ) : (
                 <>
                   <Sparkles size={16} />
-                  {mode === 'login' ? __('auth.signInButton') : __('auth.createAccountButton')}
+                  {mode === 'login' ? t('登录', 'Sign In') : t('创建账户', 'Create Account')}
                 </>
               )}
             </button>
@@ -310,11 +334,13 @@ export default function AuthPage({ onBack, onEnterEditor }: AuthPageProps) {
 
           {mode === 'login' && (
             <div className="mt-6 p-3 rounded-xl" style={{ background: 'rgba(123,97,255,0.04)', border: '1px solid rgba(123,97,255,0.12)' }}>
-              <p className="text-[10px] font-semibold uppercase tracking-wider mb-1.5" style={{ color: 'var(--music-accent)' }}>{__('auth.demoAccounts')}</p>
+              <p className="text-[10px] font-semibold uppercase tracking-wider mb-1.5" style={{ color: 'var(--music-accent)' }}>
+                {t('演示账户', 'Demo Accounts')}
+              </p>
               <div className="space-y-1">
                 <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>demo@automatch.com (Pro)</p>
                 <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>free@automatch.com (Free)</p>
-                <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>{__('auth.demoPasswordHint')}</p>
+                <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>{t('密码：任意 6 位以上', 'Password: any 6+ chars')}</p>
               </div>
             </div>
           )}

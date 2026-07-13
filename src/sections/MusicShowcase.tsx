@@ -1,6 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
-import { CheckCircle, Play, Pause, SkipBack, SkipForward } from 'lucide-react';
-import { useLang } from '@/i18n/LanguageContext';
+import { useNavigate } from 'react-router';
+import { CheckCircle, Play, Pause, SkipBack, SkipForward, ArrowRight } from 'lucide-react';
+import { useI18n } from '@/hooks/useI18n';
+
+function useFeatures() {
+  const { lang } = useI18n();
+  return lang === 'zh'
+    ? ['基于情绪的曲目推荐', '行业精选播放列表', '与网站实时预览', '授权免版税曲目']
+    : ['Mood-based track recommendations', 'Industry-curated playlists', 'Real-time preview with your website', 'Licensed, royalty-free tracks'];
+}
 
 const TRACKS = [
   {
@@ -23,10 +31,9 @@ const TRACKS = [
   },
 ];
 
-const FEATURE_KEYS = ['ms.f1', 'ms.f2', 'ms.f3', 'ms.f4'];
-
 export default function MusicShowcase() {
-  const { lang, __ } = useLang();
+  const navigate = useNavigate();
+  const { lang } = useI18n();
   const sectionRef = useRef<HTMLDivElement>(null);
   const [isVisible, setIsVisible] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -86,25 +93,27 @@ export default function MusicShowcase() {
               className="text-xs font-semibold uppercase tracking-widest"
               style={{ color: 'var(--text-tertiary)' }}
             >
-              {__('ms.label')}
+              {lang === 'zh' ? '音乐匹配' : 'MUSIC MATCHING'}
             </span>
             <h2
               className="mt-3 text-[clamp(1.5rem,3vw,2.25rem)] font-bold"
               style={{ color: 'var(--text-primary)' }}
             >
-              {__('ms.title')}
+              {lang === 'zh' ? '契合品牌的声音' : 'Sound that fits your brand'}
             </h2>
             <p
               className="mt-4 text-base leading-relaxed"
               style={{ color: 'var(--text-secondary)' }}
             >
-              {__('ms.desc')}
+              {lang === 'zh'
+                ? '我们的 AI 不只是建站 — 它倾听您的品牌。通过分析您的行业、情绪和受众，AutoMatch 推荐强化您信息的背景音乐。'
+                : "Our AI doesn't just build your site — it listens to your brand. By analyzing your industry, mood, and audience, AutoMatch recommends background music that strengthens your message."}
             </p>
 
             {/* Feature List */}
             <div className="mt-8 space-y-4">
-              {FEATURE_KEYS.map((featureKey) => (
-                <div key={featureKey} className="flex items-center gap-3">
+              {useFeatures().map((feature) => (
+                <div key={feature} className="flex items-center gap-3">
                   <CheckCircle
                     size={18}
                     style={{ color: 'var(--accent)', flexShrink: 0 }}
@@ -113,11 +122,21 @@ export default function MusicShowcase() {
                     className="text-sm"
                     style={{ color: 'var(--text-secondary)' }}
                   >
-                    {__(featureKey)}
+                    {feature}
                   </span>
                 </div>
               ))}
             </div>
+
+            {/* Learn More Button */}
+            <button
+              onClick={() => navigate('/music')}
+              className="mt-8 flex items-center gap-2 text-sm font-semibold bg-transparent border-none cursor-pointer group transition-colors"
+              style={{ color: 'var(--accent)' }}
+            >
+              {lang === 'zh' ? '了解更多音乐匹配' : 'Learn more about music matching'}
+              <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+            </button>
           </div>
 
           {/* Right Column - Music Player Mockup */}

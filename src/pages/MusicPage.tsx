@@ -1,34 +1,28 @@
 import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router';
 import {
   Music, Brain, Sparkles, ArrowRight, Play, Pause, Heart,
   Star, Zap, Palette, Volume2, Bookmark, BookmarkCheck,
   RefreshCw, ChevronRight, Target, Activity, SkipBack, SkipForward,
   Layers, Globe, Clock, TrendingUp, Mic2, AudioLines, SlidersHorizontal
 } from 'lucide-react';
-import { useLang } from '@/i18n/LanguageContext';
+import { useI18n } from '@/hooks/useI18n';
 import {
   MUSIC_TRACKS, MUSIC_STYLE_PRESETS, CASE_STUDIES,
+  generateBrandMoodProfile, generateBrandMoodAnalysis,
   getGenreLabel, getGenreLabelZh, getGenreColor
 } from '@/data/music';
-import { recommend, type MusicRecommendation } from '@/lib/music-recommender';
-import { recommendMusic, checkApiStatus } from '@/lib/api-service';
-import { useAuth } from '@/hooks/useAuth';
-import Paywall from '@/components/Paywall';
 
-interface MusicPageProps { onBack: () => void; onEnterEditor?: () => void; }
-
-export default function MusicPage({ onBack, onEnterEditor }: MusicPageProps) {
-  const { lang, __ } = useLang();
-  const [prompt, setPrompt] = useState('');
+export default function MusicPage() {
+  const navigate = useNavigate();
+  const { lang } = useI18n();
   const [isPlaying, setIsPlaying] = useState(false);
   const [activeTrack, setActiveTrack] = useState(0);
   const [activeStyle, setActiveStyle] = useState<string>('coffee');
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
-  const { canUseAI } = useAuth();
   const [analyzing, setAnalyzing] = useState(false);
-  const [analysisResult, setAnalysisResult] = useState<MusicRecommendation | null>(null);
-  const [aiProvider, setAiProvider] = useState('local');
-  const [showPaywall, setShowPaywall] = useState(false);
+  const [analysisProgress, setAnalysisProgress] = useState(0);
+  const [showAnalysisResult, setShowAnalysisResult] = useState(false);
   const [activeCase, setActiveCase] = useState(0);
   const sectionRef = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
@@ -41,23 +35,20 @@ export default function MusicPage({ onBack, onEnterEditor }: MusicPageProps) {
     return () => o.disconnect();
   }, []);
 
-  const handleAnalyze = async () => {
-    const text = prompt.trim();
-    if (!text) return;
-    if (!canUseAI) { setShowPaywall(true); return; }
+  const handleAnalyze = () => {
     setAnalyzing(true);
-    setAnalysisResult(null);
-    try {
-      const status = await checkApiStatus();
-      setAiProvider(status.hasAI ? status.provider : 'local');
-      const result = await recommendMusic(text);
-      setAnalysisResult(result);
-    } catch {
-      setAnalysisResult(recommend(text));
-      setAiProvider('local');
-    } finally {
-      setAnalyzing(false);
-    }
+    setAnalysisProgress(0);
+    setShowAnalysisResult(false);
+    let progress = 0;
+    const interval = setInterval(() => {
+      progress += 10;
+      setAnalysisProgress(progress);
+      if (progress >= 100) {
+        clearInterval(interval);
+        setAnalyzing(false);
+        setShowAnalysisResult(true);
+      }
+    }, 400);
   };
 
   const toggleFavorite = (id: string) => {
@@ -76,6 +67,7 @@ export default function MusicPage({ onBack, onEnterEditor }: MusicPageProps) {
 
   const cases = CASE_STUDIES.slice(0, 3);
   const currentCase = cases[activeCase];
+  const analysis = currentCase ? generateBrandMoodAnalysis(currentCase.industry) : null;
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--canvas-base)' }}>
@@ -90,8 +82,8 @@ export default function MusicPage({ onBack, onEnterEditor }: MusicPageProps) {
 
         <div className="relative max-w-[1100px] mx-auto">
           {/* Back button */}
-          <button onClick={onBack} className="flex items-center gap-2 mb-8 text-sm bg-transparent border-none cursor-pointer hover:opacity-70 transition-opacity" style={{ color: 'var(--text-secondary)' }}>
-            <SkipBack size={16} /> {__('music.backToHome')}
+          <button onClick={() => navigate('/')} className="flex items-center gap-2 mb-8 text-sm bg-transparent border-none cursor-pointer hover:opacity-70 transition-opacity" style={{ color: 'var(--text-secondary)' }}>
+            <SkipBack size={16} /> {lang === 'zh' ? '返回首页' : 'Back to Home'}
           </button>
 
           <div className="flex flex-col lg:flex-row gap-12 items-center">
@@ -99,22 +91,24 @@ export default function MusicPage({ onBack, onEnterEditor }: MusicPageProps) {
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full mb-4" style={{ background: 'var(--music-accent-light)' }}>
                 <AudioLines size={14} style={{ color: 'var(--music-accent)' }} />
                 <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--music-accent)' }}>
-                  {__('music.badge')}
+                  {lang === 'zh' ? 'AI 音乐智能匹配' : 'AI Music Intelligence'}
                 </span>
               </div>
               <h1 className="text-[clamp(2rem,5vw,3.5rem)] font-bold leading-tight mb-4" style={{ color: 'var(--text-primary)' }}>
-                {__('music.heroTitle')}
+                {lang === 'zh' ? '让音乐成为您\n品牌的一部分' : 'Make music part of\nyour brand identity'}
               </h1>
               <p className="text-base leading-relaxed mb-6 max-w-lg" style={{ color: 'var(--text-secondary)' }}>
-                {__('music.heroDesc')}
+                {lang === 'zh'
+                  ? 'AutoMatch 的 AI 不只是建站 — 它分析您的品牌情绪、行业特征和视觉风格，推荐完美匹配的背景音乐。从视觉到听觉，打造完整的品牌体验。'
+                  : 'AutoMatch\'s AI doesn\'t just build websites — it analyzes your brand mood, industry, and visual style to recommend perfectly matched background music. From visual to audio, create a complete brand experience.'}
               </p>
               <div className="flex flex-wrap gap-3">
                 <button onClick={handleAnalyze} className="btn-primary flex items-center gap-2">
                   <Brain size={16} />
-                  {__('music.tryAnalysis')}
+                  {lang === 'zh' ? '体验 AI 分析' : 'Try AI Analysis'}
                 </button>
-                <button onClick={onEnterEditor} className="btn-ghost flex items-center gap-2">
-                  {__('music.startBuilding')}
+                <button onClick={() => navigate('/editor')} className="btn-ghost flex items-center gap-2">
+                  {lang === 'zh' ? '开始建站' : 'Start Building'}
                   <ArrowRight size={16} />
                 </button>
               </div>
@@ -123,111 +117,113 @@ export default function MusicPage({ onBack, onEnterEditor }: MusicPageProps) {
             {/* Interactive Analysis Card */}
             <div className="flex-1 max-w-md w-full">
               <div className="liquid-glass rounded-2xl p-6">
-                {!analyzing && !analysisResult && (
-                  <div className="py-4">
-                    <div className="flex items-center gap-2 mb-4">
-                      <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'var(--music-accent-light)' }}>
-                        <Brain size={16} color="var(--music-accent)" />
-                      </div>
-                      <h3 className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>{__('music.analysisCardTitle')}</h3>
+                {!analyzing && !showAnalysisResult && (
+                  <div className="text-center py-8">
+                    <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: 'var(--music-accent-light)' }}>
+                      <Sparkles size={28} style={{ color: 'var(--music-accent)' }} />
                     </div>
-                    <textarea
-                      value={prompt}
-                      onChange={e => setPrompt(e.target.value)}
-                      placeholder={lang === 'zh' ? '描述你的品牌，AI 将分析情绪并匹配合适的背景音乐...' : 'Describe your brand, AI will analyze the mood and match background music...'}
-                      rows={3}
-                      className="w-full p-3 rounded-xl text-sm border resize-none outline-none transition-all focus:ring-2"
-                      style={{ background: '#F8F6F0', borderColor: 'var(--border-color)', color: 'var(--text-primary)', placeholder: 'var(--text-tertiary)' }}
-                      onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleAnalyze(); } }}
-                    />
-                    <div className="flex gap-2 mt-3">
-                      <button onClick={handleAnalyze} disabled={!prompt.trim()} className="btn-primary flex items-center gap-1.5 text-xs py-2 px-4 disabled:opacity-50">
-                        <Brain size={14} /> {__('music.tryAnalysis')}
-                      </button>
-                      <span className="text-[10px] self-center" style={{ color: 'var(--text-tertiary)' }}>{lang === 'zh' ? '按 Enter 快速分析' : 'Press Enter to analyze'}</span>
-                    </div>
-                    <div className="flex flex-wrap gap-1.5 mt-3">
-                      {[
-                        { key: 'coffee', label: lang === 'zh' ? '☕ 咖啡' : '☕ Coffee' },
-                        { key: 'tech', label: lang === 'zh' ? '💻 科技' : '💻 Tech' },
-                        { key: 'wedding', label: lang === 'zh' ? '💒 婚礼' : '💒 Wedding' },
-                        { key: 'fitness', label: lang === 'zh' ? '🏋️ 健身' : '🏋️ Fitness' },
-                      ].map(t => (
-                        <button key={t.key} onClick={() => setPrompt(t.label.replace(/[^\u4e00-\u9fa5a-zA-Z]/g, ' '))}
-                          className="px-2.5 py-1 rounded-full text-[11px] font-medium bg-transparent border cursor-pointer hover:bg-white transition-colors"
-                          style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}>
-                          {t.label}
-                        </button>
+                    <h3 className="text-lg font-bold mb-2" style={{ color: 'var(--text-primary)' }}>
+                      {lang === 'zh' ? 'AI 品牌音乐分析' : 'AI Brand Music Analysis'}
+                    </h3>
+                    <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
+                      {lang === 'zh' ? '点击上方按钮，体验 AI 如何分析品牌并推荐音乐' : 'Click the button above to see how AI analyzes brands and recommends music'}
+                    </p>
+                    <div className="flex flex-wrap justify-center gap-2">
+                      {['Coffee', 'Tech', 'Wedding', 'Fitness', 'Luxury'].map(tag => (
+                        <span key={tag} className="px-2.5 py-1 rounded-full text-xs font-medium" style={{ background: 'rgba(26,43,60,0.06)', color: 'var(--text-secondary)' }}>{tag}</span>
                       ))}
                     </div>
                   </div>
                 )}
 
                 {analyzing && (
-                  <div className="py-10 text-center">
-                    <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: 'var(--music-accent-light)' }}>
-                      <Sparkles size={24} style={{ color: 'var(--music-accent)' }} className="animate-spin" />
-                    </div>
-                    <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{__('music.analyzing')}</p>
-                    <p className="text-xs mt-1" style={{ color: 'var(--text-tertiary)' }}>{lang === 'zh' ? 'AI 正在分析文本情绪...' : 'AI is analyzing text sentiment...'}</p>
-                  </div>
-                )}
-
-                {analysisResult && (
-                  <div>
-                    <div className="flex items-center gap-2 mb-3">
-                      <div className="w-7 h-7 rounded-full flex items-center justify-center" style={{ background: '#d1fae5' }}>
-                        <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M3 8L6.5 11.5L13 4.5" stroke="#16a34a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                      </div>
-                      <div>
-                        <p className="text-xs font-semibold" style={{ color: '#16a34a' }}>{__('music.analysisComplete')}</p>
-                        <p className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>{analysisResult.musicParams.moodLabelZh} · {analysisResult.musicParams.bpm} BPM</p>
-                        <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-[9px] font-medium"
-                          style={{ background: aiProvider !== 'local' ? '#d1fae5' : '#fef3c7', color: aiProvider !== 'local' ? '#16a34a' : '#b45309' }}>
-                          <Zap size={8} /> {aiProvider !== 'local' ? aiProvider : 'Local'}
-                        </span>
-                      </div>
-                      <button onClick={() => { setAnalysisResult(null); setPrompt(''); }} className="ml-auto p-1 rounded bg-transparent border-none cursor-pointer opacity-50 hover:opacity-100" style={{ color: 'var(--text-tertiary)' }}>
-                        <RefreshCw size={12} />
-                      </button>
-                    </div>
-
-                    {/* VA Bars */}
-                    <div className="flex gap-3 mb-3">
-                      <div className="flex-1">
-                        <div className="flex justify-between text-[10px] mb-0.5"><span style={{ color: 'var(--text-tertiary)' }}>Valence</span><span style={{ color: 'var(--text-primary)' }}>{Math.round((analysisResult.textAnalysis.valence + 1) / 2 * 100)}%</span></div>
-                        <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(26,43,60,0.06)' }}>
-                          <div className="h-full rounded-full" style={{ width: `${Math.round((analysisResult.textAnalysis.valence + 1) / 2 * 100)}%`, background: '#10b981' }} />
-                        </div>
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex justify-between text-[10px] mb-0.5"><span style={{ color: 'var(--text-tertiary)' }}>Arousal</span><span style={{ color: 'var(--text-primary)' }}>{Math.round((analysisResult.textAnalysis.arousal + 1) / 2 * 100)}%</span></div>
-                        <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(26,43,60,0.06)' }}>
-                          <div className="h-full rounded-full" style={{ width: `${Math.round((analysisResult.textAnalysis.arousal + 1) / 2 * 100)}%`, background: '#f59e0b' }} />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Top Tracks */}
-                    <div className="space-y-1.5">
-                      {analysisResult.libraryMatches.slice(0, 3).map((t, i) => (
-                        <div key={t.id} className="flex items-center gap-2 p-2 rounded-lg" style={{ background: i === 0 ? 'rgba(123,97,255,0.08)' : 'transparent' }}>
-                          <span className="text-[10px] font-bold w-4" style={{ color: i === 0 ? 'var(--music-accent)' : 'var(--text-tertiary)' }}>{i + 1}</span>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{t.title}</p>
-                            <p className="text-[9px]" style={{ color: 'var(--text-tertiary)' }}>{t.artist} · {t.genre} · {t.bpm}BPM</p>
+                  <div className="py-6">
+                    <div className="flex items-center justify-between mb-4">
+                      {[
+                        { icon: Target, label: lang === 'zh' ? '行业' : 'Industry' },
+                        { icon: Palette, label: lang === 'zh' ? '调性' : 'Tone' },
+                        { icon: Activity, label: lang === 'zh' ? '情绪' : 'Mood' },
+                        { icon: SlidersHorizontal, label: lang === 'zh' ? '匹配' : 'Match' },
+                      ].map((step, i) => (
+                        <div key={step.label} className="flex flex-col items-center gap-1.5">
+                          <div className={`w-9 h-9 rounded-full flex items-center justify-center transition-all duration-500 ${analysisProgress >= (i + 1) * 25 ? 'text-white' : ''}`}
+                            style={{
+                              background: analysisProgress >= (i + 1) * 25 ? 'var(--music-accent)' : 'rgba(26,43,60,0.06)',
+                              color: analysisProgress >= (i + 1) * 25 ? 'white' : 'var(--text-tertiary)',
+                            }}
+                          >
+                            <step.icon size={14} />
                           </div>
-                          <span className="text-[10px] font-bold" style={{ color: i === 0 ? 'var(--music-accent)' : 'var(--text-tertiary)' }}>{Math.round(t.score * 100)}%</span>
+                          <span className="text-[10px] font-medium" style={{ color: analysisProgress >= (i + 1) * 25 ? 'var(--music-accent)' : 'var(--text-tertiary)' }}>{step.label}</span>
                         </div>
                       ))}
                     </div>
+                    <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(26,43,60,0.06)' }}>
+                      <div className="h-full rounded-full transition-all duration-300" style={{ width: `${analysisProgress}%`, background: 'linear-gradient(90deg, var(--accent), var(--music-accent))' }} />
+                    </div>
+                    <p className="text-center text-xs mt-3" style={{ color: 'var(--text-tertiary)' }}>
+                      {lang === 'zh' ? '正在分析品牌特征...' : 'Analyzing brand characteristics...'} {analysisProgress}%
+                    </p>
+                  </div>
+                )}
 
-                    {analysisResult.aiPrompt && (
-                      <div className="mt-3 p-2 rounded-lg" style={{ background: 'rgba(0,0,0,0.03)' }}>
-                        <p className="text-[9px] font-semibold mb-1" style={{ color: 'var(--text-tertiary)' }}>AI Prompt:</p>
-                        <p className="text-[9px]" style={{ color: 'var(--text-secondary)' }}>{analysisResult.aiPrompt.prompt.slice(0, 150)}...</p>
+                {showAnalysisResult && currentCase && analysis && (
+                  <div>
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: 'var(--accent-light)' }}>
+                        <CheckIcon />
                       </div>
-                    )}
+                      <div>
+                        <p className="text-xs font-semibold" style={{ color: 'var(--accent)' }}>{lang === 'zh' ? '分析完成' : 'Analysis Complete'}</p>
+                        <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{currentCase.industry}</p>
+                      </div>
+                    </div>
+
+                    {/* Mood Profile */}
+                    <div className="mb-4">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-tertiary)' }}>
+                        {lang === 'zh' ? '品牌情绪画像' : 'Brand Mood Profile'}
+                      </p>
+                      <div className="grid grid-cols-5 gap-1">
+                        {[
+                          { label: lang === 'zh' ? '温' : 'W', val: analysis.moodProfile.warmth },
+                          { label: lang === 'zh' ? '活' : 'E', val: analysis.moodProfile.energy },
+                          { label: lang === 'zh' ? '专' : 'P', val: analysis.moodProfile.professionalism },
+                          { label: lang === 'zh' ? '创' : 'C', val: analysis.moodProfile.creativity },
+                          { label: lang === 'zh' ? '精' : 'S', val: analysis.moodProfile.sophistication },
+                        ].map(d => (
+                          <div key={d.label} className="text-center">
+                            <div className="relative w-10 h-10 mx-auto">
+                              <svg className="w-10 h-10 -rotate-90" viewBox="0 0 40 40">
+                                <circle cx="20" cy="20" r="16" fill="none" stroke="rgba(26,43,60,0.08)" strokeWidth="3" />
+                                <circle cx="20" cy="20" r="16" fill="none" stroke={d.val > 70 ? 'var(--accent)' : d.val > 50 ? 'var(--music-accent)' : 'var(--text-tertiary)'} strokeWidth="3" strokeDasharray={`${(d.val / 100) * 100.5} 100.5`} strokeLinecap="round" />
+                              </svg>
+                              <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold" style={{ color: 'var(--text-primary)' }}>{d.val}</span>
+                            </div>
+                            <span className="text-[8px]" style={{ color: 'var(--text-tertiary)' }}>{d.label}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Recommended Track */}
+                    <div className="p-3 rounded-xl" style={{ background: 'rgba(123,97,255,0.06)', border: '1px solid rgba(123,97,255,0.12)' }}>
+                      <div className="flex items-center gap-3">
+                        <img src={currentCase.coverImage} alt="" className="w-12 h-12 rounded-lg object-cover" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{currentCase.musicTitle}</p>
+                          <p className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>{currentCase.musicArtist}</p>
+                          <span className="inline-block mt-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium" style={{ background: 'var(--music-accent-light)', color: 'var(--music-accent)' }}>{currentCase.musicGenre}</span>
+                        </div>
+                        <button onClick={() => setIsPlaying(!isPlaying)} className="w-8 h-8 rounded-full flex items-center justify-center text-white border-none cursor-pointer" style={{ background: 'var(--music-accent)' }}>
+                          {isPlaying ? <Pause size={12} /> : <Play size={12} />}
+                        </button>
+                      </div>
+                    </div>
+
+                    <p className="text-xs mt-3 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                      {lang === 'zh' ? currentCase.reasoningZh : currentCase.reasoning}
+                    </p>
                   </div>
                 )}
               </div>
@@ -241,19 +237,19 @@ export default function MusicPage({ onBack, onEnterEditor }: MusicPageProps) {
         <div className="max-w-[1100px] mx-auto">
           <div className="text-center mb-14">
             <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--text-tertiary)' }}>
-              {__('music.howLabel')}
+              {lang === 'zh' ? '工作流程' : 'HOW IT WORKS'}
             </span>
             <h2 className="mt-3 text-[clamp(1.5rem,3vw,2.25rem)] font-bold" style={{ color: 'var(--text-primary)' }}>
-              {__('music.howTitle')}
+              {lang === 'zh' ? 'AI 音乐匹配的完整流程' : 'The Complete AI Music Matching Process'}
             </h2>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {[
-              { icon: Brain, num: '01', title: __('music.step1Title'), desc: __('music.step1Desc') },
-              { icon: Target, num: '02', title: __('music.step2Title'), desc: __('music.step2Desc') },
-              { icon: Music, num: '03', title: __('music.step3Title'), desc: __('music.step3Desc') },
-              { icon: Layers, num: '04', title: __('music.step4Title'), desc: __('music.step4Desc') },
+              { icon: Brain, num: '01', title: lang === 'zh' ? '品牌输入' : 'Brand Input', desc: lang === 'zh' ? '您描述业务类型、品牌调性和目标受众' : 'You describe your business type, brand tone, and target audience' },
+              { icon: Target, num: '02', title: lang === 'zh' ? 'AI 分析' : 'AI Analysis', desc: lang === 'zh' ? 'AI 识别行业、分析品牌情绪画像和视觉风格' : 'AI identifies industry, analyzes brand mood profile and visual style' },
+              { icon: Music, num: '03', title: lang === 'zh' ? '音乐推荐' : 'Music Match', desc: lang === 'zh' ? '基于分析结果推荐 3-5 首匹配的背景音乐' : 'Recommends 3-5 matching background tracks based on analysis' },
+              { icon: Layers, num: '04', title: lang === 'zh' ? '同步体验' : 'Sync Experience', desc: lang === 'zh' ? '在编辑器中实时预览网站 + 音乐的完整效果' : 'Preview website + music together in real-time in the editor' },
             ].map((step, i) => (
               <div key={step.num} className={`p-6 rounded-2xl transition-all duration-700 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`} style={{ background: '#FAFAF8', border: '1px solid var(--border-color)', transitionDelay: `${i * 100}ms` }}>
                 <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4" style={{ background: 'var(--accent-light)' }}>
@@ -273,10 +269,10 @@ export default function MusicPage({ onBack, onEnterEditor }: MusicPageProps) {
         <div className="max-w-[1100px] mx-auto">
           <div className="text-center mb-12">
             <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--text-tertiary)' }}>
-              {__('music.styleLabel')}
+              {lang === 'zh' ? '风格探索' : 'STYLE EXPLORER'}
             </span>
             <h2 className="mt-3 text-[clamp(1.5rem,3vw,2.25rem)] font-bold" style={{ color: 'var(--text-primary)' }}>
-              {__('music.styleTitle')}
+              {lang === 'zh' ? '选择品牌风格，发现匹配音乐' : 'Choose a brand style, discover matching music'}
             </h2>
           </div>
 
@@ -337,10 +333,10 @@ export default function MusicPage({ onBack, onEnterEditor }: MusicPageProps) {
         <div className="max-w-[1100px] mx-auto">
           <div className="text-center mb-12">
             <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--text-tertiary)' }}>
-              {__('music.casesLabel')}
+              {lang === 'zh' ? '真实案例' : 'REAL CASE STUDIES'}
             </span>
             <h2 className="mt-3 text-[clamp(1.5rem,3vw,2.25rem)] font-bold" style={{ color: 'var(--text-primary)' }}>
-              {__('music.casesTitle')}
+              {lang === 'zh' ? '看看 AI 如何为品牌匹配音乐' : 'See how AI matches music to brands'}
             </h2>
           </div>
 
@@ -382,7 +378,7 @@ export default function MusicPage({ onBack, onEnterEditor }: MusicPageProps) {
 
                   <div className="p-4 rounded-xl mb-6" style={{ background: 'rgba(123,97,255,0.06)', border: '1px solid rgba(123,97,255,0.12)' }}>
                     <p className="text-xs font-semibold mb-1" style={{ color: 'var(--music-accent)' }}>
-                      {__('music.whyAI')}
+                      {lang === 'zh' ? 'AI 推荐原因' : 'Why AI recommends this'}
                     </p>
                     <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
                       {lang === 'zh' ? currentCase.reasoningZh : currentCase.reasoning}
@@ -409,24 +405,24 @@ export default function MusicPage({ onBack, onEnterEditor }: MusicPageProps) {
         <div className="max-w-[1100px] mx-auto">
           <div className="text-center mb-14">
             <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--text-tertiary)' }}>
-              {__('music.featuresLabel')}
+              {lang === 'zh' ? '功能特性' : 'FEATURES'}
             </span>
             <h2 className="mt-3 text-[clamp(1.5rem,3vw,2.25rem)] font-bold" style={{ color: 'var(--text-primary)' }}>
-              {__('music.featuresTitle')}
+              {lang === 'zh' ? '完整的音乐智能匹配能力' : 'Complete music intelligence capabilities'}
             </h2>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {[
-              { icon: Brain, title: __('music.f1Title'), desc: __('music.f1Desc') },
-              { icon: Palette, title: __('music.f2Title'), desc: __('music.f2Desc') },
-              { icon: Music, title: __('music.f3Title'), desc: __('music.f3Desc') },
-              { icon: Mic2, title: __('music.f4Title'), desc: __('music.f4Desc') },
-              { icon: Volume2, title: __('music.f5Title'), desc: __('music.f5Desc') },
-              { icon: Globe, title: __('music.f6Title'), desc: __('music.f6Desc') },
-              { icon: TrendingUp, title: __('music.f7Title'), desc: __('music.f7Desc') },
-              { icon: Layers, title: __('music.f8Title'), desc: __('music.f8Desc') },
-              { icon: Star, title: __('music.f9Title'), desc: __('music.f9Desc') },
+              { icon: Brain, title: lang === 'zh' ? 'AI 品牌分析' : 'AI Brand Analysis', desc: lang === 'zh' ? '自动识别行业、品牌调性和目标受众' : 'Automatically identifies industry, brand tone, and target audience' },
+              { icon: Palette, title: lang === 'zh' ? '情绪画像' : 'Mood Profiling', desc: lang === 'zh' ? '5 维度品牌情绪雷达图，直观展示品牌特征' : '5-dimension brand mood radar chart, visualizing brand characteristics' },
+              { icon: Music, title: lang === 'zh' ? '智能推荐' : 'Smart Recommendation', desc: lang === 'zh' ? '基于品牌画像推荐 3-5 首匹配的背景音乐' : 'Recommends 3-5 matching background tracks based on brand profile' },
+              { icon: Mic2, title: lang === 'zh' ? '多风格切换' : 'Style Switching', desc: lang === 'zh' ? '10 种预设风格，一键切换重新匹配音乐' : '10 preset styles, one-click switch to rematch music' },
+              { icon: Volume2, title: lang === 'zh' ? '实时试听' : 'Real-time Preview', desc: lang === 'zh' ? '在编辑器中边建站边听音乐，完整体验' : 'Build websites while listening to music in the editor' },
+              { icon: Globe, title: lang === 'zh' ? '免版税音乐' : 'Royalty-Free Music', desc: lang === 'zh' ? '精选免版税音乐库，可安全用于商业用途' : 'Curated royalty-free music library, safe for commercial use' },
+              { icon: TrendingUp, title: lang === 'zh' ? '效果追踪' : 'Impact Tracking', desc: lang === 'zh' ? '品牌记忆度提升 3 倍，访问时长增加 40%' : 'Brand recall up 3x, visit duration up 40%' },
+              { icon: Layers, title: lang === 'zh' ? '页面级配置' : 'Page-Level Config', desc: lang === 'zh' ? '不同页面可配置不同背景音乐' : 'Different pages can have different background music' },
+              { icon: Star, title: lang === 'zh' ? '收藏与管理' : 'Library Management', desc: lang === 'zh' ? '收藏喜欢的音乐，查看历史推荐记录' : 'Save favorite tracks, view recommendation history' },
             ].map((f, i) => (
               <div key={i} className="p-5 rounded-2xl" style={{ background: 'white', border: '1px solid var(--border-color)' }}>
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-3" style={{ background: 'var(--accent-light)' }}>
@@ -446,14 +442,14 @@ export default function MusicPage({ onBack, onEnterEditor }: MusicPageProps) {
           <div className="flex items-center justify-between mb-8">
             <div>
               <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--text-tertiary)' }}>
-                {__('music.libLabel')}
+                {lang === 'zh' ? '音乐库预览' : 'MUSIC LIBRARY'}
               </span>
               <h2 className="mt-2 text-[clamp(1.25rem,2vw,1.75rem)] font-bold" style={{ color: 'var(--text-primary)' }}>
-                {__('music.libTitle')}
+                {lang === 'zh' ? '18+ 精选免版税曲目' : '18+ Curated Royalty-Free Tracks'}
               </h2>
             </div>
             <span className="text-xs px-3 py-1.5 rounded-full font-medium" style={{ background: 'var(--accent-light)', color: 'var(--accent)' }}>
-              {MUSIC_TRACKS.length} {__('music.trackCount')}
+              {MUSIC_TRACKS.length} {lang === 'zh' ? '首曲目' : 'Tracks'}
             </span>
           </div>
 
@@ -493,17 +489,17 @@ export default function MusicPage({ onBack, onEnterEditor }: MusicPageProps) {
               <Sparkles size={24} style={{ color: 'var(--accent)' }} />
             </div>
             <h2 className="text-2xl font-bold mb-3" style={{ color: 'var(--text-primary)' }}>
-              {__('music.ctaTitle')}
+              {lang === 'zh' ? '开始打造您的品牌体验' : 'Start building your brand experience'}
             </h2>
             <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>
-              {__('music.ctaDesc')}
+              {lang === 'zh' ? '描述您的业务，让 AI 为您建站并匹配完美音乐。' : 'Describe your business and let AI build your site with perfectly matched music.'}
             </p>
             <div className="flex flex-wrap justify-center gap-3">
-              <button onClick={() => onBack()} className="btn-primary flex items-center gap-2">
-                <Zap size={16} /> {__('music.getStarted')}
+              <button onClick={() => navigate('/')} className="btn-primary flex items-center gap-2">
+                <Zap size={16} /> {lang === 'zh' ? '立即开始' : 'Get Started'}
               </button>
-              <button onClick={() => onBack()} className="btn-ghost">
-                {__('music.createAccount')}
+              <button onClick={() => navigate('/auth?mode=register')} className="btn-ghost">
+                {lang === 'zh' ? '创建账户' : 'Create Account'}
               </button>
             </div>
           </div>
@@ -518,12 +514,10 @@ export default function MusicPage({ onBack, onEnterEditor }: MusicPageProps) {
             <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>AutoMatch</span>
           </div>
           <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
-            &copy; {new Date().getFullYear()} AutoMatch. {__('music.rights')}
+            &copy; {new Date().getFullYear()} AutoMatch. {lang === 'zh' ? '保留所有权利。' : 'All rights reserved.'}
           </p>
         </div>
       </footer>
-
-      {showPaywall && <Paywall feature="music" onClose={() => setShowPaywall(false)} onSignIn={() => setShowPaywall(false)} />}
     </div>
   );
 }

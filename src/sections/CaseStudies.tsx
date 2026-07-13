@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { ArrowRight, Play, Pause, TrendingUp, Users, Clock, Music } from 'lucide-react';
 import { CASE_STUDIES } from '@/data/music';
-import { useLang } from '@/i18n/LanguageContext';
+import { useI18n } from '@/hooks/useI18n';
 
 export default function CaseStudies() {
-  const { lang, __ } = useLang();
+  const { lang, t } = useI18n();
   const sectionRef = useRef<HTMLDivElement>(null);
   const [isVisible, setIsVisible] = useState(false);
   const [activeCase, setActiveCase] = useState(0);
@@ -39,13 +39,15 @@ export default function CaseStudies() {
         {/* Header */}
         <div className={`text-center mb-16 transition-all duration-700 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
           <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--text-tertiary)' }}>
-            {__('cases.label')}
+            {lang === 'zh' ? '真实案例' : 'REAL CASES'}
           </span>
           <h2 className="mt-3 text-[clamp(1.5rem,3vw,2.25rem)] font-bold" style={{ color: 'var(--text-primary)' }}>
-            {__('cases.title')}
+            {lang === 'zh' ? '真实品牌-音乐配对案例' : 'Real Brand-Music Pairings'}
           </h2>
           <p className="mt-4 text-base leading-relaxed max-w-2xl mx-auto" style={{ color: 'var(--text-secondary)' }}>
-            {__('cases.subtitle')}
+            {lang === 'zh'
+              ? '看看 AI 如何将音乐与不同行业和品牌个性匹配，创造完整的品牌体验。'
+              : 'See how AI matches music to different industries and brand personalities to create complete brand experiences.'}
           </p>
         </div>
 
@@ -118,15 +120,15 @@ export default function CaseStudies() {
                 {/* Mood Profile Mini */}
                 <div className="mb-6">
                   <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: 'var(--text-tertiary)' }}>
-                    {__('cases.moodProfile')}
+                    {lang === 'zh' ? '品牌情绪画像' : 'Brand Mood Profile'}
                   </p>
                   <div className="grid grid-cols-5 gap-2">
                     {[
-                      { key: 'warmth', label: __('analysis.mood.warmth'), val: currentCase.moodProfile.warmth },
-                      { key: 'energy', label: __('analysis.mood.energy'), val: currentCase.moodProfile.energy },
-                      { key: 'professionalism', label: __('analysis.mood.professional'), val: currentCase.moodProfile.professionalism },
-                      { key: 'creativity', label: __('analysis.mood.creative'), val: currentCase.moodProfile.creativity },
-                      { key: 'sophistication', label: __('analysis.mood.sophisticated'), val: currentCase.moodProfile.sophistication },
+                      { key: 'warmth', label: lang === 'zh' ? '温暖' : 'Warm', val: currentCase.moodProfile.warmth },
+                      { key: 'energy', label: lang === 'zh' ? '活力' : 'Energy', val: currentCase.moodProfile.energy },
+                      { key: 'professionalism', label: lang === 'zh' ? '专业' : 'Pro', val: currentCase.moodProfile.professionalism },
+                      { key: 'creativity', label: lang === 'zh' ? '创意' : 'Create', val: currentCase.moodProfile.creativity },
+                      { key: 'sophistication', label: lang === 'zh' ? '精致' : 'Soph', val: currentCase.moodProfile.sophistication },
                     ].map(d => (
                       <div key={d.key} className="text-center">
                         <div className="relative w-12 h-12 mx-auto mb-1">
@@ -153,7 +155,7 @@ export default function CaseStudies() {
                   <div className="flex items-center gap-2 mb-2">
                     <Music size={14} style={{ color: 'var(--music-accent)' }} />
                     <span className="text-xs font-semibold" style={{ color: 'var(--music-accent)' }}>
-                      {__('cases.why')}
+                      {lang === 'zh' ? 'AI 推荐原因' : 'Why This Match Works'}
                     </span>
                   </div>
                   <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
@@ -164,7 +166,7 @@ export default function CaseStudies() {
                 {/* Metrics */}
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: 'var(--text-tertiary)' }}>
-                    {__('cases.impact')}
+                    {lang === 'zh' ? '效果指标' : 'Impact Metrics'}
                   </p>
                   <div className="grid grid-cols-3 gap-3">
                     {currentCase.metrics.map(m => (

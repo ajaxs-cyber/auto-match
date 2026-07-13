@@ -15,6 +15,7 @@ export const MUSIC_TRACKS: MusicTrack[] = [
     cover: '/images/album-autumn-breeze.jpg',
     moods: ['Relaxing', 'Warm', 'Acoustic'], genre: 'Acoustic', bpm: 85,
     reason: 'Warm acoustic tones create an intimate, welcoming atmosphere perfect for artisanal brands',
+    reasonZh: '温暖、低唤醒的原声吉他与品牌的自然色调和治愈定位相匹配，营造亲切温馨的氛围。',
     license: 'royalty-free', tags: ['cozy', 'coffee', 'warm', 'organic'],
   },
   {
@@ -23,6 +24,7 @@ export const MUSIC_TRACKS: MusicTrack[] = [
     cover: '/images/album-sunday-morning.jpg',
     moods: ['Calm', 'Peaceful', 'Soft'], genre: 'Ambient', bpm: 72,
     reason: 'Gentle ambient textures provide a calm, professional backdrop without distraction',
+    reasonZh: '轻柔的氛围音乐提供宁静专业的背景，不干扰用户浏览，适合强调简约美学的品牌。',
     license: 'royalty-free', tags: ['calm', 'professional', 'minimal'],
   },
   {
@@ -31,6 +33,7 @@ export const MUSIC_TRACKS: MusicTrack[] = [
     cover: '/images/album-urban-flow.jpg',
     moods: ['Lo-Fi', 'Urban', 'Chill'], genre: 'Lo-Fi', bpm: 90,
     reason: 'Modern lo-fi beats convey creativity and forward-thinking energy for tech brands',
+    reasonZh: '现代轻音乐节拍传达创意和前瞻性能量，适合文创和年轻化品牌调性。',
     license: 'royalty-free', tags: ['modern', 'creative', 'urban'],
   },
   {
@@ -39,6 +42,7 @@ export const MUSIC_TRACKS: MusicTrack[] = [
     cover: '/images/album-autumn-breeze.jpg',
     moods: ['Cozy', 'Warm', 'Inviting'], genre: 'Jazz', bpm: 78,
     reason: 'Smooth jazz brings sophistication and warmth to hospitality and food brands',
+    reasonZh: '流畅爵士乐带来精致感和温暖气质，与美妆护肤品牌的高端治愈定位完美契合。',
     license: 'royalty-free', tags: ['jazz', 'sophisticated', 'coffee'],
   },
   {
@@ -47,6 +51,7 @@ export const MUSIC_TRACKS: MusicTrack[] = [
     cover: '/images/album-urban-flow.jpg',
     moods: ['Modern', 'Energetic', 'Tech'], genre: 'Electronic', bpm: 120,
     reason: 'Energetic electronic pulses drive engagement for innovative, dynamic brands',
+    reasonZh: '充满活力的电子脉冲驱动用户参与感，适合创新、动感十足的品牌形象。',
     license: 'royalty-free', tags: ['tech', 'energetic', 'future'],
   },
   {
@@ -55,6 +60,7 @@ export const MUSIC_TRACKS: MusicTrack[] = [
     cover: '/images/album-sunday-morning.jpg',
     moods: ['Serene', 'Meditative', 'Balanced'], genre: 'New Age', bpm: 65,
     reason: 'Serene new-age tones evoke balance and trust, ideal for wellness and health brands',
+    reasonZh: '宁静的新世纪音乐唤起平衡与信任感，适合强调自然健康的护肤和公益品牌。',
     license: 'royalty-free', tags: ['wellness', 'calm', 'zen'],
   },
   {
@@ -63,6 +69,7 @@ export const MUSIC_TRACKS: MusicTrack[] = [
     cover: '/images/album-autumn-breeze.jpg',
     moods: ['Elegant', 'Warm', 'Romantic'], genre: 'Cinematic', bpm: 70,
     reason: 'Elegant piano melodies with cinematic warmth create emotional storytelling moments',
+    reasonZh: '优雅钢琴旋律搭配电影般的温暖质感，创造情感叙事的完美时刻，适合浪漫品牌。',
     license: 'royalty-free', tags: ['elegant', 'wedding', 'romantic', 'piano'],
   },
   {
@@ -71,6 +78,7 @@ export const MUSIC_TRACKS: MusicTrack[] = [
     cover: '/images/album-urban-flow.jpg',
     moods: ['Dynamic', 'Bold', 'Gaming'], genre: 'Electronic', bpm: 128,
     reason: 'Bold synthwave energy drives excitement for gaming, fitness, and entertainment brands',
+    reasonZh: '大胆的合成器波能量激发兴奋感，适合年轻化、活力四射的文创品牌调性。',
     license: 'royalty-free', tags: ['gaming', 'energetic', 'bold', 'synth'],
   },
   {
@@ -79,6 +87,7 @@ export const MUSIC_TRACKS: MusicTrack[] = [
     cover: '/images/album-sunday-morning.jpg',
     moods: ['Professional', 'Focused', 'Serious'], genre: 'Classical', bpm: 60,
     reason: 'Classical string arrangements convey authority and trust for legal and professional services',
+    reasonZh: '古典弦乐编排传达权威与信任感，适合强调专业和可靠性的公益组织品牌。',
     license: 'royalty-free', tags: ['professional', 'legal', 'serious', 'classical'],
   },
   {
@@ -87,6 +96,7 @@ export const MUSIC_TRACKS: MusicTrack[] = [
     cover: '/images/album-autumn-breeze.jpg',
     moods: ['Stylish', 'Trendy', 'Luxury'], genre: 'Lounge', bpm: 105,
     reason: 'Sophisticated lounge beats create an upscale ambiance for fashion and luxury brands',
+    reasonZh: '精致的休闲节拍营造高端氛围，与美妆护肤品牌的轻奢定位高度匹配。',
     license: 'royalty-free', tags: ['fashion', 'luxury', 'trendy', 'lounge'],
   },
   {
@@ -95,6 +105,7 @@ export const MUSIC_TRACKS: MusicTrack[] = [
     cover: '/images/album-urban-flow.jpg',
     moods: ['Motivated', 'Upbeat', 'Corporate'], genre: 'Corporate', bpm: 115,
     reason: 'Upbeat corporate music builds confidence and momentum for B2B and enterprise brands',
+    reasonZh: '乐观的商务音乐建立信心和动力，适合宠物生活品牌的温馨可靠调性。',
     license: 'royalty-free', tags: ['corporate', 'b2b', 'motivated'],
   },
   {
@@ -103,6 +114,7 @@ export const MUSIC_TRACKS: MusicTrack[] = [
     cover: '/images/album-sunday-morning.jpg',
     moods: ['Organic', 'Fresh', 'Natural'], genre: 'Acoustic', bpm: 80,
     reason: 'Organic acoustic folk with nature sounds for eco-friendly and outdoor brands',
+    reasonZh: '有机原声民谣搭配自然音效，与宠物生活品牌的自然温馨氛围完美契合。',
     license: 'royalty-free', tags: ['eco', 'organic', 'nature', 'fresh'],
   },
   {
@@ -111,6 +123,7 @@ export const MUSIC_TRACKS: MusicTrack[] = [
     cover: '/images/album-autumn-breeze.jpg',
     moods: ['Sophisticated', 'Intimate', 'Moody'], genre: 'Jazz', bpm: 75,
     reason: 'Late-night jazz creates an intimate, exclusive atmosphere for fine dining and luxury venues',
+    reasonZh: '深夜爵士乐营造亲密、专属的氛围，适合高端美妆和奢侈品牌的沉浸式体验。',
     license: 'royalty-free', tags: ['luxury', 'dining', 'intimate', 'moody'],
   },
   {
@@ -119,6 +132,7 @@ export const MUSIC_TRACKS: MusicTrack[] = [
     cover: '/images/album-urban-flow.jpg',
     moods: ['Futuristic', 'Clean', 'Innovative'], genre: 'Ambient', bpm: 95,
     reason: 'Clean ambient textures with subtle electronic elements for SaaS and tech startups',
+    reasonZh: '干净的氛围质感搭配微妙电子元素，适合文创品牌的现代感与科技感结合。',
     license: 'royalty-free', tags: ['saas', 'tech', 'clean', 'minimal'],
   },
   {
@@ -127,6 +141,7 @@ export const MUSIC_TRACKS: MusicTrack[] = [
     cover: '/images/album-sunday-morning.jpg',
     moods: ['Romantic', 'Dreamy', 'Emotional'], genre: 'Cinematic', bpm: 68,
     reason: 'Dreamy piano cinematic compositions for wedding photographers and romantic brands',
+    reasonZh: '梦幻钢琴电影配乐，为浪漫品牌创造诗意的情感体验，适合强调美感的品牌。',
     license: 'royalty-free', tags: ['wedding', 'romantic', 'dreamy', 'emotional'],
   },
   {
@@ -135,6 +150,7 @@ export const MUSIC_TRACKS: MusicTrack[] = [
     cover: '/images/album-urban-flow.jpg',
     moods: ['Energetic', 'Powerful', 'Motivated'], genre: 'Electronic Pop', bpm: 135,
     reason: 'High-energy electronic pop drives motivation for fitness, gym, and sports brands',
+    reasonZh: '高能量电子流行驱动激励感，适合强调活力、互动和趣味性的宠物生活品牌。',
     license: 'royalty-free', tags: ['fitness', 'gym', 'energy', 'workout'],
   },
   {
@@ -143,6 +159,7 @@ export const MUSIC_TRACKS: MusicTrack[] = [
     cover: '/images/album-autumn-breeze.jpg',
     moods: ['Handcrafted', 'Authentic', 'Rustic'], genre: 'Folk', bpm: 88,
     reason: 'Authentic folk music with handcrafted warmth for artisan and handmade brands',
+    reasonZh: '真实民谣音乐搭配手工温暖质感，与文创品牌的手工艺和传统文化内核相呼应。',
     license: 'royalty-free', tags: ['artisan', 'handmade', 'rustic', 'authentic'],
   },
   {
@@ -151,6 +168,7 @@ export const MUSIC_TRACKS: MusicTrack[] = [
     cover: '/images/album-sunday-morning.jpg',
     moods: ['Minimal', 'Clean', 'Modern'], genre: 'Ambient', bpm: 68,
     reason: 'Ultra-minimal ambient for architecture, design studios, and minimalist brands',
+    reasonZh: '极简氛围音乐适合强调留白和东方美学的文创品牌，营造宁静深远的意境。',
     license: 'royalty-free', tags: ['minimal', 'architecture', 'clean', 'design'],
   },
 ];

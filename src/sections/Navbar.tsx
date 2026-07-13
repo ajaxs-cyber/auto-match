@@ -1,21 +1,19 @@
-import { useState, useEffect, useRef } from 'react';
-import { Menu, X, Globe, Music, User, LogOut, Crown } from 'lucide-react';
-import { useLang } from '@/i18n/LanguageContext';
+import { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router';
+import { Menu, X, Globe, LogIn, LogOut, User } from 'lucide-react';
+import { useI18n } from '@/hooks/useI18n';
 import { useAuth } from '@/hooks/useAuth';
 
-interface NavbarProps {
-  onNavigate: (section: string) => void;
-  onSignIn?: () => void;
-  onMusic?: () => void;
-}
+interface NavbarProps { onNavigate: (section: string) => void; }
 
-export default function Navbar({ onNavigate, onSignIn, onMusic }: NavbarProps) {
+export default function Navbar({ onNavigate }: NavbarProps) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { lang, setLang, t } = useI18n();
+  const { user, isLoggedIn, logout } = useAuth();
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-  const { lang, toggleLang, __ } = useLang();
-  const { user, isLoggedIn, logout } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 100);
@@ -23,116 +21,152 @@ export default function Navbar({ onNavigate, onSignIn, onMusic }: NavbarProps) {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  useEffect(() => {
-    const handleClick = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setShowUserMenu(false);
-    };
-    if (showUserMenu) document.addEventListener('click', handleClick);
-    return () => document.removeEventListener('click', handleClick);
-  }, [showUserMenu]);
-
   const navLinks = [
-    { label: __('nav.templates'), section: 'templates' },
-    { label: __('nav.howItWorks'), section: 'how-it-works' },
-    { label: __('nav.music'), section: 'music' },
-    { label: __('nav.pricing'), section: 'pricing' },
+    { label: t('nav.templates', 'Templates'), section: 'templates' },
+    { label: t('nav.howItWorks', 'How it Works'), section: 'how-it-works' },
+    { label: t('nav.musicMatching', 'Music Matching'), section: 'music', href: '/music' },
+    { label: t('nav.pricing', 'Pricing'), section: 'pricing' },
   ];
 
-  const handleNav = (section: string) => { onNavigate(section); setMobileOpen(false); };
+  const handleNav = (link: typeof navLinks[0]) => {
+    if (link.href) {
+      navigate(link.href);
+    } else {
+      onNavigate(link.section);
+    }
+    setMobileOpen(false);
+  };
 
-  const linkClass = scrolled ? 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]' : 'text-[#94a3b8] hover:text-[#f1f5f9]';
+  const toggleLang = () => setLang(lang === 'en' ? 'zh' : 'en');
 
   return (
     <>
-      <nav className={`fixed top-0 left-0 right-0 z-50 h-16 flex items-center justify-between px-6 lg:px-10 transition-all duration-300 ${scrolled ? 'bg-white/95 backdrop-blur-xl border-b border-[rgba(26,43,60,0.06)]' : 'bg-transparent'}`}>
-        <button onClick={() => handleNav('hero')} className="flex items-center gap-3 cursor-pointer bg-transparent border-none">
+      <nav className={`fixed top-0 left-0 right-0 z-50 h-16 flex items-center justify-between px-6 lg:px-10 transition-all duration-300 ${
+        scrolled ? 'bg-white/95 backdrop-blur-xl border-b border-[rgba(26,43,60,0.06)]' : 'bg-transparent'
+      }`}>
+        {/* Logo */}
+        <button onClick={() => navigate('/')} className="flex items-center gap-3 cursor-pointer bg-transparent border-none">
           <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold" style={{ background: 'var(--accent)' }}>A</div>
           <span className={`text-lg font-semibold transition-colors duration-300 ${scrolled ? 'text-[var(--text-primary)]' : 'text-[#f1f5f9]'}`}>AutoMatch</span>
         </button>
 
+        {/* Center Nav Links - Desktop */}
         <div className="hidden md:flex items-center gap-8">
-          {navLinks.map(link => (
-            <button key={link.section} onClick={() => handleNav(link.section)} className={`relative text-sm font-medium transition-colors duration-200 cursor-pointer bg-transparent border-none ${linkClass} group`}>
+          {navLinks.map((link) => (
+            <button key={link.section} onClick={() => handleNav(link)}
+              className={`relative text-sm font-medium transition-colors duration-200 cursor-pointer bg-transparent border-none ${
+                scrolled ? 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]' : 'text-[#94a3b8] hover:text-[#f1f5f9]'
+              } group`}
+            >
               {link.label}
               <span className="absolute -bottom-1 left-0 w-full h-0.5 bg-[var(--accent)] scale-x-0 group-hover:scale-x-100 transition-transform duration-250 origin-left" />
             </button>
           ))}
         </div>
 
+        {/* Right Actions */}
         <div className="hidden md:flex items-center gap-3">
-          <button onClick={onMusic} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all cursor-pointer border-none ${scrolled ? 'text-[var(--text-primary)] hover:shadow-md' : 'text-[#f1f5f9] hover:bg-white/10'}`}
-            style={{ background: scrolled ? 'var(--music-accent-light)' : 'transparent', border: scrolled ? '1px solid rgba(123,97,255,0.2)' : 'none' }}
+          <button onClick={toggleLang}
+            className={`flex items-center gap-1.5 text-sm font-medium bg-transparent border-none cursor-pointer transition-colors duration-200 px-2 py-1 rounded-lg ${
+              scrolled ? 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-gray-50' : 'text-[#94a3b8] hover:text-[#f1f5f9]'
+            }`}
           >
-            <Music size={14} style={{ color: 'var(--music-accent)' }} />
-            {__('nav.exploreMusic')}
+            <Globe size={14} />
+            {lang === 'en' ? '中文' : 'EN'}
           </button>
-          <button onClick={toggleLang} className={`p-2 rounded-lg bg-transparent border-none cursor-pointer transition-colors flex items-center gap-1 ${scrolled ? 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]' : 'text-[#94a3b8] hover:text-[#f1f5f9]'}`} title={lang === 'en' ? 'Switch to Chinese' : '切换到英文'}>
-            <Globe size={16} />
-            <span className="text-xs font-medium">{lang === 'en' ? '中文' : 'EN'}</span>
-          </button>
+
           {isLoggedIn && user ? (
-            <div className="relative" ref={menuRef}>
-              <button onClick={() => setShowUserMenu(!showUserMenu)} className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium cursor-pointer border-none transition-all"
-                style={{ background: scrolled ? 'var(--music-accent-light)' : 'rgba(255,255,255,0.1)', color: scrolled ? 'var(--text-primary)' : '#f1f5f9' }}>
-                <div className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px] font-bold" style={{ background: 'var(--music-accent)' }}>
+            <div className="relative">
+              <button
+                onClick={() => setShowUserMenu(!showUserMenu)}
+                className={`flex items-center gap-2 text-sm font-medium bg-transparent border-none cursor-pointer transition-colors px-2 py-1 rounded-lg ${
+                  scrolled ? 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-gray-50' : 'text-[#94a3b8] hover:text-[#f1f5f9]'
+                }`}
+              >
+                <div className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold" style={{ background: 'var(--accent)' }}>
                   {user.name.charAt(0).toUpperCase()}
                 </div>
-                <span className="max-w-[80px] truncate">{user.name}</span>
+                <span className="text-xs">{user.name}</span>
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
+                  user.plan === 'pro' ? 'bg-[var(--accent-light)] text-[var(--accent)]' : user.plan === 'enterprise' ? 'bg-purple-100 text-purple-600' : 'bg-gray-100 text-gray-500'
+                }`}>
+                  {user.plan === 'free' ? 'Free' : user.plan === 'pro' ? 'Pro' : 'Ent'}
+                </span>
               </button>
+
               {showUserMenu && (
-                <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg border overflow-hidden z-50" style={{ borderColor: 'var(--border-color)' }}>
-                  <div className="px-4 py-3 border-b" style={{ borderColor: 'var(--border-color)' }}>
-                    <p className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>{user.name}</p>
+                <div className="absolute right-0 top-full mt-2 w-48 rounded-xl shadow-lg border py-1" style={{ background: 'white', borderColor: 'var(--border-color)' }}>
+                  <div className="px-4 py-2 border-b" style={{ borderColor: 'var(--border-color)' }}>
+                    <p className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>{user.name}</p>
                     <p className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>{user.email}</p>
-                    <span className="inline-flex items-center gap-1 mt-1.5 px-2 py-0.5 rounded-full text-[9px] font-bold"
-                      style={{ background: user.plan === 'pro' ? '#d1fae5' : '#fef3c7', color: user.plan === 'pro' ? '#16a34a' : '#b45309' }}>
-                      {user.plan === 'pro' && <Crown size={9} />}
-                      {user.plan.toUpperCase()}
-                    </span>
                   </div>
-                  <button onClick={() => { logout(); setShowUserMenu(false); }} className="w-full flex items-center gap-2 px-4 py-2.5 text-xs cursor-pointer bg-transparent border-none hover:bg-gray-50" style={{ color: 'var(--text-secondary)' }}>
+                  <button onClick={() => { logout(); setShowUserMenu(false); }}
+                    className="w-full flex items-center gap-2 px-4 py-2 text-xs bg-transparent border-none cursor-pointer hover:bg-gray-50 text-left"
+                    style={{ color: 'var(--text-secondary)' }}
+                  >
                     <LogOut size={12} /> {lang === 'zh' ? '退出登录' : 'Sign Out'}
                   </button>
                 </div>
               )}
             </div>
           ) : (
-            <button className={`text-sm font-medium bg-transparent border-none cursor-pointer transition-colors duration-200 ${linkClass}`} onClick={onSignIn}>{__('nav.signIn')}</button>
+            <button onClick={() => navigate('/auth')}
+              className={`flex items-center gap-1.5 text-sm font-medium bg-transparent border-none cursor-pointer transition-colors ${
+                scrolled ? 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]' : 'text-[#94a3b8] hover:text-[#f1f5f9]'
+              }`}
+            >
+              <LogIn size={14} /> {t('nav.signIn', 'Sign In')}
+            </button>
           )}
-          <button onClick={() => handleNav('hero')} className="btn-primary py-2.5 px-6">{__('nav.getStarted')}</button>
+
+          <button onClick={() => onNavigate('hero')} className="btn-primary py-2.5 px-5 text-xs">
+            {t('nav.getStarted', 'Get Started')}
+          </button>
         </div>
 
-        <button onClick={() => setMobileOpen(!mobileOpen)} className={`md:hidden p-2 bg-transparent border-none cursor-pointer ${scrolled ? 'text-[var(--text-primary)]' : 'text-white'}`}>
+        {/* Mobile Hamburger */}
+        <button onClick={() => setMobileOpen(!mobileOpen)}
+          className={`md:hidden p-2 bg-transparent border-none cursor-pointer ${scrolled ? 'text-[var(--text-primary)]' : 'text-white'}`}
+        >
           {mobileOpen ? <X size={24} /> : <Menu size={24} />}
         </button>
       </nav>
 
+      {/* Mobile Menu Overlay */}
       {mobileOpen && (
         <div className="fixed inset-0 z-40 bg-white md:hidden">
           <div className="flex flex-col items-center justify-center h-full gap-8">
-            {navLinks.map(link => (
-              <button key={link.section} onClick={() => handleNav(link.section)} className="text-2xl font-semibold text-[var(--text-primary)] bg-transparent border-none cursor-pointer">{link.label}</button>
+            {navLinks.map((link) => (
+              <button key={link.section} onClick={() => handleNav(link)}
+                className="text-2xl font-semibold text-[var(--text-primary)] bg-transparent border-none cursor-pointer"
+              >
+                {link.label}
+              </button>
             ))}
+            {isLoggedIn && user ? (
+              <>
+                <div className="flex items-center gap-3 py-2">
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold" style={{ background: 'var(--accent)' }}>
+                    {user.name.charAt(0).toUpperCase()}
+                  </div>
+                  <span className="text-lg text-[var(--text-primary)]">{user.name}</span>
+                </div>
+                <button onClick={() => { logout(); setMobileOpen(false); }}
+                  className="text-lg text-[var(--text-secondary)] bg-transparent border-none cursor-pointer flex items-center gap-2"
+                >
+                  <LogOut size={18} /> {lang === 'zh' ? '退出登录' : 'Sign Out'}
+                </button>
+              </>
+            ) : (
+              <button onClick={() => { navigate('/auth'); setMobileOpen(false); }}
+                className="text-lg text-[var(--text-secondary)] bg-transparent border-none cursor-pointer"
+              >
+                {t('nav.signIn', 'Sign In')}
+              </button>
+            )}
             <button onClick={toggleLang} className="flex items-center gap-2 text-lg text-[var(--text-secondary)] bg-transparent border-none cursor-pointer">
               <Globe size={18} /> {lang === 'en' ? '切换到中文' : 'Switch to English'}
             </button>
-            <div className="flex flex-col items-center gap-4 mt-8">
-              {isLoggedIn && user ? (
-                <>
-                  <div className="w-12 h-12 rounded-full flex items-center justify-center text-white text-lg font-bold" style={{ background: 'var(--music-accent)' }}>{user.name.charAt(0).toUpperCase()}</div>
-                  <span className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>{user.name}</span>
-                  <span className="px-2.5 py-1 rounded-full text-xs font-bold" style={{ background: user.plan === 'pro' ? '#d1fae5' : '#fef3c7', color: user.plan === 'pro' ? '#16a34a' : '#b45309' }}>{user.plan.toUpperCase()}</span>
-                  <button onClick={() => { logout(); setMobileOpen(false); }} className="flex items-center gap-2 text-base cursor-pointer bg-transparent border-none" style={{ color: 'var(--accent)' }}>
-                    <LogOut size={16} /> {lang === 'zh' ? '退出登录' : 'Sign Out'}
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button onClick={onSignIn} className="text-lg text-[var(--text-secondary)] bg-transparent border-none cursor-pointer">{__('nav.signIn')}</button>
-                  <button onClick={() => handleNav('hero')} className="btn-primary">{__('nav.getStarted')}</button>
-                </>
-              )}
-            </div>
           </div>
         </div>
       )}

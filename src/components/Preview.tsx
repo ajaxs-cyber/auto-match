@@ -1,16 +1,34 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useEditor } from '@/hooks/useEditor';
-import { X, Monitor, Tablet, Smartphone, ChevronLeft, Music, Play, Pause, Volume2 } from 'lucide-react';
-import { getTrackById, generateMusicRecommendation } from '@/data/music';
+import { X, Monitor, Tablet, Smartphone, ChevronLeft, Music, Play, Pause, Volume2, SkipForward, SkipBack, RefreshCw } from 'lucide-react';
+import { getTrackById, generateMusicRecommendation, getGenreLabel, getGenreLabelZh } from '@/data/music';
+import { useI18n } from '@/hooks/useI18n';
 
 interface Props { onClose: () => void; onBackToEditor: () => void; }
 
 export default function Preview({ onClose, onBackToEditor }: Props) {
   const { state, currentPage } = useEditor();
+  const { lang } = useI18n();
   const [device, setDevice] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
   const [isPlaying, setIsPlaying] = useState(false);
+  const [volume, setVolume] = useState(70);
+  const [progress, setProgress] = useState(35);
 
   const deviceWidths = { desktop: '100%', tablet: '768px', mobile: '375px' };
+
+  // Simulate progress animation
+  useEffect(() => {
+    if (!isPlaying) return;
+    const interval = setInterval(() => {
+      setProgress(p => (p >= 100 ? 0 : p + 0.3));
+    }, 100);
+    return () => clearInterval(interval);
+  }, [isPlaying]);
+
+  // Get music for current page
+  const industry = currentPage ? detectIndustryFromPage(currentPage) : 'Services';
+  const rec = currentPage ? generateMusicRecommendation(industry, currentPage.musicStyle) : null;
+  const currentTrack = rec?.primary;
 
   if (!currentPage) return null;
 
@@ -58,16 +76,65 @@ export default function Preview({ onClose, onBackToEditor }: Props) {
         </div>
       </div>
 
-      {/* Music Bar */}
-      <div className="h-14 flex items-center gap-4 px-4 border-t flex-shrink-0" style={{ background: 'white', borderColor: 'var(--border-color)', boxShadow: '0 -4px 16px rgba(0,0,0,0.04)' }}>
-        <Music size={16} style={{ color: 'var(--music-accent)' }} />
-        <div className="flex-shrink-0"><p className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>Brand Soundtrack</p><p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Previewing music with website</p></div>
-        <div className="h-6 w-px mx-2" style={{ background: 'var(--border-color)' }} />
-        <button onClick={() => setIsPlaying(!isPlaying)} className="w-8 h-8 rounded-full flex items-center justify-center text-white border-none cursor-pointer" style={{ background: 'var(--music-accent)' }}>{isPlaying ? <Pause size={14} /> : <Play size={14} />}</button>
-        <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: 'rgba(26,43,60,0.08)' }}><div className="h-full rounded-full transition-all" style={{ background: 'var(--music-accent)', width: isPlaying ? `${35 + Math.sin(Date.now() / 1000) * 20}%` : '35%' }} /></div>
-        <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>1:24</span>
-        <Volume2 size={14} style={{ color: 'var(--text-secondary)' }} />
+      {/* Music Bar - Enhanced */}
+      <div className="h-16 flex items-center gap-4 px-4 border-t flex-shrink-0" style={{ background: 'white', borderColor: 'var(--border-color)', boxShadow: '0 -4px 16px rgba(0,0,0,0.04)' }}>
+        {/* Track Info */}
+        <div className="flex items-center gap-3 flex-shrink-0">
+          {currentTrack ? (
+            <>
+              <img src={currentTrack.cover} alt="" className="w-10 h-10 rounded-lg object-cover" />
+              <div className="hidden sm:block">
+                <p className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>{currentTrack.title}</p>
+                <p className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>
+                  {lang === 'zh' ? getGenreLabelZh(currentTrack.genre) : getGenreLabel(currentTrack.genre)} &middot; {currentTrack.bpm} BPM
+                </p>
+              </div>
+            </>
+          ) : (
+            <>
+              <Music size={16} style={{ color: 'var(--music-accent)' }} />
+              <div className="hidden sm:block">
+                <p className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>{lang === 'zh' ? '品牌配乐' : 'Brand Soundtrack'}</p>
+              </div>
+            </>
+          )}
+        </div>
+
+        <div className="h-6 w-px hidden sm:block" style={{ background: 'var(--border-color)' }} />
+
+        {/* Controls */}
+        <div className="flex items-center gap-2">
+          <button className="p-1.5 rounded-lg hover:bg-gray-100 bg-transparent border-none cursor-pointer hidden sm:block" style={{ color: 'var(--text-tertiary)' }}><SkipBack size={14} /></button>
+          <button onClick={() => setIsPlaying(!isPlaying)} className="w-9 h-9 rounded-full flex items-center justify-center text-white border-none cursor-pointer" style={{ background: 'var(--music-accent)' }}>
+            {isPlaying ? <Pause size={14} /> : <Play size={14} className="ml-0.5" />}
+          </button>
+          <button className="p-1.5 rounded-lg hover:bg-gray-100 bg-transparent border-none cursor-pointer hidden sm:block" style={{ color: 'var(--text-tertiary)' }}><SkipForward size={14} /></button>
+        </div>
+
+        {/* Progress */}
+        <div className="flex-1 flex items-center gap-2 min-w-0">
+          <span className="text-[10px] hidden sm:block" style={{ color: 'var(--text-tertiary)' }}>1:24</span>
+          <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: 'rgba(26,43,60,0.08)' }}>
+            <div className="h-full rounded-full transition-all" style={{ background: 'var(--music-accent)', width: `${progress}%` }} />
+          </div>
+          <span className="text-[10px] hidden sm:block" style={{ color: 'var(--text-tertiary)' }}>{currentTrack?.duration || '3:42'}</span>
+        </div>
+
+        {/* Volume */}
+        <div className="hidden md:flex items-center gap-2 flex-shrink-0">
+          <Volume2 size={14} style={{ color: 'var(--text-tertiary)' }} />
+          <input type="range" min="0" max="100" value={volume} onChange={e => setVolume(Number(e.target.value))} className="w-16 h-1 accent-[var(--music-accent)]" />
+        </div>
       </div>
     </div>
   );
+}
+
+function detectIndustryFromPage(page: any): string {
+  const text = page.modules.map((m: any) => JSON.stringify((m as any).content)).join(' ').toLowerCase();
+  if (text.includes('coffee') || text.includes('cafe') || text.includes('food') || text.includes('restaurant')) return 'Coffee & Food';
+  if (text.includes('photo') || text.includes('creative') || text.includes('design') || text.includes('portfolio')) return 'Creative';
+  if (text.includes('tech') || text.includes('startup') || text.includes('saas')) return 'Tech';
+  if (text.includes('fitness') || text.includes('gym') || text.includes('health') || text.includes('wellness')) return 'Fitness';
+  return 'Services';
 }
