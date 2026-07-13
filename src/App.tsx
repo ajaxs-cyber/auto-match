@@ -23,7 +23,7 @@ import MusicPage from '@/pages/MusicPage';
 import AuthPage from '@/pages/AuthPage';
 import DemoPage from '@/pages/DemoPage';
 import DashboardPage from '@/pages/DashboardPage';
-import { DEFAULT_TEMPLATES } from '@/data/templates';
+import { DEFAULT_TEMPLATES, generateWebsiteFromTemplate, generateEmptyWebsite } from '@/data/templates';
 
 type View = 'landing' | 'editor' | 'preview';
 
@@ -43,10 +43,12 @@ function LandingPage() {
   const handleSelectTemplate = useCallback((templateId: string) => {
     const tpl = DEFAULT_TEMPLATES.find(t => t.id === templateId);
     if (tpl) {
+      const site = generateWebsiteFromTemplate(tpl);
+      dispatch({ type: 'INIT_WEBSITE', website: site });
       setAnalysisPrompt(null);
       setView('editor');
     }
-  }, []);
+  }, [dispatch]);
 
   const handlePreview = useCallback(() => setView('preview'), []);
   const handleCloseEditor = useCallback(() => setView('landing'), []);
@@ -55,10 +57,18 @@ function LandingPage() {
 
   const handleUseTemplate = useCallback((templateId: string) => {
     const tpl = DEFAULT_TEMPLATES.find(t => t.id === templateId);
-    if (tpl) setView('editor');
-  }, []);
+    if (tpl) {
+      const site = generateWebsiteFromTemplate(tpl);
+      dispatch({ type: 'INIT_WEBSITE', website: site });
+      setView('editor');
+    }
+  }, [dispatch]);
 
-  const handleStart = useCallback(() => setView('editor'), []);
+  const handleStart = useCallback(() => {
+    const site = generateEmptyWebsite('My Website');
+    dispatch({ type: 'INIT_WEBSITE', website: site });
+    setView('editor');
+  }, [dispatch]);
 
   return (
     <>
