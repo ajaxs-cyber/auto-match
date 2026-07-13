@@ -121,7 +121,19 @@ export default function Editor({ onClose, onPreview }: EditorProps) {
     setDragModId(null); setDragOverId(null);
   };
 
-  if (!currentPage) return null;
+  if (!currentPage) {
+    return (
+      <div className="fixed inset-0 z-[90] flex items-center justify-center" style={{ background: '#F0EEEA' }}>
+        <div className="text-center">
+          <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: 'var(--accent-light)' }}>
+            <Layout size={24} style={{ color: 'var(--accent)' }} />
+          </div>
+          <p className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>Loading editor...</p>
+          <button onClick={onClose} className="mt-4 text-xs underline" style={{ color: 'var(--accent)' }}>Back to homepage</button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-[90] flex flex-col" style={{ background: '#F0EEEA' }} tabIndex={0}>
