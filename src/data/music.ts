@@ -557,18 +557,15 @@ export function getGenreColor(genre: string): string {
 
 export function detectIndustry(prompt: string): string {
   const p = prompt.toLowerCase();
-  if (p.includes('coffee') || p.includes('cafe') || p.includes('restaurant') || p.includes('food') || p.includes('bistro') || p.includes('bakery')) return 'Coffee & Food';
-  if (p.includes('photo') || p.includes('portfolio') || p.includes('creative') || p.includes('design') || p.includes('art') || p.includes('studio') || p.includes('gallery')) return 'Creative';
-  if (p.includes('tech') || p.includes('startup') || p.includes('saas') || p.includes('app') || p.includes('software') || p.includes('digital')) return 'Tech';
-  if (p.includes('fitness') || p.includes('gym') || p.includes('health') || p.includes('yoga') || p.includes('wellness') || p.includes('workout')) return 'Fitness';
-  if (p.includes('wedding') || p.includes('bride') || p.includes('marriage') || p.includes('bridal')) return 'Wedding';
-  if (p.includes('luxury') || p.includes('premium') || p.includes('exclusive') || p.includes('high-end')) return 'Luxury';
-  if (p.includes('fashion') || p.includes('clothing') || p.includes('apparel') || p.includes('style') || p.includes('boutique')) return 'Fashion';
-  if (p.includes('legal') || p.includes('law') || p.includes('attorney') || p.includes('financial') || p.includes('consulting')) return 'Legal';
-  if (p.includes('retail') || p.includes('shop') || p.includes('store') || p.includes('ecommerce') || p.includes('product')) return 'Retail';
-  if (p.includes('education') || p.includes('school') || p.includes('academy') || p.includes('learning') || p.includes('course')) return 'Education';
-  if (p.includes('entertainment') || p.includes('game') || p.includes('media') || p.includes('fun')) return 'Entertainment';
-  return 'Services';
+  if (p.includes('skincare') || p.includes('beauty') || p.includes('cosmetic') || p.includes('护肤') || p.includes('美容') || p.includes('化妆品') || p.includes('makeup')) return 'Beauty & Skincare';
+  if (p.includes('pet') || p.includes('宠物') || p.includes('grooming') || p.includes('dog') || p.includes('cat') || p.includes('boarding') || p.includes('veterinary')) return 'Pet Lifestyle';
+  if (p.includes('cultural') || p.includes('creative') || p.includes('文创') || p.includes('文化') || p.includes('studio') || p.includes('design') || p.includes('art') || p.includes('gallery') || p.includes('portfolio')) return 'Cultural & Creative';
+  if (p.includes('charity') || p.includes('nonprofit') || p.includes('公益') || p.includes('慈善') || p.includes('donation') || p.includes('social impact') || p.includes('community') || p.includes('foundation')) return 'Charity & Social Impact';
+  // fallback for old keywords
+  if (p.includes('coffee') || p.includes('cafe') || p.includes('restaurant')) return 'Beauty & Skincare';
+  if (p.includes('tech') || p.includes('startup') || p.includes('saas')) return 'Cultural & Creative';
+  if (p.includes('fitness') || p.includes('gym') || p.includes('health')) return 'Pet Lifestyle';
+  return 'Charity & Social Impact';
 }
 
 // ============================================

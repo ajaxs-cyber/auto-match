@@ -105,12 +105,12 @@ export default function AnalysisModal({ prompt, onClose, onSelectTemplate }: Pro
 
   const handleContinue = () => {
     const tplMap: Record<string, string> = {
-      'Coffee & Food': 'tpl-cafe-1', 'Creative': 'tpl-photo-1', 'Tech': 'tpl-tech-1',
-      'Health': 'tpl-fitness-1', 'Fitness': 'tpl-fitness-1', 'Services': 'tpl-cafe-1',
-      'Wedding': 'tpl-photo-1', 'Luxury': 'tpl-restaurant-1', 'Legal': 'tpl-tech-1',
-      'Fashion': 'tpl-studio-1', 'Retail': 'tpl-cafe-1', 'Education': 'tpl-tech-1',
+      'Beauty & Skincare': 'tpl-skincare-1',
+      'Pet Lifestyle': 'tpl-pet-1',
+      'Cultural & Creative': 'tpl-cultural-1',
+      'Charity & Social Impact': 'tpl-charity-1',
     };
-    onSelectTemplate(tplMap[industry] || 'tpl-tech-1');
+    onSelectTemplate(tplMap[industry] || 'tpl-skincare-1');
   };
 
   const toggleFavorite = (trackId: string) => {
