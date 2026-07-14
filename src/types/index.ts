@@ -299,6 +299,45 @@ export interface MusicTrack {
   reasonZh?: string;
   license: 'royalty-free' | 'cc' | 'premium' | 'custom';
   tags: string[];
+  // Scene matching dimensions
+  emotionValues?: {
+    valence: number;   // 效价 - 积极愉悦
+    arousal: number;   // 唤醒度 - 平静激昂
+    warmth: number;    // 温暖感 - 疏离亲近
+    tension: number;   // 紧张感 - 放松压迫
+    hope: number;      // 希望感 - 停滞向上
+    motivation: number; // 行动感 - 沉静推动
+  };
+  intrusion?: number;  // 干扰风险 1-5
+}
+
+export type EmotionKey = 'valence' | 'arousal' | 'warmth' | 'tension' | 'hope' | 'motivation';
+
+export interface SceneEmotionRange {
+  min: number;
+  max: number;
+  weight: number;
+}
+
+export interface SceneProfile {
+  ranges: Record<EmotionKey, SceneEmotionRange>;
+  industry: string;
+  sceneDescription: string;
+  sceneTask: string;
+  targetAudience: string;
+  playbackPosition: string;
+  brandKeywords: string[];
+  allowLyrics: boolean;
+  loop: boolean;
+  profileScore: number;
+}
+
+export interface SceneMatchResult {
+  track: MusicTrack;
+  score: number;
+  confidence: '高置信度' | '已人工校准' | '参考推荐';
+  dimensionScores: Record<EmotionKey, { target: string; actual: number; fit: boolean }>;
+  reason: string;
 }
 
 export interface BrandMoodProfile {

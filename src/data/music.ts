@@ -232,6 +232,8 @@ export const MOOD_LABELS: Record<string, { label: string; labelZh: string; color
 // Music Style Presets
 // ============================================
 
+export { getSceneProfileForIndustry, scoreTrackForScene, emotionLabels as EMOTION_LABELS, trackEmotionProfiles as TRACK_EMOTION_PROFILES };
+
 export const MUSIC_STYLE_PRESETS: MusicStylePreset[] = [
   {
     id: 'professional', name: 'Professional', nameZh: '专业商务',
@@ -566,6 +568,168 @@ export function detectIndustry(prompt: string): string {
   if (p.includes('tech') || p.includes('startup') || p.includes('saas')) return 'Cultural & Creative';
   if (p.includes('fitness') || p.includes('gym') || p.includes('health')) return 'Pet Lifestyle';
   return 'Charity & Social Impact';
+}
+
+// ============================================
+// Scene Matching Engine (声景匹配)
+// ============================================
+
+export type EmotionKey = 'valence' | 'arousal' | 'warmth' | 'tension' | 'hope' | 'motivation';
+
+export interface SceneEmotionRange { min: number; max: number; weight: number; }
+
+export interface SceneProfile {
+  ranges: Record<EmotionKey, SceneEmotionRange>;
+  industry: string;
+  sceneDescription: string;
+  keywords: string[];
+}
+
+export interface SceneMatchResult {
+  track: MusicTrack;
+  score: number;
+  confidence: '高置信度' | '已人工校准' | '参考推荐';
+  dimensionDetails: { key: EmotionKey; target: string; actual: number; fit: boolean; label: string }[];
+  reason: string;
+}
+
+const emotionLabels: Record<EmotionKey, { cn: string; hint: string; color: string }> = {
+  valence: { cn: '效价', hint: '积极·愉悦', color: '#e5677c' },
+  arousal: { cn: '唤醒度', hint: '平静·激昂', color: '#f0a34e' },
+  warmth: { cn: '温暖感', hint: '疏离·亲近', color: '#d99363' },
+  tension: { cn: '紧张感', hint: '放松·压迫', color: '#8d79bd' },
+  hope: { cn: '希望感', hint: '停滞·向上', color: '#78a77a' },
+  motivation: { cn: '行动感', hint: '沉静·推动', color: '#5a9aa3' },
+};
+
+// Track emotion profiles (mirrors the 声景匹配 system)
+const trackEmotionProfiles: Record<string, { values: Record<EmotionKey, number>; intrusion: number }> = {
+  'track-1': { values: { valence: 5.8, arousal: 4.1, warmth: 5.8, tension: 1.9, hope: 5.0, motivation: 4.5 }, intrusion: 1.7 },
+  'track-2': { values: { valence: 5.5, arousal: 3.0, warmth: 4.5, tension: 1.5, hope: 4.5, motivation: 3.5 }, intrusion: 1.3 },
+  'track-3': { values: { valence: 6.2, arousal: 5.0, warmth: 4.0, tension: 2.5, hope: 5.5, motivation: 5.5 }, intrusion: 2.5 },
+  'track-4': { values: { valence: 6.1, arousal: 4.6, warmth: 5.5, tension: 2.0, hope: 5.2, motivation: 5.0 }, intrusion: 2.1 },
+  'track-5': { values: { valence: 5.0, arousal: 3.5, warmth: 4.0, tension: 3.5, hope: 4.0, motivation: 4.0 }, intrusion: 2.0 },
+  'track-6': { values: { valence: 6.8, arousal: 6.5, warmth: 4.5, tension: 3.0, hope: 6.0, motivation: 6.8 }, intrusion: 3.2 },
+  'track-7': { values: { valence: 4.5, arousal: 3.0, warmth: 5.0, tension: 2.0, hope: 4.5, motivation: 3.0 }, intrusion: 1.5 },
+  'track-8': { values: { valence: 5.0, arousal: 2.5, warmth: 4.0, tension: 1.8, hope: 3.5, motivation: 2.5 }, intrusion: 1.2 },
+  'track-9': { values: { valence: 7.0, arousal: 6.0, warmth: 5.0, tension: 2.5, hope: 6.5, motivation: 6.0 }, intrusion: 3.0 },
+  'track-10': { values: { valence: 6.5, arousal: 5.5, warmth: 5.0, tension: 2.0, hope: 5.8, motivation: 5.5 }, intrusion: 2.8 },
+};
+
+// Industry → target emotion profile generator
+function getSceneProfileForIndustry(industry: string, keywords: string[]): SceneProfile {
+  const kw = keywords.join(',').toLowerCase();
+  const has = (w: string) => kw.includes(w);
+
+  if (industry === 'Beauty & Skincare' || has('护肤') || has('美容') || has('beauty') || has('skincare')) {
+    return {
+      industry: 'Beauty & Skincare', sceneDescription: '护肤品/美妆品牌页面', keywords,
+      ranges: {
+        valence: { min: 5.5, max: 6.5, weight: 0.25 },
+        arousal: { min: 3.5, max: 4.8, weight: 0.2 },
+        warmth: { min: 5.0, max: 6.0, weight: 0.15 },
+        tension: { min: 1.5, max: 2.8, weight: 0.15 },
+        hope: { min: 4.5, max: 5.5, weight: 0.1 },
+        motivation: { min: 4.0, max: 5.5, weight: 0.15 },
+      },
+    };
+  }
+  if (industry === 'Pet Lifestyle' || has('宠物') || has('pet') || has('grooming')) {
+    return {
+      industry: 'Pet Lifestyle', sceneDescription: '宠物生活/服务品牌页面', keywords,
+      ranges: {
+        valence: { min: 5.5, max: 6.8, weight: 0.2 },
+        arousal: { min: 3.5, max: 5.0, weight: 0.15 },
+        warmth: { min: 5.5, max: 6.5, weight: 0.25 },
+        tension: { min: 1.0, max: 2.5, weight: 0.15 },
+        hope: { min: 4.5, max: 5.5, weight: 0.1 },
+        motivation: { min: 3.5, max: 5.0, weight: 0.15 },
+      },
+    };
+  }
+  if (industry === 'Cultural & Creative' || has('文创') || has('文化') || has('creative') || has('cultural')) {
+    return {
+      industry: 'Cultural & Creative', sceneDescription: '文创/创意工作室品牌页面', keywords,
+      ranges: {
+        valence: { min: 5.0, max: 6.5, weight: 0.2 },
+        arousal: { min: 3.0, max: 5.0, weight: 0.2 },
+        warmth: { min: 4.0, max: 5.5, weight: 0.15 },
+        tension: { min: 2.0, max: 3.5, weight: 0.15 },
+        hope: { min: 4.5, max: 6.0, weight: 0.15 },
+        motivation: { min: 4.0, max: 5.5, weight: 0.15 },
+      },
+    };
+  }
+  // Default: Charity & Social Impact
+  return {
+    industry: 'Charity & Social Impact', sceneDescription: '公益/社会影响力组织页面', keywords,
+    ranges: {
+      valence: { min: 4.5, max: 6.0, weight: 0.2 },
+      arousal: { min: 3.0, max: 4.5, weight: 0.15 },
+      warmth: { min: 5.0, max: 6.5, weight: 0.2 },
+      tension: { min: 2.0, max: 4.0, weight: 0.15 },
+      hope: { min: 5.0, max: 6.5, weight: 0.2 },
+      motivation: { min: 4.5, max: 6.0, weight: 0.15 },
+    },
+  };
+}
+
+/** Score a track against a target scene profile */
+function scoreTrackForScene(track: MusicTrack, profile: SceneProfile): SceneMatchResult | null {
+  const emotions = trackEmotionProfiles[track.id];
+  if (!emotions) return null;
+
+  const keys = Object.keys(profile.ranges) as EmotionKey[];
+  let totalScore = 0;
+  let totalWeight = 0;
+  const dimensionDetails: SceneMatchResult['dimensionDetails'] = [];
+
+  for (const key of keys) {
+    const range = profile.ranges[key];
+    const value = emotions.values[key];
+    const label = emotionLabels[key].cn;
+    const targetStr = `${range.min.toFixed(1)}—${range.max.toFixed(1)}`;
+
+    // Score: 1.0 if inside range, linearly decrease outside
+    let fitScore: number;
+    if (value >= range.min && value <= range.max) {
+      fitScore = 1.0;
+    } else if (value < range.min) {
+      fitScore = Math.max(0, 1 - (range.min - value) / 3);
+    } else {
+      fitScore = Math.max(0, 1 - (value - range.max) / 3);
+    }
+
+    totalScore += fitScore * range.weight;
+    totalWeight += range.weight;
+    dimensionDetails.push({
+      key, label, target: targetStr, actual: value,
+      fit: value >= range.min && value <= range.max,
+    });
+  }
+
+  const finalScore = totalWeight > 0 ? Math.round((totalScore / totalWeight) * 100) : 0;
+  const confidence: SceneMatchResult['confidence'] = finalScore >= 80 ? '高置信度' : finalScore >= 65 ? '已人工校准' : '参考推荐';
+
+  // Generate Chinese reason
+  const inRange = dimensionDetails.filter(d => d.fit).length;
+  const reason = `${track.reasonZh || track.reason || ''} 该曲目在 ${inRange}/${keys.length} 个情绪维度上匹配场景目标，综合匹配度 ${finalScore}%。`;
+
+  return { track, score: finalScore, confidence, dimensionDetails, reason };
+}
+
+/** Match tracks to a scene described by industry + keywords */
+export function matchScene(industry: string, keywords: string[] = []): SceneMatchResult[] {
+  const profile = getSceneProfileForIndustry(industry, keywords);
+  return MUSIC_TRACKS
+    .map(t => scoreTrackForScene(t, profile))
+    .filter((r): r is SceneMatchResult => r !== null)
+    .sort((a, b) => b.score - a.score);
+}
+
+/** Get emotion labels for UI display */
+export function getEmotionLabel(key: EmotionKey): { cn: string; hint: string; color: string } {
+  return emotionLabels[key];
 }
 
 // ============================================
