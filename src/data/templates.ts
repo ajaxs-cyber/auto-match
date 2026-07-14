@@ -253,7 +253,7 @@ export const DEFAULT_TEMPLATES: Template[] = [
   }
 ];
 
-export const CATEGORIES = ['All', 'Coffee & Food', 'Creative', 'Tech', 'Health'];
+export const CATEGORIES = ['All', 'Beauty & Skincare', 'Pet Lifestyle', 'Cultural & Creative', 'Charity & Social Impact'];
 
 export function generateWebsiteFromTemplate(template: typeof DEFAULT_TEMPLATES[0]) {
   const id = `site-${Date.now()}`;
