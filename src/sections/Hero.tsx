@@ -5,11 +5,10 @@ import { useI18n } from '@/hooks/useI18n';
 interface HeroProps { onGenerate: (prompt: string) => void; }
 
 const SUGGESTIONS = [
-  { label: 'Coffee Shop', labelZh: '咖啡店', music: 'Acoustic Jazz', musicZh: '原声爵士' },
-  { label: 'Tech Startup', labelZh: '科技初创', music: 'Electronic Ambient', musicZh: '电子氛围' },
-  { label: 'Fitness Studio', labelZh: '健身工作室', music: 'Energetic Beats', musicZh: '活力节拍' },
-  { label: 'Photo Portfolio', labelZh: '摄影作品集', music: 'Lo-Fi Chill', musicZh: '轻音乐' },
-  { label: 'Restaurant', labelZh: '餐厅', music: 'Smooth Jazz', musicZh: '爵士' },
+  { label: 'Skincare Store', labelZh: '护肤品店', music: 'Soft Jazz', musicZh: '柔和爵士' },
+  { label: 'Pet Lifestyle', labelZh: '宠物生活馆', music: 'Lo-Fi Chill', musicZh: '轻音乐' },
+  { label: 'Cultural Creative', labelZh: '文创手作店', music: 'Acoustic Folk', musicZh: '原声民谣' },
+  { label: 'Charity Organization', labelZh: '公益组织', music: 'Warm Piano', musicZh: '温暖钢琴' },
 ];
 
 export default function Hero({ onGenerate }: HeroProps) {
