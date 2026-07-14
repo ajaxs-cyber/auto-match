@@ -6,13 +6,13 @@ import {
   ChevronDown, ChevronUp, Gauge, Target, Sparkle
 } from 'lucide-react';
 import {
-  generateMusicRecommendation, getTrackById, getGenreLabel,
-  getGenreLabelZh, getGenreColor, generateBrandMoodProfile,
-  generateBrandMoodAnalysis, createAnalysisSteps, MUSIC_STYLE_PRESETS,
-  detectIndustry, MUSIC_TRACKS
+  matchScene, getGenreLabel, getGenreLabelZh, getGenreColor,
+  generateBrandMoodProfile, generateBrandMoodAnalysis,
+  createAnalysisSteps, MUSIC_STYLE_PRESETS, detectIndustry, MUSIC_TRACKS,
+  getEmotionLabel
 } from '@/data/music';
 import { useI18n } from '@/hooks/useI18n';
-import type { MusicRecommendation, BrandMoodProfile, MusicTrack, AnalysisStep, MusicStylePreset } from '@/types';
+import type { MusicTrack, BrandMoodProfile, AnalysisStep, SceneMatchResult, EmotionKey } from '@/types';
 
 interface Props {
   prompt: string;
@@ -24,15 +24,15 @@ export default function AnalysisModal({ prompt, onClose, onSelectTemplate }: Pro
   const { lang, t } = useI18n();
   const [phase, setPhase] = useState<'analyzing' | 'results'>('analyzing');
   const [currentStep, setCurrentStep] = useState(0);
-  const [result, setResult] = useState<MusicRecommendation | null>(null);
+  const [result, setResult] = useState<SceneMatchResult[] | null>(null);
   const [selectedTrack, setSelectedTrack] = useState<MusicTrack | null>(null);
+  const [selectedMatch, setSelectedMatch] = useState<SceneMatchResult | null>(null);
   const [visible, setVisible] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [selectedStyle, setSelectedStyle] = useState<string>('auto');
   const [expandedStep, setExpandedStep] = useState<string | null>(null);
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
-  const [activeTab, setActiveTab] = useState<'recommend' | 'style'>('recommend');
+  const [activeTab, setActiveTab] = useState<'recommend' | 'dimensions'>('recommend');
 
   const industry = detectIndustry(prompt);
   const steps = createAnalysisSteps(industry);
@@ -47,9 +47,12 @@ export default function AnalysisModal({ prompt, onClose, onSelectTemplate }: Pro
         setCurrentStep(stepIdx);
       } else {
         clearInterval(interval);
-        const rec = generateMusicRecommendation(industry);
-        setResult(rec);
-        setSelectedTrack(rec.primary);
+        const matches = matchScene(industry, []);
+        setResult(matches);
+        if (matches.length > 0) {
+          setSelectedTrack(matches[0].track);
+          setSelectedMatch(matches[0]);
+        }
         setPhase('results');
       }
     }, 900);
@@ -65,43 +68,10 @@ export default function AnalysisModal({ prompt, onClose, onSelectTemplate }: Pro
     return () => clearInterval(interval);
   }, [isPlaying]);
 
-  const handleStyleSwitch = useCallback((styleId: string) => {
-    setSelectedStyle(styleId);
-    if (styleId === 'auto') {
-      const rec = generateMusicRecommendation(industry);
-      setResult(rec);
-      setSelectedTrack(rec.primary);
-    } else {
-      const preset = MUSIC_STYLE_PRESETS.find(p => p.id === styleId);
-      if (preset) {
-        const matchingTracks = MUSIC_TRACKS.filter(t =>
-          preset.genres.some(g => t.genre === g || t.genre.includes(g))
-        );
-        if (matchingTracks.length > 0) {
-          const shuffled = [...matchingTracks].sort(() => Math.random() - 0.5);
-          setResult({
-            primary: shuffled[0],
-            alternatives: shuffled.slice(1, 4),
-            reasoning: lang === 'zh'
-              ? `${preset.nameZh} 风格强调${preset.descriptionZh}。这些曲目与您选择的品牌氛围匹配，精致度对齐 ${preset.moodProfile.sophistication}%。`
-              : `The ${preset.name} style emphasizes ${preset.description.toLowerCase()}. These tracks match your selected brand atmosphere with ${preset.moodProfile.sophistication}% sophistication alignment.`,
-            moodProfile: preset.moodProfile,
-            analysis: {
-              industry: preset.name,
-              moodProfile: preset.moodProfile,
-              keywords: preset.genres,
-              colorStyle: preset.description,
-              visualRhythm: 'Style-driven',
-              targetAudience: 'Style-aligned',
-              brandPersonality: preset.name,
-            },
-            style: styleId,
-          });
-          setSelectedTrack(shuffled[0]);
-        }
-      }
-    }
-  }, [industry, lang]);
+  const selectTrack = (match: SceneMatchResult) => {
+    setSelectedTrack(match.track);
+    setSelectedMatch(match);
+  };
 
   const handleContinue = () => {
     const tplMap: Record<string, string> = {
@@ -225,7 +195,7 @@ export default function AnalysisModal({ prompt, onClose, onSelectTemplate }: Pro
                   </button>
                   <button
                     onClick={() => setActiveTab('style')}
-                    className={`px-4 py-2 rounded-md text-xs font-medium transition-all border-none cursor-pointer ${activeTab === 'style' ? 'bg-white shadow-sm text-[var(--accent)]' : 'text-[var(--text-tertiary)] hover:text-[var(--text-primary)]'}`}
+                    className={`px-4 py-2 rounded-md text-xs font-medium transition-all border-none cursor-pointer ${activeTab === 'dimensions' ? 'bg-white shadow-sm text-[var(--accent)]' : 'text-[var(--text-tertiary)] hover:text-[var(--text-primary)]'}`}
                   >
                     {lang === 'zh' ? '切换风格' : 'Switch Style'}
                   </button>
@@ -234,39 +204,40 @@ export default function AnalysisModal({ prompt, onClose, onSelectTemplate }: Pro
 
               {activeTab === 'recommend' ? (
                 <>
-                  {/* Brand Mood Profile */}
-                  <div className="mt-6 p-5 rounded-2xl" style={{ background: '#FAFAF8', border: '1px solid var(--border-color)' }}>
-                    <div className="flex items-center gap-2 mb-4">
-                      <Palette size={16} style={{ color: 'var(--accent)' }} />
-                      <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--text-tertiary)' }}>
-                        {t('analysis.moodProfile', 'Brand Mood Profile')}
-                      </span>
-                    </div>
-                    <MoodRadar profile={result.moodProfile} lang={lang} t={t} />
-
-                    {/* Brand Keywords & Details */}
-                    {result.analysis && (
-                      <div className="mt-4 pt-4 border-t" style={{ borderColor: 'var(--border-color)' }}>
-                        <div className="flex flex-wrap gap-2 mb-3">
-                          {result.analysis.keywords.map(kw => (
-                            <span key={kw} className="px-2.5 py-1 rounded-full text-xs font-medium" style={{ background: 'var(--accent-light)', color: 'var(--accent)' }}>
-                              {kw}
-                            </span>
-                          ))}
-                        </div>
-                        <div className="grid grid-cols-2 gap-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
-                          <div className="flex items-center gap-1.5">
-                            <Target size={12} style={{ color: 'var(--text-tertiary)' }} />
-                            <span>{t('analysis.targetAudience', 'Target')}: {result.analysis.targetAudience}</span>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <Sparkle size={12} style={{ color: 'var(--text-tertiary)' }} />
-                            <span>{t('analysis.personality', 'Personality')}: {result.analysis.brandPersonality}</span>
-                          </div>
-                        </div>
+                  {/* Emotion Dimensions Profile */}
+                  {selectedMatch && (
+                    <div className="mt-6 p-5 rounded-2xl" style={{ background: '#FAFAF8', border: '1px solid var(--border-color)' }}>
+                      <div className="flex items-center gap-2 mb-4">
+                        <Palette size={16} style={{ color: 'var(--accent)' }} />
+                        <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--text-tertiary)' }}>
+                          {lang === 'zh' ? '目标情绪画像' : 'Target Emotion Profile'}
+                        </span>
+                        <span className="ml-auto text-xs font-bold" style={{ color: 'var(--accent)' }}>
+                          {lang === 'zh' ? '综合' : 'Score'}: {selectedMatch.score}%
+                        </span>
                       </div>
-                    )}
-                  </div>
+                      <div className="space-y-2.5">
+                        {selectedMatch.dimensionDetails.map(d => {
+                          const meta = getEmotionLabel(d.key);
+                          return (
+                            <div key={d.key} className="flex items-center gap-3">
+                              <span className="text-xs w-20 text-right flex-shrink-0" style={{ color: 'var(--text-secondary)' }}>
+                                {meta.cn}
+                              </span>
+                              <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: 'rgba(26,43,60,0.06)' }}>
+                                <div className="h-full rounded-full transition-all" style={{ width: `${(d.actual / 7) * 100}%`, background: d.fit ? 'var(--accent)' : meta.color }} />
+                              </div>
+                              <span className="text-xs w-16 flex-shrink-0 font-medium" style={{ color: 'var(--text-primary)' }}>{d.actual.toFixed(1)}</span>
+                              <span className="text-[10px] w-24 flex-shrink-0" style={{ color: 'var(--text-tertiary)' }}>目标 {d.target}</span>
+                              <span className="text-[10px] w-8 flex-shrink-0" style={{ color: d.fit ? '#10B981' : '#EF4444' }}>
+                                {d.fit ? (lang === 'zh' ? '✓' : '✓') : (lang === 'zh' ? '×' : '×')}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Music Recommendation Cards */}
                   <div className="mt-4">
@@ -278,17 +249,14 @@ export default function AnalysisModal({ prompt, onClose, onSelectTemplate }: Pro
                     </div>
 
                     {/* Primary Recommendation - Full Card */}
-                    {selectedTrack && (
+                    {selectedTrack && selectedMatch && (
                       <div className="p-4 rounded-2xl mb-4" style={{ background: 'rgba(123,97,255,0.04)', border: '1px solid rgba(123,97,255,0.15)' }}>
                         <div className="flex items-start gap-4">
                           <div className="relative flex-shrink-0">
                             <img src={selectedTrack.cover} alt={selectedTrack.title} className="w-20 h-20 rounded-xl object-cover" />
-                            <button
-                              onClick={() => setIsPlaying(!isPlaying)}
-                              className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-xl transition-opacity hover:bg-black/50"
-                            >
-                              {isPlaying ? <Pause size={24} className="text-white" /> : <Play size={24} className="text-white ml-1" />}
-                            </button>
+                            <div className="absolute top-0 left-0 bg-black/60 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-tl-xl rounded-br-xl">
+                              {selectedMatch.score}%
+                            </div>
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
@@ -299,40 +267,27 @@ export default function AnalysisModal({ prompt, onClose, onSelectTemplate }: Pro
                               <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ background: 'var(--accent-light)', color: 'var(--accent)' }}>
                                 {selectedTrack.bpm} BPM
                               </span>
+                              <span className="px-2 py-0.5 rounded-full text-xs" style={{ background: 'rgba(16,185,129,0.1)', color: '#10B981' }}>
+                                {selectedMatch.confidence}
+                              </span>
                             </div>
                             <p className="text-xs mt-1" style={{ color: 'var(--text-tertiary)' }}>{selectedTrack.artist} &middot; {selectedTrack.duration}</p>
+
+                            {/* Confidence badge */}
                             <div className="flex flex-wrap gap-1 mt-2">
                               {selectedTrack.moods.map(m => (
                                 <span key={m} className="px-1.5 py-0.5 rounded text-xs" style={{ background: 'var(--music-accent-light)', color: 'var(--music-accent)' }}>{m}</span>
                               ))}
                             </div>
                           </div>
-                          <button
-                            onClick={() => toggleFavorite(selectedTrack.id)}
-                            className="p-2 rounded-lg hover:bg-white/50 transition-colors border-none bg-transparent cursor-pointer flex-shrink-0"
-                          >
-                            {favorites.has(selectedTrack.id) ? <BookmarkCheck size={18} style={{ color: 'var(--accent)' }} /> : <Bookmark size={18} style={{ color: 'var(--text-tertiary)' }} />}
-                          </button>
                         </div>
 
-                        {/* Mini Player */}
-                        <div className="mt-3 flex items-center gap-3">
-                          <button onClick={() => setIsPlaying(!isPlaying)} className="w-7 h-7 rounded-full flex items-center justify-center text-white border-none cursor-pointer" style={{ background: 'var(--music-accent)' }}>
-                            {isPlaying ? <Pause size={12} /> : <Play size={12} />}
-                          </button>
-                          <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: 'rgba(26,43,60,0.08)' }}>
-                            <div className="h-full rounded-full transition-all" style={{ width: `${progress}%`, background: 'var(--music-accent)' }} />
-                          </div>
-                          <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>{selectedTrack.duration}</span>
-                          <Volume2 size={14} style={{ color: 'var(--text-tertiary)' }} />
-                        </div>
-
-                        {/* AI Reasoning */}
+                        {/* Scene Matching Reasoning */}
                         <div className="mt-3 p-3 rounded-xl" style={{ background: 'rgba(123,97,255,0.08)' }}>
                           <p className="text-xs font-medium mb-1" style={{ color: 'var(--music-accent)' }}>
-                            {t('analysis.whyRecommend', 'Why AI recommends this:')}
+                            {lang === 'zh' ? '场景匹配理由' : 'Scene Match Reason'}
                           </p>
-                          <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{result.reasoning}</p>
+                          <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{selectedMatch.reason}</p>
                         </div>
                       </div>
                     )}
@@ -342,28 +297,28 @@ export default function AnalysisModal({ prompt, onClose, onSelectTemplate }: Pro
                       {t('analysis.alternatives', 'Alternative options')}
                     </p>
                     <div className="grid grid-cols-1 gap-2">
-                      {result.alternatives.map(alt => (
+                      {result.slice(1, 4).map(m => (
                         <button
-                          key={alt.id}
-                          onClick={() => setSelectedTrack(alt)}
-                          className={`flex items-center gap-3 p-3 rounded-xl text-left cursor-pointer transition-all border ${selectedTrack?.id === alt.id ? 'border-2' : 'border'}`}
+                          key={m.track.id}
+                          onClick={() => selectTrack(m)}
+                          className={`flex items-center gap-3 p-3 rounded-xl text-left cursor-pointer transition-all border ${selectedTrack?.id === m.track.id ? 'border-2' : 'border'}`}
                           style={{
-                            background: selectedTrack?.id === alt.id ? 'var(--music-accent-light)' : 'white',
-                            borderColor: selectedTrack?.id === alt.id ? 'var(--music-accent)' : 'var(--border-color)'
+                            background: selectedTrack?.id === m.track.id ? 'var(--music-accent-light)' : 'white',
+                            borderColor: selectedTrack?.id === m.track.id ? 'var(--music-accent)' : 'var(--border-color)'
                           }}
                         >
-                          <img src={alt.cover} alt={alt.title} className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
+                          <img src={m.track.cover} alt={m.track.title} className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
                           <div className="flex-1 min-w-0">
-                            <p className="text-xs font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{alt.title}</p>
-                            <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>{alt.artist} &middot; {lang === 'zh' ? getGenreLabelZh(alt.genre) : getGenreLabel(alt.genre)}</p>
+                            <p className="text-xs font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{m.track.title}</p>
+                            <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>{m.track.artist} &middot; {lang === 'zh' ? getGenreLabelZh(m.track.genre) : getGenreLabel(m.track.genre)}</p>
                           </div>
                           <div className="flex items-center gap-1 flex-shrink-0">
-                            <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: 'rgba(26,43,60,0.06)', color: 'var(--text-tertiary)' }}>{alt.bpm} BPM</span>
+                            <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: 'rgba(26,43,60,0.06)', color: 'var(--text-tertiary)' }}>{m.track.bpm} BPM</span>
                             <button
-                              onClick={(e) => { e.stopPropagation(); toggleFavorite(alt.id); }}
+                              onClick={(e) => { e.stopPropagation(); toggleFavorite(m.track.id); }}
                               className="p-1 rounded hover:bg-gray-50 border-none bg-transparent cursor-pointer"
                             >
-                              {favorites.has(alt.id) ? <BookmarkCheck size={14} style={{ color: 'var(--accent)' }} /> : <Bookmark size={14} style={{ color: 'var(--text-tertiary)' }} />}
+                              {favorites.has(m.track.id) ? <BookmarkCheck size={14} style={{ color: 'var(--accent)' }} /> : <Bookmark size={14} style={{ color: 'var(--text-tertiary)' }} />}
                             </button>
                           </div>
                         </button>
