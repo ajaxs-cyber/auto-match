@@ -46,23 +46,150 @@ const MOOD_REGIONS = {
 };
 
 /**
+ * 行业关键词 → (valence, arousal) 映射
+ * 每种行业有不同的情绪基调
+ */
+const INDUSTRY_MOOD_MAP = {
+  // 温暖、放松
+  coffee:     { valence: 0.5, arousal: -0.3, label: 'warm' },
+  restaurant: { valence: 0.4, arousal: -0.1, label: 'warm' },
+  cafe:       { valence: 0.5, arousal: -0.3, label: 'warm' },
+  food:       { valence: 0.4, arousal: -0.1, label: 'warm' },
+  '餐饮':      { valence: 0.4, arousal: -0.1, label: 'warm' },
+  '美食':      { valence: 0.5, arousal: -0.2, label: 'warm' },
+  '咖啡':      { valence: 0.5, arousal: -0.3, label: 'warm' },
+
+  // 科技、现代、创新 → 正向高唤醒
+  tech:       { valence: 0.3, arousal: 0.6, label: 'triumphant' },
+  startup:    { valence: 0.3, arousal: 0.5, label: 'triumphant' },
+  saas:       { valence: 0.3, arousal: 0.5, label: 'triumphant' },
+  '科技':      { valence: 0.3, arousal: 0.6, label: 'triumphant' },
+  '软件':      { valence: 0.3, arousal: 0.5, label: 'triumphant' },
+  '互联网':    { valence: 0.3, arousal: 0.6, label: 'triumphant' },
+  '智能':      { valence: 0.3, arousal: 0.6, label: 'triumphant' },
+  '创新':      { valence: 0.4, arousal: 0.5, label: 'triumphant' },
+  '未来':      { valence: 0.3, arousal: 0.5, label: 'triumphant' },
+
+  // 健身、运动 → 高唤醒
+  fitness:    { valence: 0.2, arousal: 0.8, label: 'happy' },
+  gym:        { valence: 0.2, arousal: 0.8, label: 'happy' },
+  '健身':      { valence: 0.2, arousal: 0.8, label: 'happy' },
+  '运动':      { valence: 0.2, arousal: 0.7, label: 'happy' },
+  '活力':      { valence: 0.4, arousal: 0.7, label: 'happy' },
+  '能量':      { valence: 0.3, arousal: 0.8, label: 'happy' },
+
+  // 美容、时尚 → 正向中唤醒
+  beauty:     { valence: 0.5, arousal: 0.1, label: 'warm' },
+  fashion:    { valence: 0.4, arousal: 0.3, label: 'warm' },
+  luxury:     { valence: 0.4, arousal: -0.2, label: 'gentle' },
+  '美容':      { valence: 0.5, arousal: 0.1, label: 'warm' },
+  '护肤':      { valence: 0.5, arousal: -0.1, label: 'warm' },
+  '时尚':      { valence: 0.4, arousal: 0.3, label: 'warm' },
+  '优雅':      { valence: 0.5, arousal: -0.2, label: 'gentle' },
+  '精致':      { valence: 0.4, arousal: -0.3, label: 'gentle' },
+  '高端':      { valence: 0.4, arousal: -0.2, label: 'gentle' },
+  '奢华':      { valence: 0.4, arousal: -0.2, label: 'gentle' },
+
+  // 教育、培训 → 正向低唤醒
+  education:  { valence: 0.4, arousal: -0.3, label: 'calm' },
+  '教育':      { valence: 0.4, arousal: -0.3, label: 'calm' },
+  '学习':      { valence: 0.3, arousal: -0.2, label: 'calm' },
+  '培训':      { valence: 0.3, arousal: -0.1, label: 'calm' },
+  '学校':      { valence: 0.3, arousal: -0.3, label: 'calm' },
+
+  // 婚礼、浪漫 → 正向低唤醒
+  wedding:    { valence: 0.7, arousal: 0.1, label: 'warm' },
+  '婚礼':      { valence: 0.7, arousal: 0.1, label: 'warm' },
+  '浪漫':      { valence: 0.7, arousal: 0.0, label: 'warm' },
+  '爱情':      { valence: 0.6, arousal: 0.1, label: 'warm' },
+
+  // 法律、金融 → 低唤醒、低情绪
+  legal:      { valence: -0.1, arousal: -0.4, label: 'somber' },
+  lawyer:     { valence: -0.1, arousal: -0.4, label: 'somber' },
+  '法律':      { valence: -0.1, arousal: -0.4, label: 'somber' },
+  '律师':      { valence: -0.1, arousal: -0.4, label: 'somber' },
+  '金融':      { valence: 0.1, arousal: -0.2, label: 'somber' },
+
+  // 医疗、健康 → 正向低唤醒
+  health:     { valence: 0.3, arousal: -0.3, label: 'calm' },
+  medical:    { valence: 0.2, arousal: -0.3, label: 'calm' },
+  '医疗':      { valence: 0.2, arousal: -0.4, label: 'calm' },
+  '健康':      { valence: 0.3, arousal: -0.3, label: 'calm' },
+  '医院':      { valence: 0.2, arousal: -0.4, label: 'calm' },
+
+  // 零售、电商 → 正向中唤醒
+  retail:     { valence: 0.3, arousal: 0.3, label: 'happy' },
+  shop:       { valence: 0.3, arousal: 0.2, label: 'happy' },
+  store:      { valence: 0.3, arousal: 0.2, label: 'happy' },
+  '电商':      { valence: 0.3, arousal: 0.3, label: 'happy' },
+  '商城':      { valence: 0.3, arousal: 0.3, label: 'happy' },
+  '购物':      { valence: 0.3, arousal: 0.3, label: 'happy' },
+
+  // 娱乐、游戏 → 高唤醒
+  gaming:     { valence: 0.3, arousal: 0.7, label: 'happy' },
+  entertainment: { valence: 0.3, arousal: 0.6, label: 'happy' },
+  '游戏':      { valence: 0.3, arousal: 0.7, label: 'happy' },
+  '娱乐':      { valence: 0.3, arousal: 0.6, label: 'happy' },
+
+  // 创意、设计 → 正中唤醒
+  design:     { valence: 0.3, arousal: 0.3, label: 'triumphant' },
+  creative:   { valence: 0.3, arousal: 0.4, label: 'triumphant' },
+  '创意':      { valence: 0.3, arousal: 0.4, label: 'triumphant' },
+  '设计':      { valence: 0.3, arousal: 0.3, label: 'triumphant' },
+  '文化':      { valence: 0.2, arousal: 0.1, label: 'somber' },
+  '艺术':      { valence: 0.3, arousal: 0.2, label: 'triumphant' },
+
+  // 公益、慈善
+  charity:    { valence: 0.4, arousal: 0.1, label: 'warm' },
+  '公益':      { valence: 0.4, arousal: 0.1, label: 'warm' },
+  '慈善':      { valence: 0.3, arousal: 0.0, label: 'calm' },
+
+  // 宠物
+  pet:        { valence: 0.5, arousal: 0.2, label: 'warm' },
+  '宠物':      { valence: 0.5, arousal: 0.2, label: 'warm' },
+
+  // 企业/商务
+  business:   { valence: 0.2, arousal: 0.0, label: 'somber' },
+  corporate:  { valence: 0.2, arousal: 0.0, label: 'somber' },
+  '企业':      { valence: 0.2, arousal: 0.0, label: 'somber' },
+  '商务':      { valence: 0.2, arousal: 0.0, label: 'somber' },
+  '公司':      { valence: 0.2, arousal: 0.0, label: 'somber' },
+
+  // 旅游、酒店
+  travel:     { valence: 0.5, arousal: 0.1, label: 'warm' },
+  hotel:      { valence: 0.4, arousal: -0.1, label: 'warm' },
+  '旅游':      { valence: 0.5, arousal: 0.1, label: 'warm' },
+  '酒店':      { valence: 0.4, arousal: -0.1, label: 'warm' },
+  '旅行':      { valence: 0.5, arousal: 0.2, label: 'warm' },
+
+  // 房地产
+  property:   { valence: 0.2, arousal: -0.1, label: 'somber' },
+  '房地产':    { valence: 0.2, arousal: -0.1, label: 'somber' },
+  '房产':      { valence: 0.2, arousal: -0.1, label: 'somber' },
+  '建筑':      { valence: 0.2, arousal: 0.0, label: 'somber' },
+};
+
+/**
  * 本地情绪分析（无 API Key 时用）
+ * 第一步：匹配情绪关键词
+ * 第二步：若无情绪词，则根据行业关键词推断情绪
  */
 function localMoodAnalysis(text) {
-  const lexicon = {
-    positive_high: { words: ['快乐', '兴奋', '激动', '喜悦', '热烈', 'happy', 'excited', 'joyful'], va: { valence: 0.7, arousal: 0.7 } },
-    positive_low:  { words: ['平静', '安宁', '放松', '舒适', 'calm', 'peaceful', 'relaxed'], va: { valence: 0.7, arousal: -0.6 } },
-    negative_high: { words: ['愤怒', '紧张', '焦虑', '恐惧', 'angry', 'tense', 'anxious'], va: { valence: -0.6, arousal: 0.7 } },
-    negative_low:  { words: ['悲伤', '忧郁', '失落', 'sad', 'melancholy', 'lonely'], va: { valence: -0.6, arousal: -0.5 } },
-    neutral_high:  { words: ['震撼', '宏大', '壮丽', 'epic', 'grand', 'majestic'], va: { valence: 0.2, arousal: 0.8 } },
-    neutral_low:   { words: ['深沉', '冥想', '神秘', 'deep', 'meditative', 'mysterious'], va: { valence: 0.0, arousal: -0.5 } }
+  const emotionLexicon = {
+    positive_high: { words: ['快乐', '兴奋', '激动', '喜悦', '热烈', 'happy', 'excited', 'joyful', '庆祝', '胜利', '成功', '欢快', '振奋'], va: { valence: 0.7, arousal: 0.7 } },
+    positive_low:  { words: ['平静', '安宁', '放松', '舒适', 'calm', 'peaceful', 'relaxed', '宁静', '祥和', '惬意', '悠然', '淡雅', '静谧', '舒缓', '温暖', '温馨'], va: { valence: 0.7, arousal: -0.6 } },
+    negative_high: { words: ['愤怒', '紧张', '焦虑', '恐惧', 'angry', 'tense', 'anxious', '恐慌', '激烈', '冲突', '危机', '紧迫', '不安'], va: { valence: -0.6, arousal: 0.7 } },
+    negative_low:  { words: ['悲伤', '忧郁', '失落', 'sad', 'melancholy', 'lonely', '孤独', '哀伤', '沉痛', '凄凉', '沮丧', '绝望', '沉重', '暗淡'], va: { valence: -0.6, arousal: -0.5 } },
+    neutral_high:  { words: ['震撼', '宏大', '壮丽', 'epic', 'grand', 'majestic', '磅礴', '雄伟', '史诗', '浩瀚', '科技', '未来', '突破', '前进'], va: { valence: 0.2, arousal: 0.8 } },
+    neutral_low:   { words: ['深沉', '冥想', '神秘', 'deep', 'meditative', 'mysterious', '沉思', '内省', '深邃', '空灵', '虚幻', '古风', '悠远', '缥缈'], va: { valence: 0.0, arousal: -0.5 } }
   };
 
   const lower = text.toLowerCase();
   let totalV = 0, totalA = 0, count = 0;
   const matched = [];
 
-  for (const cat of Object.values(lexicon)) {
+  // Step 1: 情绪关键词匹配
+  for (const cat of Object.values(emotionLexicon)) {
     for (const word of cat.words) {
       if (lower.includes(word)) {
         totalV += cat.va.valence;
@@ -73,8 +200,40 @@ function localMoodAnalysis(text) {
     }
   }
 
-  const valence = count > 0 ? totalV / count : 0;
-  const arousal = count > 0 ? totalA / count : 0;
+  let valence, arousal;
+
+  if (count > 0) {
+    // 有情绪关键词：使用情绪分析结果
+    valence = totalV / count;
+    arousal = totalA / count;
+  } else {
+    // 无情绪关键词：根据行业关键词推断
+    let indTotalV = 0, indTotalA = 0, indCount = 0;
+    for (const [keyword, mood] of Object.entries(INDUSTRY_MOOD_MAP)) {
+      if (lower.includes(keyword)) {
+        indTotalV += mood.valence;
+        indTotalA += mood.arousal;
+        indCount++;
+        matched.push(keyword);
+      }
+    }
+
+    if (indCount > 0) {
+      valence = indTotalV / indCount;
+      arousal = indTotalA / indCount;
+    } else {
+      // 完全无匹配：根据文本长度和用词做简单启发式
+      const wordCount = text.split(/[\s,，、]+/).filter(w => w.length > 0).length;
+      if (wordCount > 10) {
+        // 较长文本可能是专业描述 → 偏商务
+        valence = 0.2;
+        arousal = 0.0;
+      } else {
+        valence = 0;
+        arousal = 0;
+      }
+    }
+  }
 
   // 找最近的情绪区域
   let minDist = Infinity;
@@ -84,7 +243,7 @@ function localMoodAnalysis(text) {
     if (d < minDist) { minDist = d; moodLabel = key; }
   }
 
-  return { valence, arousal, moodLabel, keywords: [...new Set(matched)] };
+  return { valence: Math.round(valence * 100) / 100, arousal: Math.round(arousal * 100) / 100, moodLabel, keywords: [...new Set(matched)] };
 }
 
 /**

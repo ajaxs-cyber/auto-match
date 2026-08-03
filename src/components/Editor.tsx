@@ -61,7 +61,7 @@ export default function Editor({ onClose, onPreview }: EditorProps) {
   const [musicProgress, setMusicProgress] = useState(0);
   const inlineRef = useRef<HTMLDivElement>(null);
 
-  const rec = currentPage ? generateMusicRecommendation(detectIndustryFromPage(currentPage), selectedStyle) : null;
+  const rec = currentPage ? generateMusicRecommendation(detectIndustry(getPageText(currentPage)), selectedStyle) : null;
   const tracks = rec ? [rec.primary, ...rec.alternatives] : [];
 
   // Simulate music progress
@@ -763,13 +763,11 @@ function Toggle() {
   return <button onClick={() => setOn(!on)} className="relative w-9 h-5 rounded-full cursor-pointer border-none transition-colors" style={{ background: on ? 'var(--accent)' : 'var(--text-tertiary)' }}><div className="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-transform" style={{ left: 2, transform: on ? 'translateX(16px)' : 'translateX(0)' }} /></button>;
 }
 
-function detectIndustryFromPage(page: Page): string {
-  const text = page.modules.map(m => JSON.stringify((m as any).content)).join(' ').toLowerCase();
-  if (text.includes('coffee') || text.includes('cafe') || text.includes('food') || text.includes('restaurant')) return 'Coffee & Food';
-  if (text.includes('photo') || text.includes('creative') || text.includes('design') || text.includes('portfolio')) return 'Creative';
-  if (text.includes('tech') || text.includes('startup') || text.includes('saas')) return 'Tech';
-  if (text.includes('fitness') || text.includes('gym') || text.includes('health') || text.includes('wellness')) return 'Health';
-  return 'Services';
+function getPageText(page: Page): string {
+  return page.modules.map(m => {
+    const c = (m as any).content || {};
+    return [c.title, c.subtitle, c.body, c.logo, c.tagline].filter(Boolean).join(' ');
+  }).join(' ');
 }
 
 function createDefaultModule(type: string): WebsiteModule {

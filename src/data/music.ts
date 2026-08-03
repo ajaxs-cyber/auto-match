@@ -179,18 +179,18 @@ export const MUSIC_TRACKS: MusicTrack[] = [
 
 export const INDUSTRY_MUSIC_MAP: Record<string, string[]> = {
   'Coffee & Food': ['track-1', 'track-4', 'track-12', 'track-17'],
-  'Creative': ['track-2', 'track-7', 'track-14', 'track-18'],
-  'Tech': ['track-3', 'track-5', 'track-14', 'track-11'],
-  'Health': ['track-6', 'track-16', 'track-12', 'track-2'],
-  'Services': ['track-9', 'track-11', 'track-2', 'track-1'],
-  'Retail': ['track-3', 'track-10', 'track-5', 'track-1'],
-  'Education': ['track-2', 'track-6', 'track-9', 'track-4'],
-  'Entertainment': ['track-5', 'track-8', 'track-16', 'track-3'],
-  'Wedding': ['track-7', 'track-15', 'track-4', 'track-1'],
-  'Fitness': ['track-16', 'track-8', 'track-5', 'track-6'],
+  'Creative': ['track-3', 'track-14', 'track-17', 'track-18'],
+  'Tech': ['track-5', 'track-14', 'track-3', 'track-11'],
+  'Health': ['track-6', 'track-2', 'track-12', 'track-9'],
+  'Services': ['track-9', 'track-11', 'track-2', 'track-6'],
+  'Retail': ['track-4', 'track-10', 'track-11', 'track-1'],
+  'Education': ['track-2', 'track-6', 'track-9', 'track-18'],
+  'Entertainment': ['track-8', 'track-16', 'track-5', 'track-3'],
+  'Wedding': ['track-7', 'track-15', 'track-4', 'track-13'],
+  'Fitness': ['track-16', 'track-8', 'track-11', 'track-5'],
   'Luxury': ['track-13', 'track-10', 'track-7', 'track-9'],
-  'Legal': ['track-9', 'track-11', 'track-2', 'track-6'],
-  'Fashion': ['track-10', 'track-13', 'track-5', 'track-3'],
+  'Legal': ['track-9', 'track-11', 'track-2', 'track-18'],
+  'Fashion': ['track-10', 'track-13', 'track-5', 'track-7'],
 };
 
 // ============================================
@@ -498,6 +498,9 @@ export function generateMusicRecommendation(industry: string, style?: string): M
     'Tech': `Your modern, forward-thinking brand benefits from ${primary.genre.toLowerCase()}'s progressive energy. The clean, structured sound reinforces innovation while maintaining professional credibility.`,
     'Health': `Your wellness-focused brand requires music that promotes calm and trust. ${primary.genre}'s serene qualities create a therapeutic environment that aligns with holistic health values.`,
     'Services': `Your professional service brand needs music that builds confidence. ${primary.genre} provides a polished, reliable audio identity that complements your expertise.`,
+    'Retail': `Your retail brand thrives with ${primary.genre.toLowerCase()}'s inviting energy. The accessible yet polished sound encourages browsing and creates a positive shopping atmosphere.`,
+    'Education': `Your educational brand benefits from ${primary.genre.toLowerCase()}'s focused, clear character. The structured sound supports concentration while maintaining an approachable, inspiring feel.`,
+    'Entertainment': `Your entertainment brand demands ${primary.genre.toLowerCase()}'s dynamic energy. The engaging, high-impact sound captures attention and creates excitement.`,
     'Luxury': `Your exclusive brand demands ${primary.genre.toLowerCase()}'s refined elegance. The sophisticated soundscape elevates the perceived value and creates a memorable premium experience.`,
     'Fashion': `Your trend-forward brand pairs perfectly with ${primary.genre.toLowerCase()}'s stylish energy. The contemporary beats create an aspirational atmosphere that resonates with fashion-conscious audiences.`,
     'Wedding': `Your romantic brand storytelling calls for ${primary.genre.toLowerCase()}'s emotional depth. The dreamy melodies create lasting emotional connections with your audience.`,
@@ -508,7 +511,7 @@ export function generateMusicRecommendation(industry: string, style?: string): M
   return {
     primary,
     alternatives,
-    reasoning: reasonings[industry] || `Your brand profile suggests ${primary.genre} as the ideal soundscape. The ${primary.moods.join(', ')} qualities align with your brand's emotional goals.`,
+    reasoning: reasonings[industry] || `Your ${industry} brand profile suggests ${primary.genre} as the ideal soundscape. The ${primary.moods.join(', ')} qualities align with your brand's emotional goals and industry expectations.`,
     moodProfile,
     analysis,
     style: style || 'auto',
@@ -559,15 +562,95 @@ export function getGenreColor(genre: string): string {
 
 export function detectIndustry(prompt: string): string {
   const p = prompt.toLowerCase();
-  if (p.includes('skincare') || p.includes('beauty') || p.includes('cosmetic') || p.includes('护肤') || p.includes('美容') || p.includes('化妆品') || p.includes('makeup')) return 'Beauty & Skincare';
-  if (p.includes('pet') || p.includes('宠物') || p.includes('grooming') || p.includes('dog') || p.includes('cat') || p.includes('boarding') || p.includes('veterinary')) return 'Pet Lifestyle';
-  if (p.includes('cultural') || p.includes('creative') || p.includes('文创') || p.includes('文化') || p.includes('studio') || p.includes('design') || p.includes('art') || p.includes('gallery') || p.includes('portfolio')) return 'Cultural & Creative';
-  if (p.includes('charity') || p.includes('nonprofit') || p.includes('公益') || p.includes('慈善') || p.includes('donation') || p.includes('social impact') || p.includes('community') || p.includes('foundation')) return 'Charity & Social Impact';
-  // fallback for old keywords
-  if (p.includes('coffee') || p.includes('cafe') || p.includes('restaurant')) return 'Beauty & Skincare';
-  if (p.includes('tech') || p.includes('startup') || p.includes('saas')) return 'Cultural & Creative';
-  if (p.includes('fitness') || p.includes('gym') || p.includes('health')) return 'Pet Lifestyle';
-  return 'Charity & Social Impact';
+
+  // 餐饮/美食
+  if (p.includes('coffee') || p.includes('cafe') || p.includes('restaurant') || p.includes('餐饮') || p.includes('美食') || p.includes('菜单') || p.includes('烘焙') || p.includes('茶') || p.includes('酒吧') || p.includes('food') || p.includes('catering')) return 'Coffee & Food';
+
+  // 科技/SaaS
+  if (p.includes('tech') || p.includes('startup') || p.includes('saas') || p.includes('科技') || p.includes('软件') || p.includes('app') || p.includes('互联网') || p.includes('IT') || p.includes('智能') || p.includes('数码') || p.includes('创业')) return 'Tech';
+
+  // 健身/运动
+  if (p.includes('fitness') || p.includes('gym') || p.includes('workout') || p.includes('健身') || p.includes('运动') || p.includes('瑜伽') || p.includes('体育') || p.includes('训练')) return 'Fitness';
+
+  // 美容/护肤/美妆
+  if (p.includes('skincare') || p.includes('beauty') || p.includes('cosmetic') || p.includes('护肤') || p.includes('美容') || p.includes('化妆品') || p.includes('makeup') || p.includes('美发') || p.includes('美甲') || p.includes('spa') || p.includes('salon')) return 'Fashion';
+
+  // 宠物
+  if (p.includes('pet') || p.includes('宠物') || p.includes('grooming') || p.includes('dog') || p.includes('cat') || p.includes('boarding') || p.includes('veterinary') || p.includes('兽医') || p.includes('萌宠')) return 'Services';
+
+  // 文创/设计/艺术
+  if (p.includes('文创') || p.includes('文化') || p.includes('creative') || p.includes('cultural') || p.includes('设计') || p.includes('design') || p.includes('艺术') || p.includes('gallery') || p.includes('portfolio') || p.includes('studio')) return 'Creative';
+
+  // 公益/慈善
+  if (p.includes('charity') || p.includes('nonprofit') || p.includes('公益') || p.includes('慈善') || p.includes('donation') || p.includes('NGO') || p.includes('基金会') || p.includes('志愿者') || p.includes('social impact') || p.includes('community') || p.includes('foundation')) return 'Services';
+
+  // 婚礼/婚庆
+  if (p.includes('wedding') || p.includes('婚礼') || p.includes('婚庆') || p.includes('婚纱') || p.includes('摄影') || p.includes('photo')) return 'Wedding';
+
+  // 时尚/服装
+  if (p.includes('fashion') || p.includes('时尚') || p.includes('服装') || p.includes('clothing') || p.includes('服饰') || p.includes('潮牌')) return 'Fashion';
+
+  // 奢侈/高端
+  if (p.includes('luxury') || p.includes('奢侈') || p.includes('高端') || p.includes('豪华') || p.includes('premium')) return 'Luxury';
+
+  // 法律/金融
+  if (p.includes('法律') || p.includes('律师') || p.includes('legal') || p.includes('lawyer') || p.includes('金融') || p.includes('finance')) return 'Legal';
+
+  // 教育/培训
+  if (p.includes('教育') || p.includes('培训') || p.includes('学校') || p.includes('edu') || p.includes('课程') || p.includes('学习') || p.includes('course')) return 'Education';
+
+  // 零售/电商
+  if (p.includes('零售') || p.includes('电商') || p.includes('商城') || p.includes('shop') || p.includes('store') || p.includes('购物') || p.includes('retail') || p.includes('ecommerce')) return 'Retail';
+
+  // 娱乐
+  if (p.includes('娱乐') || p.includes('游戏') || p.includes('gaming') || p.includes('entertainment') || p.includes('音乐')) return 'Entertainment';
+
+  // 医疗/健康
+  if (p.includes('health') || p.includes('医疗') || p.includes('健康') || p.includes('医院') || p.includes('诊所') || p.includes('medical') || p.includes('wellness') || p.includes('护理')) return 'Health';
+
+  // 企业/商务
+  if (p.includes('企业') || p.includes('公司') || p.includes('商务') || p.includes('business') || p.includes('corporate') || p.includes('集团') || p.includes('官网')) return 'Services';
+
+  // 房地产
+  if (p.includes('房地产') || p.includes('房产') || p.includes('地产') || p.includes('property') || p.includes('楼盘') || p.includes('租房') || p.includes('买房')) return 'Luxury';
+
+  // 旅游/酒店
+  if (p.includes('旅游') || p.includes('酒店') || p.includes('travel') || p.includes('hotel') || p.includes('民宿') || p.includes('度假')) return 'Entertainment';
+
+  // 汽车
+  if (p.includes('汽车') || p.includes('车行') || p.includes('auto') || p.includes('car') || p.includes('4S')) return 'Services';
+
+  // 建筑/室内设计
+  if (p.includes('建筑') || p.includes('室内') || p.includes('装修') || p.includes('architecture') || p.includes('装潢')) return 'Creative';
+
+  // 个人/简历
+  if (p.includes('个人') || p.includes('简历') || p.includes('resume') || p.includes('cv') || p.includes('自我介绍')) return 'Creative';
+
+  // 咨询
+  if (p.includes('咨询') || p.includes('顾问') || p.includes('consulting')) return 'Services';
+
+  // 默认：使用关键词密度来做更智能的匹配
+  // 扫描所有行业的关键特征词
+  const industrySignals: [string, string[]][] = [
+    ['Coffee & Food', ['温暖', '舒适', 'cozy', 'warm', '香气', '味道', '手工', '自然']],
+    ['Creative', ['创意', '灵感', '设计', '视觉', '独特', '创新', '艺术', '表达']],
+    ['Tech', ['高效', '现代', '数据', '智能', '数字', '效率', '快速', '技术']],
+    ['Health', ['自然', '有机', '纯净', '身心', '护理', '平衡', '养生', '疗愈']],
+    ['Fashion', ['优雅', '精致', '风格', '潮流', '品味', '美感', '高端', '气质']],
+    ['Luxury', ['顶级', '奢华', '专属', '尊贵', '定制', '高贵', '限量', '传承']],
+  ];
+
+  let bestIndustry = 'Services';
+  let bestScore = 0;
+  for (const [ind, signals] of industrySignals) {
+    let score = 0;
+    for (const s of signals) {
+      if (p.includes(s)) score++;
+    }
+    if (score > bestScore) { bestScore = score; bestIndustry = ind; }
+  }
+
+  return bestIndustry;
 }
 
 // ============================================

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useEditor } from '@/hooks/useEditor';
 import { X, Monitor, Tablet, Smartphone, ChevronLeft, Music, Play, Pause, Volume2, SkipForward, SkipBack, RefreshCw } from 'lucide-react';
-import { getTrackById, generateMusicRecommendation, getGenreLabel, getGenreLabelZh } from '@/data/music';
+import { getTrackById, generateMusicRecommendation, getGenreLabel, getGenreLabelZh, detectIndustry } from '@/data/music';
 import { useI18n } from '@/hooks/useI18n';
 
 interface Props { onClose: () => void; onBackToEditor: () => void; }
@@ -26,7 +26,7 @@ export default function Preview({ onClose, onBackToEditor }: Props) {
   }, [isPlaying]);
 
   // Get music for current page
-  const industry = currentPage ? detectIndustryFromPage(currentPage) : 'Services';
+  const industry = currentPage ? detectIndustry(getPageText(currentPage)) : 'Services';
   const rec = currentPage ? generateMusicRecommendation(industry, currentPage.musicStyle) : null;
   const currentTrack = rec?.primary;
 
@@ -130,11 +130,9 @@ export default function Preview({ onClose, onBackToEditor }: Props) {
   );
 }
 
-function detectIndustryFromPage(page: any): string {
-  const text = page.modules.map((m: any) => JSON.stringify((m as any).content)).join(' ').toLowerCase();
-  if (text.includes('coffee') || text.includes('cafe') || text.includes('food') || text.includes('restaurant')) return 'Coffee & Food';
-  if (text.includes('photo') || text.includes('creative') || text.includes('design') || text.includes('portfolio')) return 'Creative';
-  if (text.includes('tech') || text.includes('startup') || text.includes('saas')) return 'Tech';
-  if (text.includes('fitness') || text.includes('gym') || text.includes('health') || text.includes('wellness')) return 'Fitness';
-  return 'Services';
+function getPageText(page: any): string {
+  return page.modules.map((m: any) => {
+    const c = (m as any).content || {};
+    return [c.title, c.subtitle, c.body, c.logo, c.tagline].filter(Boolean).join(' ');
+  }).join(' ');
 }
